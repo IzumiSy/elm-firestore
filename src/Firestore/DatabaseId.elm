@@ -1,5 +1,6 @@
 module Firestore.DatabaseId exposing
     ( DatabaseId
+    , default
     , new
     , unwrap
     )
@@ -12,6 +13,11 @@ type DatabaseId
 new : String -> DatabaseId
 new =
     DatabaseId
+
+
+default : DatabaseId
+default =
+    DatabaseId "(default)"
 
 
 unwrap : DatabaseId -> String
