@@ -4,6 +4,7 @@
   "description": "Firestore for Elm",
   "main": "index.js",
   "scripts": {
+    "build": "elm make src/Firestore.elm",
     "test": "elm-test",
     "publish": "elm publish"
   },
@@ -11,6 +12,7 @@
   "license": "MIT",
   "devDependencies": {
     "elm": "^0.19.0-no-deps",
+    "elm-format": "^0.8.2",
     "elm-test": "^0.19.0-rev6"
   }
 }
