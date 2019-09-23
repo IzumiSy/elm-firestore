@@ -36,8 +36,8 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
     Firestore apiKey projectId databaseId (Path.append pathValue path)
 
 
-get : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-get (Firestore apiKey projectId databaseId path) msg =
+get : (Result Http.Error () -> msg) -> Firestore -> Cmd msg
+get msg (Firestore apiKey projectId databaseId path) =
     Http.request
         { method = "GET"
         , headers = []
