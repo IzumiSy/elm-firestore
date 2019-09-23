@@ -1,10 +1,13 @@
 module Firestore exposing
     ( Firestore
+    , begin
     , collection
+    , commit
     , configure
     , delete
     , get
     , patch
+    , query
     )
 
 import Firestore.APIKey as APIKey exposing (APIKey)
@@ -63,4 +66,19 @@ patch _ _ =
 
 delete : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
 delete _ _ =
+    Cmd.none
+
+
+begin : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
+begin _ _ =
+    Cmd.none
+
+
+commit : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
+commit _ _ =
+    Cmd.none
+
+
+query : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
+query _ _ =
     Cmd.none
