@@ -2,6 +2,8 @@ module Firestore exposing
     ( Firestore
     , configure, collection
     , get, patch, delete, begin, commit, query
+    , Response, Document, Error, ErrorInfo
+    , responseDecoder
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -12,16 +14,18 @@ module Firestore exposing
 
 @docs get, patch, delete, begin, commit, query
 
+@docs Response, Document, Error, ErrorInfo
+
 -}
 
 import Dict
 import Firestore.APIKey as APIKey exposing (APIKey)
 import Firestore.DatabaseId as DatabaseId exposing (DatabaseId)
-import Firestore.Decoder as Decoder
 import Firestore.Path as Path exposing (Path)
 import Firestore.ProjectId as ProjectId exposing (ProjectId)
 import Http
 import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import String.Interpolate as Interpolate
 import Task
 import Time
@@ -74,7 +78,7 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
 -- Request
 
 
-get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Decoder.Response a)
+get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
 get fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
         { method = "GET"
@@ -89,7 +93,7 @@ get fieldDecoder (Firestore apiKey projectId databaseId path) =
                 ]
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver (Decoder.response fieldDecoder)
+        , resolver = jsonResolver (responseDecoder fieldDecoder)
         }
 
 
@@ -146,3 +150,62 @@ jsonResolver decoder =
 
                         Ok result ->
                             Ok result
+
+
+
+-- Decoder
+{- `response_` function is being exposed, but this it only for unit testing -}
+
+
+type alias Response a =
+    { documents : List (Document a)
+    }
+
+
+responseDecoder : Decode.Decoder a -> Decode.Decoder (Response a)
+responseDecoder fieldDecoder =
+    Decode.succeed Response
+        |> Pipeline.required "documents" (Decode.list (documentDecoder fieldDecoder))
+
+
+type alias Document a =
+    { name : String
+    , fields : a
+    , createTime : String
+    , updateTime : String
+    }
+
+
+documentDecoder : Decode.Decoder a -> Decode.Decoder (Document a)
+documentDecoder fieldDecoder =
+    Decode.succeed Document
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "fields" fieldDecoder
+        |> Pipeline.required "createTime" Decode.string
+        |> Pipeline.required "updateTime" Decode.string
+
+
+type alias Error =
+    { code : ErrorInfo
+    }
+
+
+errorDecoder : Decode.Decoder Error
+errorDecoder =
+    Decode.succeed Error
+        |> Pipeline.required "error" errorInfoDecoder
+
+
+type alias ErrorInfo =
+    { code : Int
+    , message : String
+    , status : String
+    }
+
+
+errorInfoDecoder : Decode.Decoder ErrorInfo
+errorInfoDecoder =
+    Decode.succeed ErrorInfo
+        |> Pipeline.required "code" Decode.int
+        |> Pipeline.required "message" Decode.string
+        |> Pipeline.required "status" Decode.string
