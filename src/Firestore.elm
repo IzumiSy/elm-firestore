@@ -2,6 +2,7 @@ module Firestore exposing
     ( Firestore, Response
     , configure, collection
     , get, patch, delete, begin, commit, query
+    , responseDecoder
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -23,6 +24,7 @@ import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import String.Interpolate as Interpolate
+import Task
 import Time
 
 
@@ -53,13 +55,15 @@ This function is aimed to be chanind with pipeline operators in order to build u
         |> Firestore.collection "users"
         |> Firestore.collection "items"
         |> Firestore.collection "tags"
-        |> Firestore.get GotUserItemTags
+        |> Firestore.get
+        |> Task.attempt GotUserItemTags
 
 Of course, you can make it a single string
 
     firestore
         |> Firestore.collection "users/items/tags"
-        |> Firestore.get GotUserItemTags
+        |> Firestore.get
+        |> Task.attempt GotUserItemTags
 
 -}
 collection : String -> Firestore -> Firestore
@@ -71,12 +75,9 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
 -- Request
 
 
-{-| TODO: Http.Error must be converted into hand-crafted Firestore error wrapper
-So here needs using Http.task and Task.attempt to change it into Cmd msg
--}
-get : (Result Http.Error Response -> msg) -> Firestore -> Cmd msg
-get msg (Firestore apiKey projectId databaseId path) =
-    Http.request
+get : Firestore -> Task.Task Http.Error Response
+get (Firestore apiKey projectId databaseId path) =
+    Http.task
         { method = "GET"
         , headers = []
         , url =
@@ -88,9 +89,8 @@ get msg (Firestore apiKey projectId databaseId path) =
                 , APIKey.unwrap apiKey
                 ]
         , body = Http.emptyBody
-        , expect = Http.expectJson msg responseDecoder
         , timeout = Nothing
-        , tracker = Nothing
+        , resolver = jsonResolver responseDecoder
         }
 
 
@@ -120,7 +120,38 @@ query _ _ =
 
 
 
+-- Resolver
+
+
+jsonResolver : Decode.Decoder a -> Http.Resolver Http.Error a
+jsonResolver decoder =
+    Http.stringResolver <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err (Http.BadUrl url)
+
+                Http.Timeout_ ->
+                    Err Http.Timeout
+
+                Http.NetworkError_ ->
+                    Err Http.NetworkError
+
+                Http.BadStatus_ { statusCode } _ ->
+                    Err (Http.BadStatus statusCode)
+
+                Http.GoodStatus_ metadata body ->
+                    case Decode.decodeString decoder body of
+                        Err _ ->
+                            Err (Http.BadBody body)
+
+                        Ok result ->
+                            Ok result
+
+
+
 -- Decoder
+{- responseDeconder is being exposed, but this it only for unit testing -}
 
 
 type alias Response =
