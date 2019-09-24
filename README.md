@@ -4,6 +4,7 @@
 A type-safe Firestore integration for Elm
 
 ## Example
+Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
 ### Types
 ```elm
