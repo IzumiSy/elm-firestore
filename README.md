@@ -6,12 +6,19 @@ A type-safe Firestore integration for Elm
 ## Example
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
-### Types
 ```elm
 import Firestore.Types as Types
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Firestore.Types.Timestamp as Timestamp
+
+
+-- model
+
+
+type alias Model =
+    { firestore : Firestore.Firestore
+    }
 
 
 type alias Document =
@@ -39,6 +46,27 @@ decoder =
         |> Pipeline.required "map" (Types.map Types.string)
         |> Pipeline.required "boolean" Types.bool
         |> Pipeline.required "nullable" (Types.null Types.string)
+
+
+-- init
+
+
+init : ( Model, Cmd Msg )
+init =
+    let
+        firestore =
+            Firestore.configure 
+                { apiKey = APIKey.new "your-own-api-key"
+                , projectId = ProjectId.new "your-firestore-app"
+                , databaseId = DatabaseId.default
+                }
+    in
+    ( { firestore = firestore }
+    , firestore 
+        |> Firestore.collection "users"
+        |> Firestore.get decoder
+        |> Task.attempt GotUsers
+    )
 ```
 
 ## Contribution
