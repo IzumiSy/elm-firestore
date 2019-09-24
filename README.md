@@ -5,6 +5,7 @@ A type-safe Firestore integration for Elm
 
 ## Example
 
+### Types
 ```elm
 type alias Document =
     { timestamp : Timestamp.Timestamp
