@@ -1,8 +1,13 @@
 module Firestore.APIKey exposing
-    ( APIKey
-    , new
+    ( APIKey, new
     , unwrap
     )
+
+{-| An opaque type to identify APIKey
+
+@docs APIKey, new
+
+-}
 
 
 type APIKey

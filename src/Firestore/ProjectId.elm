@@ -1,8 +1,13 @@
 module Firestore.ProjectId exposing
-    ( ProjectId
-    , new
+    ( ProjectId, new
     , unwrap
     )
+
+{-| An opaque type to identify Firestore project ID
+
+@docs ProjectId, new
+
+-}
 
 
 type ProjectId
