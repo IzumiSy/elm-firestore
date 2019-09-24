@@ -9,7 +9,6 @@ Almost all [basic types](https://firebase.google.com/docs/firestore/reference/re
 ```elm
 import Firestore
 import Firestore.Types as Types
-import Firestore.Types as Types
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Firestore.Types.Timestamp as Timestamp
