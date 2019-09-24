@@ -70,9 +70,9 @@ init =
     in
     ( { firestore = firestore }
     , firestore 
-        |> Firestore.collection "users"
+        |> Firestore.collection "documents"
         |> Firestore.get decoder
-        |> Task.attempt GotUsers
+        |> Task.attempt GotDocuments
     )
 ```
 
