@@ -1,4 +1,4 @@
-module Firestore.Decoder exposing (Document, Error, ErrorInfo, Response, document, response)
+module Firestore.Decoder exposing (Document, Error, ErrorInfo, Response, response)
 
 import Dict
 import Json.Decode as Decode
@@ -13,7 +13,7 @@ import Json.Decode.Pipeline as Pipeline
 
 
 
-{- responseDeconder is being exposed, but this it only for unit testing -}
+{- `response` function is being exposed, but this it only for unit testing -}
 
 
 type alias Response a =

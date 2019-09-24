@@ -74,8 +74,8 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
 -- Request
 
 
-get : Firestore -> Task.Task Http.Error Decoder.Response
-get (Firestore apiKey projectId databaseId path) =
+get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Decoder.Response a)
+get fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
         { method = "GET"
         , headers = []
@@ -89,7 +89,7 @@ get (Firestore apiKey projectId databaseId path) =
                 ]
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver Decoder.response
+        , resolver = jsonResolver (Decoder.response fieldDecoder)
         }
 
 

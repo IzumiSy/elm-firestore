@@ -1,7 +1,7 @@
 module Tests.Firestore exposing (suite)
 
 import Expect
-import Firestore
+import Firestore.Decoder as Decoder
 import Json.Decode as Decode
 import Test
 
@@ -63,7 +63,7 @@ suite =
                     """
             in
             src
-                |> Decode.decodeString Firestore.responseDecoder
+                |> Decode.decodeString Decoder.response
                 |> Expect.equal
                     (Ok
                         { documents = []
