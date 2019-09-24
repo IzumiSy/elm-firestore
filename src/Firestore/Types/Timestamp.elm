@@ -1,16 +1,25 @@
-module Firestore.Types.Timestamp exposing (Timestamp, new)
+module Firestore.Types.Timestamp exposing (Timestamp, decoder, toPosix)
 
 {-|
 
-@docs Timestamp, new
+@docs Timestamp, decoder, toPosix
 
 -}
 
+import Iso8601
+import Json.Decode as Decode
+import Time
+
 
 type Timestamp
-    = Timestamp String
+    = Timestamp Time.Posix
 
 
-new : String -> Timestamp
-new =
-    Timestamp
+decoder : Decode.Decoder Timestamp
+decoder =
+    Iso8601.decoder |> Decode.map Timestamp
+
+
+toPosix : Timestamp -> Time.Posix
+toPosix (Timestamp posix) =
+    posix

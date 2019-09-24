@@ -25,6 +25,7 @@ import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Path as Path exposing (Path)
 import Firestore.Transaction as Transaction
 import Http
+import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import String.Interpolate as Interpolate
@@ -274,8 +275,8 @@ responseDecoder fieldDecoder =
 type alias Document a =
     { name : String
     , fields : a
-    , createTime : String
-    , updateTime : String
+    , createTime : Time.Posix
+    , updateTime : Time.Posix
     }
 
 
@@ -284,8 +285,8 @@ documentDecoder fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "fields" fieldDecoder
-        |> Pipeline.required "createTime" Decode.string
-        |> Pipeline.required "updateTime" Decode.string
+        |> Pipeline.required "createTime" Iso8601.decoder
+        |> Pipeline.required "updateTime" Iso8601.decoder
 
 
 transactionResolver : Decode.Decoder String
@@ -294,13 +295,13 @@ transactionResolver =
 
 
 type alias Commit =
-    { commitTime : String }
+    { commitTime : Time.Posix }
 
 
 commitResolver : Decode.Decoder Commit
 commitResolver =
     Decode.succeed Commit
-        |> Pipeline.required "commitTime" Decode.string
+        |> Pipeline.required "commitTime" Iso8601.decoder
 
 
 type alias Error =

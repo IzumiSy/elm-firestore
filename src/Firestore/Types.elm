@@ -39,7 +39,7 @@ reference =
 
 timestamp : Decode.Decoder Timestamp.Timestamp
 timestamp =
-    Decode.field "timestampValue" Decode.string |> Decode.map Timestamp.new
+    Decode.field "timestampValue" Timestamp.decoder
 
 
 geopoint : Decode.Decoder Geopoint.Geopoint
