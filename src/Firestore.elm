@@ -24,6 +24,7 @@ import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Path as Path exposing (Path)
 import Firestore.Transaction as Transaction
+import Firestore.Types.Timestamp as Timestamp
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -275,8 +276,8 @@ responseDecoder fieldDecoder =
 type alias Document a =
     { name : String
     , fields : a
-    , createTime : Time.Posix
-    , updateTime : Time.Posix
+    , createTime : Timestamp.Timestamp
+    , updateTime : Timestamp.Timestamp
     }
 
 
@@ -285,8 +286,8 @@ documentDecoder fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "fields" fieldDecoder
-        |> Pipeline.required "createTime" Iso8601.decoder
-        |> Pipeline.required "updateTime" Iso8601.decoder
+        |> Pipeline.required "createTime" Timestamp.decoder
+        |> Pipeline.required "updateTime" Timestamp.decoder
 
 
 transactionResolver : Decode.Decoder String
