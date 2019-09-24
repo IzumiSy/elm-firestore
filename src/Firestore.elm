@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , configure, collection
-    , get, patch, delete, begin, commit
+    , get, patch, delete, begin, commit, create
     , Response, Document, Error, ErrorInfo
     , responseDecoder
     )
@@ -12,7 +12,7 @@ module Firestore exposing
 
 @docs configure, collection
 
-@docs get, patch, delete, begin, commit
+@docs get, patch, delete, begin, commit, create
 
 @docs Response, Document, Error, ErrorInfo
 
@@ -79,6 +79,8 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
 -- Request
 
 
+{-| Gets a single document.
+-}
 get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
 get fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
@@ -98,6 +100,29 @@ get fieldDecoder (Firestore apiKey projectId databaseId path) =
         }
 
 
+{-| Creates a new document.
+-}
+create : Decode.Value -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
+create body fieldDecoder (Firestore apiKey projectId databaseId path) =
+    Http.task
+        { method = "POST"
+        , headers = []
+        , url =
+            Interpolate.interpolate
+                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
+                [ ProjectId.unwrap projectId
+                , DatabaseId.unwrap databaseId
+                , Path.toString path
+                , APIKey.unwrap apiKey
+                ]
+        , body = Http.jsonBody body
+        , timeout = Nothing
+        , resolver = jsonResolver (responseDecoder fieldDecoder)
+        }
+
+
+{-| Updates or inserts a document.
+-}
 patch : Decode.Value -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
 patch body fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
@@ -117,6 +142,8 @@ patch body fieldDecoder (Firestore apiKey projectId databaseId path) =
         }
 
 
+{-| Deletes a document.
+-}
 delete : Firestore -> Task.Task Http.Error ()
 delete (Firestore apiKey projectId databaseId path) =
     Http.task
@@ -136,6 +163,8 @@ delete (Firestore apiKey projectId databaseId path) =
         }
 
 
+{-| Starts a new transaction.
+-}
 begin : Firestore -> Task.Task Http.Error Transaction.Transaction
 begin (Firestore apiKey projectId databaseId path) =
     Task.map Transaction.new <|
@@ -155,6 +184,8 @@ begin (Firestore apiKey projectId databaseId path) =
             }
 
 
+{-| Commits a transaction, while optionally updating documents.
+-}
 commit : Decode.Value -> Firestore -> Task.Task Http.Error Commit
 commit body (Firestore apiKey projectId databaseId path) =
     Http.task
