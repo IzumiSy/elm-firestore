@@ -1,8 +1,9 @@
-module Firestore.Types exposing (string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map)
+module Firestore.Types exposing (string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map, bytes)
 
 {-| Decoders for Firestore builtin types
+More information at <https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value>
 
-@docs string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map
+@docs string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map, bytes
 
 -}
 
@@ -38,6 +39,11 @@ reference =
 timestamp : Decode.Decoder String
 timestamp =
     Decode.field "timestampValue" Decode.string
+
+
+bytes : Decode.Decoder String
+bytes =
+    Decode.field "bytesValue" Decode.string
 
 
 bool : Decode.Decoder Bool
