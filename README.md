@@ -3,6 +3,10 @@
 
 A type-safe Firestore integration for Elm
 
+Currently this library is supporting:
+- Simple CRUD operation (get, create, patch, delete)
+- Transactions
+
 ## Example
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
