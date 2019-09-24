@@ -7,10 +7,15 @@ A type-safe Firestore integration for Elm
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
 ```elm
+import Firestore
+import Firestore.Types as Types
 import Firestore.Types as Types
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Firestore.Types.Timestamp as Timestamp
+import Firestore.Config.APIKey as APIKey
+import Firestore.Config.ProjectId as ProjectId
+import Firestore.Config.DatabaseId as DatabaseId
 
 
 -- model
