@@ -1,4 +1,4 @@
-module Firestore.DatabaseId exposing
+module Firestore.Config.DatabaseId exposing
     ( DatabaseId, new, default
     , unwrap
     )

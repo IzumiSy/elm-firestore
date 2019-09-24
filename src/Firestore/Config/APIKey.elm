@@ -1,4 +1,4 @@
-module Firestore.APIKey exposing
+module Firestore.Config.APIKey exposing
     ( APIKey, new
     , unwrap
     )

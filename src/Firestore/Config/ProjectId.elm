@@ -1,4 +1,4 @@
-module Firestore.ProjectId exposing
+module Firestore.Config.ProjectId exposing
     ( ProjectId, new
     , unwrap
     )

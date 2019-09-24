@@ -19,10 +19,10 @@ module Firestore exposing
 -}
 
 import Dict
-import Firestore.APIKey as APIKey exposing (APIKey)
-import Firestore.DatabaseId as DatabaseId exposing (DatabaseId)
+import Firestore.Config.APIKey as APIKey exposing (APIKey)
+import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
+import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Path as Path exposing (Path)
-import Firestore.ProjectId as ProjectId exposing (ProjectId)
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
