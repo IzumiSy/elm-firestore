@@ -97,6 +97,11 @@ get fieldDecoder (Firestore apiKey projectId databaseId path) =
         }
 
 
+query : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
+query _ _ =
+    Cmd.none
+
+
 patch : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
 patch _ _ =
     Cmd.none
@@ -114,11 +119,6 @@ begin _ _ =
 
 commit : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
 commit _ _ =
-    Cmd.none
-
-
-query : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-query _ _ =
     Cmd.none
 
 
@@ -154,7 +154,7 @@ jsonResolver decoder =
 
 
 -- Decoder
-{- `response_` function is being exposed, but this it only for unit testing -}
+{- `responseDecoder` function is being exposed, but this it only for unit testing -}
 
 
 type alias Response a =
