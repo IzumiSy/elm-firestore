@@ -1,15 +1,18 @@
 module Firestore exposing
-    ( Firestore
-    , Response
-    , begin
-    , collection
-    , commit
-    , configure
-    , delete
-    , get
-    , patch
-    , query
+    ( Firestore, Response
+    , configure, collection
+    , get, patch, delete, begin, commit, query
     )
+
+{-| A library to have your app interact with Firestore in Elm
+
+@docs Firestore, Response
+
+@docs configure, collection
+
+@docs get, patch, delete, begin, commit, query
+
+-}
 
 import Dict
 import Firestore.APIKey as APIKey exposing (APIKey)
@@ -27,6 +30,8 @@ type Firestore
     = Firestore APIKey ProjectId DatabaseId Path
 
 
+{-| Config record has all information which is required to send requests to Firestore through REST API
+-}
 type alias Config =
     { apiKey : APIKey
     , projectId : ProjectId
@@ -34,16 +39,27 @@ type alias Config =
     }
 
 
+{-| Builds a new Firestore connection with Config
+-}
 configure : Config -> Firestore
 configure { apiKey, projectId, databaseId } =
     Firestore apiKey projectId databaseId Path.empty
 
 
+{-| Drills down document paths with a specific path name
+-}
 collection : String -> Firestore -> Firestore
 collection pathValue (Firestore apiKey projectId databaseId path) =
     Firestore apiKey projectId databaseId (Path.append pathValue path)
 
 
+
+-- Request
+
+
+{-| TODO: Http.Error must be converted into hand-crafted Firestore error wrapper
+So here needs using Http.task and Task.attempt to change it into Cmd msg
+-}
 get : (Result Http.Error Response -> msg) -> Firestore -> Cmd msg
 get msg (Firestore apiKey projectId databaseId path) =
     Http.request
