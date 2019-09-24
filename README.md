@@ -39,7 +39,7 @@ decoder =
     Decode.succeed Document
         |> Pipeline.required "timestamp" Types.timestamp
         |> Pipeline.required "geopoint" Types.geopoint
-        |> Pipeline.required "referenec" Types.reference
+        |> Pipeline.required "reference" Types.reference
         |> Pipeline.required "integer" Types.int
         |> Pipeline.required "string" Types.string
         |> Pipeline.required "list" (Types.list Types.string)
