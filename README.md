@@ -1,9 +1,8 @@
 # elm-firestore
 [![CircleCI](https://circleci.com/gh/IzumiSy/elm-firestore.svg?style=svg)](https://circleci.com/gh/IzumiSy/elm-firestore)
+> A type-safe Firestore integration for Elm. 
 
-A type-safe Firestore integration for Elm
-
-Currently this library is supporting:
+Currently elm-firestore library is supporting:
 - Simple CRUD operation (get, create, patch, delete)
 - Transactions
 
@@ -76,6 +75,26 @@ init =
         |> Task.attempt GotUsers
     )
 ```
+
+## Development
+
+### Setup
+```shell
+$ npm install
+```
+
+### Build
+```shell
+$ npm run build
+```
+
+### Testing
+```shell
+$ npm test
+```
+
+## License
+MIT
 
 ## Contribution
 PRs accepted
