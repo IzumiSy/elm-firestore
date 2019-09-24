@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , configure, collection
-    , get, patch, delete, begin, commit, query
+    , get, patch, delete, begin, commit
     , Response, Document, Error, ErrorInfo
     , responseDecoder
     )
@@ -12,7 +12,7 @@ module Firestore exposing
 
 @docs configure, collection
 
-@docs get, patch, delete, begin, commit, query
+@docs get, patch, delete, begin, commit
 
 @docs Response, Document, Error, ErrorInfo
 
@@ -23,6 +23,7 @@ import Firestore.Config.APIKey as APIKey exposing (APIKey)
 import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Path as Path exposing (Path)
+import Firestore.Transaction as Transaction
 import Http
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -97,29 +98,79 @@ get fieldDecoder (Firestore apiKey projectId databaseId path) =
         }
 
 
-query : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-query _ _ =
-    Cmd.none
+patch : Decode.Value -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
+patch body fieldDecoder (Firestore apiKey projectId databaseId path) =
+    Http.task
+        { method = "PATCH"
+        , headers = []
+        , url =
+            Interpolate.interpolate
+                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
+                [ ProjectId.unwrap projectId
+                , DatabaseId.unwrap databaseId
+                , Path.toString path
+                , APIKey.unwrap apiKey
+                ]
+        , body = Http.jsonBody body
+        , timeout = Nothing
+        , resolver = jsonResolver (responseDecoder fieldDecoder)
+        }
 
 
-patch : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-patch _ _ =
-    Cmd.none
+delete : Firestore -> Task.Task Http.Error ()
+delete (Firestore apiKey projectId databaseId path) =
+    Http.task
+        { method = "GET"
+        , headers = []
+        , url =
+            Interpolate.interpolate
+                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
+                [ ProjectId.unwrap projectId
+                , DatabaseId.unwrap databaseId
+                , Path.toString path
+                , APIKey.unwrap apiKey
+                ]
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver = emptyResolver
+        }
 
 
-delete : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-delete _ _ =
-    Cmd.none
+begin : Firestore -> Task.Task Http.Error Transaction.Transaction
+begin (Firestore apiKey projectId databaseId path) =
+    Task.map Transaction.new <|
+        Http.task
+            { method = "POST"
+            , headers = []
+            , url =
+                Interpolate.interpolate
+                    "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:beginTransaction?key={2}"
+                    [ ProjectId.unwrap projectId
+                    , DatabaseId.unwrap databaseId
+                    , APIKey.unwrap apiKey
+                    ]
+            , body = Http.emptyBody
+            , timeout = Nothing
+            , resolver = jsonResolver transactionResolver
+            }
 
 
-begin : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-begin _ _ =
-    Cmd.none
-
-
-commit : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
-commit _ _ =
-    Cmd.none
+commit : Decode.Value -> Firestore -> Task.Task Http.Error Commit
+commit body (Firestore apiKey projectId databaseId path) =
+    Http.task
+        { method = "POST"
+        , headers = []
+        , url =
+            Interpolate.interpolate
+                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:commit?key={2}"
+                [ ProjectId.unwrap projectId
+                , DatabaseId.unwrap databaseId
+                , APIKey.unwrap apiKey
+                ]
+        , body = Http.jsonBody body
+        , timeout = Nothing
+        , resolver = jsonResolver commitResolver
+        }
 
 
 
@@ -150,6 +201,27 @@ jsonResolver decoder =
 
                         Ok result ->
                             Ok result
+
+
+emptyResolver : Http.Resolver Http.Error ()
+emptyResolver =
+    Http.stringResolver <|
+        \response ->
+            case response of
+                Http.BadUrl_ url ->
+                    Err (Http.BadUrl url)
+
+                Http.Timeout_ ->
+                    Err Http.Timeout
+
+                Http.NetworkError_ ->
+                    Err Http.NetworkError
+
+                Http.BadStatus_ metadata _ ->
+                    Err (Http.BadStatus metadata.statusCode)
+
+                Http.GoodStatus_ _ _ ->
+                    Ok ()
 
 
 
@@ -183,6 +255,21 @@ documentDecoder fieldDecoder =
         |> Pipeline.required "fields" fieldDecoder
         |> Pipeline.required "createTime" Decode.string
         |> Pipeline.required "updateTime" Decode.string
+
+
+transactionResolver : Decode.Decoder String
+transactionResolver =
+    Decode.field "transaction" Decode.string
+
+
+type alias Commit =
+    { commitTime : String }
+
+
+commitResolver : Decode.Decoder Commit
+commitResolver =
+    Decode.succeed Commit
+        |> Pipeline.required "commitTime" Decode.string
 
 
 type alias Error =
