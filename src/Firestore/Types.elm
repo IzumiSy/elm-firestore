@@ -34,7 +34,7 @@ int =
 
 reference : Decode.Decoder Reference.Reference
 reference =
-    Decode.field "referenceValue" Decode.string |> Decode.map Reference.new
+    Decode.field "referenceValue" Reference.decoder
 
 
 timestamp : Decode.Decoder Timestamp.Timestamp

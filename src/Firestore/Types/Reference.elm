@@ -1,16 +1,18 @@
-module Firestore.Types.Reference exposing (Reference, new)
+module Firestore.Types.Reference exposing (Reference, decoder)
 
 {-|
 
-@docs Reference, new
+@docs Reference, decoder
 
 -}
+
+import Json.Decode as Decode
 
 
 type Reference
     = Reference String
 
 
-new : String -> Reference
-new =
-    Reference
+decoder : Decode.Decoder Reference
+decoder =
+    Decode.string |> Decode.map Reference
