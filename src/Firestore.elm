@@ -1,5 +1,6 @@
 module Firestore exposing
     ( Firestore
+    , Response
     , begin
     , collection
     , commit
@@ -10,12 +11,16 @@ module Firestore exposing
     , query
     )
 
+import Dict
 import Firestore.APIKey as APIKey exposing (APIKey)
 import Firestore.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Path as Path exposing (Path)
 import Firestore.ProjectId as ProjectId exposing (ProjectId)
 import Http
+import Json.Decode as Decode
+import Json.Decode.Pipeline as Pipeline
 import String.Interpolate as Interpolate
+import Time
 
 
 type Firestore
@@ -39,7 +44,7 @@ collection pathValue (Firestore apiKey projectId databaseId path) =
     Firestore apiKey projectId databaseId (Path.append pathValue path)
 
 
-get : (Result Http.Error () -> msg) -> Firestore -> Cmd msg
+get : (Result Http.Error Response -> msg) -> Firestore -> Cmd msg
 get msg (Firestore apiKey projectId databaseId path) =
     Http.request
         { method = "GET"
@@ -53,7 +58,7 @@ get msg (Firestore apiKey projectId databaseId path) =
                 , APIKey.unwrap apiKey
                 ]
         , body = Http.emptyBody
-        , expect = Http.expectWhatever msg -- TODO: Here must be Http.expectJson
+        , expect = Http.expectJson msg responseDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -82,3 +87,61 @@ commit _ _ =
 query : Firestore -> (Result Http.Error () -> msg) -> Cmd msg
 query _ _ =
     Cmd.none
+
+
+
+-- Decoder
+
+
+type alias Response =
+    { documents : List Document
+    }
+
+
+responseDecoder : Decode.Decoder Response
+responseDecoder =
+    Decode.succeed Response
+        |> Pipeline.required "documents" (Decode.list documentDecoder)
+
+
+type alias Document =
+    { name : String
+    , fields : Dict.Dict String (Dict.Dict String String)
+    , createTime : String
+    , updateTime : String
+    }
+
+
+documentDecoder : Decode.Decoder Document
+documentDecoder =
+    Decode.succeed Document
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "fields" (Decode.dict (Decode.dict Decode.string))
+        |> Pipeline.required "createTime" Decode.string
+        |> Pipeline.required "updateTime" Decode.string
+
+
+type alias Error =
+    { code : ErrorInfo
+    }
+
+
+errorDecoder : Decode.Decoder Error
+errorDecoder =
+    Decode.succeed Error
+        |> Pipeline.required "error" errorInfoDecoder
+
+
+type alias ErrorInfo =
+    { code : Int
+    , message : String
+    , status : String
+    }
+
+
+errorInfoDecoder : Decode.Decoder ErrorInfo
+errorInfoDecoder =
+    Decode.succeed ErrorInfo
+        |> Pipeline.required "code" Decode.int
+        |> Pipeline.required "message" Decode.string
+        |> Pipeline.required "status" Decode.string
