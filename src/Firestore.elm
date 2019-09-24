@@ -46,7 +46,21 @@ configure { apiKey, projectId, databaseId } =
     Firestore apiKey projectId databaseId Path.empty
 
 
-{-| Drills down document paths with a specific path name
+{-| Drills down document paths with a specific path name.
+This function is aimed to be chanind with pipeline operators in order to build up document path.
+
+    firestore
+        |> Firestore.collection "users"
+        |> Firestore.collection "items"
+        |> Firestore.collection "tags"
+        |> Firestore.get GotUserItemTags
+
+Of course, you can make it a single string
+
+    firestore
+        |> Firestore.collection "users/items/tags"
+        |> Firestore.get GotUserItemTags
+
 -}
 collection : String -> Firestore -> Firestore
 collection pathValue (Firestore apiKey projectId databaseId path) =
