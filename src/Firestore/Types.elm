@@ -1,14 +1,12 @@
-module Firestore.Types exposing
-    ( string, reference, timestamp, null, geopoint, GeoPoint
-    , bool, int, list
-    )
+module Firestore.Types exposing (string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map)
 
 {-| Decoders for Firestore builtin types
 
-@docs string, integer, reference, timestamp, boolean, null, array, geopoint, GeoPoint
+@docs string, int, reference, timestamp, bool, null, list, geopoint, GeoPoint, map
 
 -}
 
+import Dict
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 
@@ -55,6 +53,11 @@ null decoder =
 list : Decode.Decoder a -> Decode.Decoder (List a)
 list decoder =
     Decode.field "arrayValue" <| Decode.field "values" <| Decode.list decoder
+
+
+map : Decode.Decoder a -> Decode.Decoder (Dict.Dict String a)
+map decoder =
+    Decode.field "mapValue" <| Decode.field "fields" <| Decode.dict decoder
 
 
 type alias GeoPoint =

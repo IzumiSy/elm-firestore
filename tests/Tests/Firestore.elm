@@ -1,5 +1,6 @@
 module Tests.Firestore exposing (suite)
 
+import Dict
 import Expect
 import Firestore
 import Firestore.Types as Types
@@ -8,27 +9,29 @@ import Json.Decode.Pipeline as Pipeline
 import Test
 
 
-type alias Result =
+type alias User =
     { created_at : String
     , location : Types.GeoPoint
     , bookmark : String
     , age : Int
     , name : String
-    , items : List String
+    , misc : List String
+    , items : Dict.Dict String String
     , has_license : Bool
     , girlfriend : Maybe String
     }
 
 
-decoder : Decode.Decoder Result
+decoder : Decode.Decoder User
 decoder =
-    Decode.succeed Result
+    Decode.succeed User
         |> Pipeline.required "created_at" Types.timestamp
         |> Pipeline.required "location" Types.geopoint
         |> Pipeline.required "bookmark" Types.reference
         |> Pipeline.required "age" Types.int
         |> Pipeline.required "name" Types.string
-        |> Pipeline.required "items" (Types.list Types.string)
+        |> Pipeline.required "misc" (Types.list Types.string)
+        |> Pipeline.required "items" (Types.map Types.string)
         |> Pipeline.required "has_license" Types.bool
         |> Pipeline.required "girlfriend" (Types.null Types.string)
 
@@ -63,16 +66,28 @@ suite =
         "name": {
           "stringValue": "justine"
         },
-        "items": {
+        "misc": {
           "arrayValue": {
             "values": [
               {
-                "stringValue": "hoge"
+                "stringValue": "111"
               },
               {
-                "stringValue": "piyo"
+                "stringValue": "222"
               }
             ]
+          }
+        },
+        "items": {
+          "mapValue": {
+            "fields": {
+              "aaa": {
+                "stringValue": "111"
+              },
+              "bbb": {
+                "stringValue": "222"
+              }
+            }
           }
         },
         "has_license": {
@@ -101,7 +116,8 @@ suite =
                                     , created_at = "2019-09-23T15:00:00Z"
                                     , girlfriend = Nothing
                                     , has_license = True
-                                    , items = [ "hoge", "piyo" ]
+                                    , misc = [ "111", "222" ]
+                                    , items = Dict.fromList [ ( "aaa", "111" ), ( "bbb", "222" ) ]
                                     , location =
                                         { latitude = 10
                                         , longitude = 10
