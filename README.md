@@ -1,7 +1,7 @@
 # elm-firestore
 [![CircleCI](https://circleci.com/gh/IzumiSy/elm-firestore.svg?style=svg)](https://circleci.com/gh/IzumiSy/elm-firestore)
 
-An Elm library to help your app integrate with Firestore
+A type-safe Firestore integration for Elm
 
 ## Contribution
 PRs accepted
