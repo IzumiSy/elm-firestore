@@ -1,13 +1,14 @@
-module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude)
+module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude, encoder)
 
 {-|
 
-@docs Geopoint, decoder, latitude, longitude
+@docs Geopoint, decoder, latitude, longitude, encoder
 
 -}
 
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 
 
 type Geopoint
@@ -28,6 +29,18 @@ decoder =
         |> Pipeline.required "longitude" Decode.int
         |> Pipeline.resolve
         |> Decode.field "geoPointValue"
+
+
+encoder : Geopoint -> Encode.Value
+encoder (Geopoint lat long) =
+    Encode.object
+        [ ( "geoPointValue"
+          , Encode.object
+                [ ( "latitude", Encode.int lat )
+                , ( "longitude", Encode.int long )
+                ]
+          )
+        ]
 
 
 longitude : Geopoint -> Int
