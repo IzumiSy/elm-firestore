@@ -6,10 +6,13 @@
     "version": "1.0.0",
     "exposed-modules": [
         "Firestore",
-        "Firestore.Transaction",
-        "Firestore.Types",
+        "Firestore.Config.APIKey",
+        "Firestore.Config.DatabaseId",
+        "Firestore.Config.ProjectId",
         "Firestore.Document",
         "Firestore.Document.Fields",
+        "Firestore.Transaction",
+        "Firestore.Types",
         "Firestore.Types.Reference",
         "Firestore.Types.Timestamp",
         "Firestore.Types.Geopoint",
@@ -19,10 +22,7 @@
         "Firestore.Types.List",
         "Firestore.Types.Map",
         "Firestore.Types.Null",
-        "Firestore.Types.String",
-        "Firestore.Config.APIKey",
-        "Firestore.Config.DatabaseId",
-        "Firestore.Config.ProjectId"
+        "Firestore.Types.String"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {
