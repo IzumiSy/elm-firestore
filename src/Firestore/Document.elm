@@ -1,8 +1,19 @@
-module Firestore.Document exposing (Document, decoder)
+module Firestore.Document exposing
+    ( Document
+    , decoder, encode
+    )
 
+{-|
+
+@docs Document
+
+-}
+
+import Firestore.Document.Fields as Fields
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Time
 
 
@@ -21,3 +32,9 @@ decoder fieldDecoder =
         |> Pipeline.required "fields" fieldDecoder
         |> Pipeline.required "createTime" Iso8601.decoder
         |> Pipeline.required "updateTime" Iso8601.decoder
+
+
+encode : Fields.Fields -> Encode.Value
+encode fields =
+    Encode.object
+        [ ( "fields", Fields.encode fields ) ]

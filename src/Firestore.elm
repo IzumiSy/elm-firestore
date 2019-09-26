@@ -23,6 +23,7 @@ import Firestore.Config.APIKey as APIKey exposing (APIKey)
 import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Document as Document
+import Firestore.Document.Fields as Fields
 import Firestore.Path as Path exposing (Path)
 import Firestore.Transaction as Transaction
 import Http
@@ -104,8 +105,8 @@ get fieldDecoder (Firestore apiKey projectId databaseId path) =
 
 {-| Creates a new document.
 -}
-create : Decode.Value -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-create body fieldDecoder (Firestore apiKey projectId databaseId path) =
+create : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
+create fields fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
         { method = "POST"
         , headers = []
@@ -117,7 +118,7 @@ create body fieldDecoder (Firestore apiKey projectId databaseId path) =
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
-        , body = Http.jsonBody body
+        , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver (responseDecoder fieldDecoder)
         }
@@ -125,8 +126,8 @@ create body fieldDecoder (Firestore apiKey projectId databaseId path) =
 
 {-| Updates or inserts a document.
 -}
-patch : Decode.Value -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-patch body fieldDecoder (Firestore apiKey projectId databaseId path) =
+patch : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
+patch fields fieldDecoder (Firestore apiKey projectId databaseId path) =
     Http.task
         { method = "PATCH"
         , headers = []
@@ -138,7 +139,7 @@ patch body fieldDecoder (Firestore apiKey projectId databaseId path) =
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
-        , body = Http.jsonBody body
+        , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver (responseDecoder fieldDecoder)
         }

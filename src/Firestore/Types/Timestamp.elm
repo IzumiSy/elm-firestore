@@ -6,6 +6,7 @@ module Firestore.Types.Timestamp exposing (Timestamp, decoder, toPosix, encoder)
 
 -}
 
+import Firestore.Documents.Field as Field
 import Iso8601
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -21,10 +22,11 @@ decoder =
     Decode.field "timestampValue" <| Decode.map Timestamp Iso8601.decoder
 
 
-encoder : Timestamp -> Encode.Value
+encoder : Timestamp -> Field.Field
 encoder (Timestamp value) =
-    Encode.object
-        [ ( "timestampValue", Iso8601.encode value ) ]
+    Field.new <|
+        Encode.object
+            [ ( "timestampValue", Iso8601.encode value ) ]
 
 
 toPosix : Timestamp -> Time.Posix
