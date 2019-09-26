@@ -2,7 +2,7 @@ module Firestore exposing
     ( Firestore
     , configure, collection
     , get, patch, delete, begin, commit, create
-    , Response, Document, Error, ErrorInfo
+    , Response, Error, ErrorInfo
     , responseDecoder
     )
 
@@ -14,7 +14,7 @@ module Firestore exposing
 
 @docs get, patch, delete, begin, commit, create
 
-@docs Response, Document, Error, ErrorInfo
+@docs Response, Error, ErrorInfo
 
 -}
 
@@ -22,9 +22,9 @@ import Dict
 import Firestore.Config.APIKey as APIKey exposing (APIKey)
 import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
+import Firestore.Document as Document
 import Firestore.Path as Path exposing (Path)
 import Firestore.Transaction as Transaction
-import Firestore.Types.Timestamp as Timestamp
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -263,31 +263,14 @@ emptyResolver =
 
 
 type alias Response a =
-    { documents : List (Document a)
+    { documents : List (Document.Document a)
     }
 
 
 responseDecoder : Decode.Decoder a -> Decode.Decoder (Response a)
 responseDecoder fieldDecoder =
     Decode.succeed Response
-        |> Pipeline.required "documents" (Decode.list (documentDecoder fieldDecoder))
-
-
-type alias Document a =
-    { name : String
-    , fields : a
-    , createTime : Time.Posix
-    , updateTime : Time.Posix
-    }
-
-
-documentDecoder : Decode.Decoder a -> Decode.Decoder (Document a)
-documentDecoder fieldDecoder =
-    Decode.succeed Document
-        |> Pipeline.required "name" Decode.string
-        |> Pipeline.required "fields" fieldDecoder
-        |> Pipeline.required "createTime" Iso8601.decoder
-        |> Pipeline.required "updateTime" Iso8601.decoder
+        |> Pipeline.required "documents" (fieldDecoder |> Document.decoder |> Decode.list)
 
 
 transactionResolver : Decode.Decoder String
