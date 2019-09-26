@@ -27,6 +27,7 @@ decoder =
         |> Pipeline.required "latitude" Decode.int
         |> Pipeline.required "longitude" Decode.int
         |> Pipeline.resolve
+        |> Decode.field "geoPointValue"
 
 
 longitude : Geopoint -> Int

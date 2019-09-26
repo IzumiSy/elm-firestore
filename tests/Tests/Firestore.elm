@@ -3,9 +3,14 @@ module Tests.Firestore exposing (suite)
 import Dict
 import Expect
 import Firestore
-import Firestore.Types as Types
+import Firestore.Types.Bool as FSBool
 import Firestore.Types.Geopoint as Geopoint
+import Firestore.Types.Int as FSInt
+import Firestore.Types.List as FSList
+import Firestore.Types.Map as FSMap
+import Firestore.Types.Null as FSNull
 import Firestore.Types.Reference as Reference
+import Firestore.Types.String as FSString
 import Firestore.Types.Timestamp as Timestamp
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -29,15 +34,15 @@ type alias Document =
 decoder : Decode.Decoder Document
 decoder =
     Decode.succeed Document
-        |> Pipeline.required "timestamp" Types.timestamp
-        |> Pipeline.required "reference" Types.reference
-        |> Pipeline.required "geopoint" Types.geopoint
-        |> Pipeline.required "integer" Types.int
-        |> Pipeline.required "string" Types.string
-        |> Pipeline.required "list" (Types.list Types.string)
-        |> Pipeline.required "map" (Types.map Types.string)
-        |> Pipeline.required "boolean" Types.bool
-        |> Pipeline.required "nullable" (Types.null Types.string)
+        |> Pipeline.required "timestamp" Timestamp.decoder
+        |> Pipeline.required "reference" Reference.decoder
+        |> Pipeline.required "geopoint" Geopoint.decoder
+        |> Pipeline.required "integer" FSInt.decoder
+        |> Pipeline.required "string" FSString.decoder
+        |> Pipeline.required "list" (FSList.decoder FSString.decoder)
+        |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
+        |> Pipeline.required "boolean" FSBool.decoder
+        |> Pipeline.required "nullable" (FSNull.decoder FSString.decoder)
 
 
 suite : Test.Test

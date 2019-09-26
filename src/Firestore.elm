@@ -276,8 +276,8 @@ responseDecoder fieldDecoder =
 type alias Document a =
     { name : String
     , fields : a
-    , createTime : Timestamp.Timestamp
-    , updateTime : Timestamp.Timestamp
+    , createTime : Time.Posix
+    , updateTime : Time.Posix
     }
 
 
@@ -286,8 +286,8 @@ documentDecoder fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "fields" fieldDecoder
-        |> Pipeline.required "createTime" Timestamp.decoder
-        |> Pipeline.required "updateTime" Timestamp.decoder
+        |> Pipeline.required "createTime" Iso8601.decoder
+        |> Pipeline.required "updateTime" Iso8601.decoder
 
 
 transactionResolver : Decode.Decoder String

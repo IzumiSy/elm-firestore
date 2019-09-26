@@ -15,4 +15,4 @@ type Reference
 
 decoder : Decode.Decoder Reference
 decoder =
-    Decode.string |> Decode.map Reference
+    Decode.field "referenceValue" <| Decode.map Reference Decode.string

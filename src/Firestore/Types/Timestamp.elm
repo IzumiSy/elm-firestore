@@ -17,7 +17,7 @@ type Timestamp
 
 decoder : Decode.Decoder Timestamp
 decoder =
-    Iso8601.decoder |> Decode.map Timestamp
+    Decode.field "timestampValue" <| Decode.map Timestamp Iso8601.decoder
 
 
 toPosix : Timestamp -> Time.Posix

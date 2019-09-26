@@ -11,10 +11,15 @@ Almost all [basic types](https://firebase.google.com/docs/firestore/reference/re
 
 ```elm
 import Firestore
-import Firestore.Types as Types
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Firestore.Types.Timestamp as Timestamp
+import Firestore.Types.String as FSString
+import Firestore.Types.Int as FSInt
+import Firestore.Types.List as FSList
+import Firestore.Types.Map as FSMap
+import Firestore.Types.Bool as FSBool
+import Firestore.Types.Null as FSNull
 import Firestore.Config.APIKey as APIKey
 import Firestore.Config.ProjectId as ProjectId
 import Firestore.Config.DatabaseId as DatabaseId
@@ -44,15 +49,15 @@ type alias Document =
 decoder : Decode.Decoder Document
 decoder =
     Decode.succeed Document
-        |> Pipeline.required "timestamp" Types.timestamp
-        |> Pipeline.required "geopoint" Types.geopoint
-        |> Pipeline.required "reference" Types.reference
-        |> Pipeline.required "integer" Types.int
-        |> Pipeline.required "string" Types.string
-        |> Pipeline.required "list" (Types.list Types.string)
-        |> Pipeline.required "map" (Types.map Types.string)
-        |> Pipeline.required "boolean" Types.bool
-        |> Pipeline.required "nullable" (Types.null Types.string)
+        |> Pipeline.required "timestamp" Timestamp.decoder
+        |> Pipeline.required "geopoint" Geopoint.decoder
+        |> Pipeline.required "reference" Reference.decoder
+        |> Pipeline.required "integer" FSInt.decoder
+        |> Pipeline.required "string" FSString.decoder
+        |> Pipeline.required "list" (FSList.decoder FSString.decoder)
+        |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
+        |> Pipeline.required "boolean" FSBool.decoder
+        |> Pipeline.required "nullable" (FSNull.decoder FSString.decoder)
 
 
 -- init
