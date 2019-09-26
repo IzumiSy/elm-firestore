@@ -19,4 +19,11 @@ decoder valueDecoder =
 encoder : Dict.Dict String a -> (a -> Encode.Value) -> Encode.Value
 encoder value valueEncoder =
     Encode.object
-        [ ( "mapValue", Encode.dict identity valueEncoder value ) ]
+        [ ( "mapValue"
+          , Encode.object
+                [ ( "fields"
+                  , Encode.dict identity valueEncoder value
+                  )
+                ]
+          )
+        ]

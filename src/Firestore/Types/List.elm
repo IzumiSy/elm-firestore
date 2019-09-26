@@ -18,4 +18,11 @@ decoder elementDecoder =
 encoder : List a -> (a -> Encode.Value) -> Encode.Value
 encoder value valueEncoder =
     Encode.object
-        [ ( "arrayValue", Encode.list valueEncoder value ) ]
+        [ ( "arrayValue"
+          , Encode.object
+                [ ( "values"
+                  , Encode.list valueEncoder value
+                  )
+                ]
+          )
+        ]
