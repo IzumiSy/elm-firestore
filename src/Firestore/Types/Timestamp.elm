@@ -6,7 +6,7 @@ module Firestore.Types.Timestamp exposing (Timestamp, decoder, toPosix, encoder)
 
 -}
 
-import Firestore.Documents.Field as Field
+import Firestore.Document.Field as Field
 import Iso8601
 import Json.Decode as Decode
 import Json.Encode as Encode

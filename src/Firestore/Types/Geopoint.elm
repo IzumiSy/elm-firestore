@@ -6,7 +6,7 @@ module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude
 
 -}
 
-import Firestore.Documents.Field as Field
+import Firestore.Document.Field as Field
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode

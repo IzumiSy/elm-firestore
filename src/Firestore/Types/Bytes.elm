@@ -6,7 +6,7 @@ module Firestore.Types.Bytes exposing (decoder, encoder)
 
 -}
 
-import Firestore.Documents.Field as Field
+import Firestore.Document.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
