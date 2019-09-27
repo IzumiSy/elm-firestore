@@ -6,6 +6,13 @@ Currently elm-firestore library is supporting:
 - Simple CRUD operation (get, create, patch, delete)
 - Transactions
 
+However, following features are not supported:
+- Realtime update listening
+- Collection group
+- Indexing
+
+This library leverages v1beta1 REST Resource internally.
+
 ## Example
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
