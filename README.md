@@ -2,16 +2,15 @@
 [![CircleCI](https://circleci.com/gh/IzumiSy/elm-firestore.svg?style=svg)](https://circleci.com/gh/IzumiSy/elm-firestore)
 > A type-safe Firestore integration for Elm. 
 
-Currently elm-firestore library is supporting:
-- Simple CRUD operation (get, create, patch, delete)
-- Transactions
+The features elm-firestore library supports are as follows:
 
-However, following features are not supported:
-- Realtime update listening
-- Collection group
-- Indexing
-
-This library leverages v1beta1 REST Resource internally.
+|Feature|Supported?|
+|:------|:---------|
+| Simple CRUD operation (get, create, patch, delete) | :white_check_mark: Yes |
+| Transactions | :white_check_mark: Yes |
+| Realtime update listening | :heavy_exclamation_mark: No|
+| Collection group | :heavy_exclamation_mark: No |
+| Indexing | :heavy_exclamation_mark: No |
 
 ## Example
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
