@@ -1,8 +1,8 @@
-module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude, encoder)
+module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude, encoder, new)
 
 {-|
 
-@docs Geopoint, decoder, latitude, longitude, encoder
+@docs Geopoint, decoder, latitude, longitude, encoder, new
 
 -}
 
@@ -20,6 +20,11 @@ type alias Payload =
     { latitude : Int
     , longitude : Int
     }
+
+
+new : Payload -> Geopoint
+new payload =
+    Geopoint payload.latitude payload.longitude
 
 
 decoder : Decode.Decoder Geopoint

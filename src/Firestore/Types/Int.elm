@@ -27,4 +27,4 @@ encoder : Int -> Field.Field
 encoder value =
     Field.new <|
         Encode.object
-            [ ( "intergerValue", Encode.string <| String.fromInt value ) ]
+            [ ( "integerValue", Encode.string <| String.fromInt value ) ]

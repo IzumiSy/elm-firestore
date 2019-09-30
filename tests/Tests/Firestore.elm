@@ -3,6 +3,7 @@ module Tests.Firestore exposing (suite)
 import Dict
 import Expect
 import Firestore
+import Firestore.Document.Fields as Fields
 import Firestore.Types.Bool as FSBool
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Int as FSInt
@@ -14,6 +15,7 @@ import Firestore.Types.String as FSString
 import Firestore.Types.Timestamp as Timestamp
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Test
 import Time
 
@@ -47,79 +49,96 @@ decoder =
 
 suite : Test.Test
 suite =
-    Test.test "responseDecoder works fine" <|
-        \_ ->
-            let
-                src =
-                    """
-{
-  "documents": [
-    {
-      "name": "projects/elm-firestore-app/databases/(default)/documents/users/Fa9yNDcFRNo8RaPnRvcz",
-      "fields": {
-        "timestamp": {
-          "timestampValue": "2019-09-24T15:00:00Z"
-        },
-        "geopoint": {
-          "geoPointValue": {
-            "latitude": 10,
-            "longitude": 10
-          }
-        },
-        "reference": {
-          "referenceValue": "projects/elm-firestore-app/databases/(default)/documents/bookmarks/VBz8MMTEG2Dn3JWmTjVQ"
-        },
-        "list": {
-          "arrayValue": {
-            "values": [
-              {
-                "stringValue": "111"
-              },
-              {
-                "stringValue": "222"
-              },
-              {
-                "stringValue": "333"
-              }
-            ]
-          }
-        },
-        "map": {
-          "mapValue": {
-            "fields": {
-              "key1": {
-                "stringValue": "aaa"
-              },
-              "key2": {
-                "stringValue": "bbb"
-              },
-              "key3": {
-                "stringValue": "ccc"
+    Test.describe "firestore"
+        [ Test.test "responseDecoder works fine" <|
+            \_ ->
+                let
+                    src =
+                        """
+  {
+    "documents": [
+      {
+        "name": "projects/elm-firestore-app/databases/(default)/documents/users/Fa9yNDcFRNo8RaPnRvcz",
+        "fields": {
+          "timestamp": {
+            "timestampValue": "2019-09-24T15:00:00Z"
+          },
+          "geopoint": {
+            "geoPointValue": {
+              "latitude": 10,
+              "longitude": 10
+            }
+          },
+          "reference": {
+            "referenceValue": "projects/elm-firestore-app/databases/(default)/documents/bookmarks/VBz8MMTEG2Dn3JWmTjVQ"
+          },
+          "list": {
+            "arrayValue": {
+              "values": [
+                {
+                  "stringValue": "111"
+                },
+                {
+                  "stringValue": "222"
+                },
+                {
+                  "stringValue": "333"
+                }
+              ]
+            }
+          },
+          "map": {
+            "mapValue": {
+              "fields": {
+                "key1": {
+                  "stringValue": "aaa"
+                },
+                "key2": {
+                  "stringValue": "bbb"
+                },
+                "key3": {
+                  "stringValue": "ccc"
+                }
               }
             }
+          },
+          "boolean": {
+            "booleanValue": true
+          },
+          "string": {
+            "stringValue": "IzumiSy"
+          },
+          "integer": {
+            "integerValue": "99"
+          },
+          "nullable": {
+            "nullValue": null
           }
         },
-        "boolean": {
-          "booleanValue": true
-        },
-        "string": {
-          "stringValue": "IzumiSy"
-        },
-        "integer": {
-          "integerValue": "99"
-        },
-        "nullable": {
-          "nullValue": null
-        }
-      },
-      "createTime": "2019-09-23T18:13:38.231211Z",
-      "updateTime": "2019-09-24T14:10:55.934407Z"
-    }
-  ]
-}
-
-                    """
-            in
-            src
-                |> Decode.decodeString (Firestore.responseDecoder decoder)
-                |> Expect.ok
+        "createTime": "2019-09-23T18:13:38.231211Z",
+        "updateTime": "2019-09-24T14:10:55.934407Z"
+      }
+    ]
+  }
+                      """
+                in
+                src
+                    |> Decode.decodeString (Firestore.responseDecoder decoder)
+                    |> Expect.ok
+        , Test.test "Field encoders work fine" <|
+            \_ ->
+                [ ( "timestamp", Timestamp.encoder <| Timestamp.new <| Time.millisToPosix 100 )
+                , ( "reference", Reference.encoder <| Reference.new "aaa/bbb" )
+                , ( "geopoint", Geopoint.encoder <| Geopoint.new { latitude = 10, longitude = 10 } )
+                , ( "list", FSList.encoder [ "111", "222", "333" ] FSString.encoder )
+                , ( "map", FSMap.encoder (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]) FSString.encoder )
+                , ( "boolean", FSBool.encoder True )
+                , ( "string", FSString.encoder "IzumiSy" )
+                , ( "integer", FSInt.encoder 99 )
+                , ( "nullable", FSNull.encoder Nothing )
+                ]
+                    |> Fields.new
+                    |> Fields.encode
+                    |> Decode.decodeValue decoder
+                    |> Expect.ok
+        ]

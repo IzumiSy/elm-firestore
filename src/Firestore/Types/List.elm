@@ -16,14 +16,14 @@ decoder elementDecoder =
     Decode.field "arrayValue" <| Decode.field "values" <| Decode.list elementDecoder
 
 
-encoder : List a -> (a -> Encode.Value) -> Field.Field
+encoder : List a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
     Field.new <|
         Encode.object
             [ ( "arrayValue"
               , Encode.object
                     [ ( "values"
-                      , Encode.list valueEncoder value
+                      , Encode.list (valueEncoder >> Field.unwrap) value
                       )
                     ]
               )

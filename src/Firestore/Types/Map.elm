@@ -17,14 +17,14 @@ decoder valueDecoder =
     Decode.field "mapValue" <| Decode.field "fields" <| Decode.dict valueDecoder
 
 
-encoder : Dict.Dict String a -> (a -> Encode.Value) -> Field.Field
+encoder : Dict.Dict String a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
     Field.new <|
         Encode.object
             [ ( "mapValue"
               , Encode.object
                     [ ( "fields"
-                      , Encode.dict identity valueEncoder value
+                      , Encode.dict identity (valueEncoder >> Field.unwrap) value
                       )
                     ]
               )
