@@ -8,6 +8,10 @@
     "test": "elm-test",
     "publish": "elm publish"
   },
+  "repository": {
+    "url": "git@github.com:IzumiSy/elm-firestore.git",
+    "type": "git"
+  },
   "author": "IzumiSy",
   "license": "MIT",
   "devDependencies": {
