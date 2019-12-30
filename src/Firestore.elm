@@ -18,7 +18,6 @@ module Firestore exposing
 
 -}
 
-import Dict
 import Firestore.Config.APIKey as APIKey exposing (APIKey)
 import Firestore.Config.DatabaseId as DatabaseId exposing (DatabaseId)
 import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
@@ -228,7 +227,7 @@ jsonResolver decoder =
                 Http.BadStatus_ { statusCode } _ ->
                     Err (Http.BadStatus statusCode)
 
-                Http.GoodStatus_ metadata body ->
+                Http.GoodStatus_ _ body ->
                     case Decode.decodeString decoder body of
                         Err _ ->
                             Err (Http.BadBody body)

@@ -1,19 +1,10 @@
 {
-  "name": "elm-firestore",
-  "version": "1.0.0",
-  "description": "Firestore for Elm",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "build": "elm make src/Firestore.elm",
     "test": "elm-test",
     "publish": "elm publish"
   },
-  "repository": {
-    "url": "git@github.com:IzumiSy/elm-firestore.git",
-    "type": "git"
-  },
-  "author": "IzumiSy",
-  "license": "MIT",
   "devDependencies": {
     "elm": "^0.19.0-no-deps",
     "elm-format": "^0.8.2",
