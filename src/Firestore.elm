@@ -16,6 +16,8 @@ module Firestore exposing
 
 @docs Response, Error, ErrorInfo
 
+@docs Transaction
+
 -}
 
 import Firestore.Config.APIKey as APIKey exposing (APIKey)
@@ -24,7 +26,6 @@ import Firestore.Config.ProjectId as ProjectId exposing (ProjectId)
 import Firestore.Document as Document
 import Firestore.Document.Fields as Fields
 import Firestore.Path as Path exposing (Path)
-import Firestore.Transaction as Transaction
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -167,9 +168,9 @@ delete (Firestore apiKey projectId databaseId path) =
 
 {-| Starts a new transaction.
 -}
-begin : Firestore -> Task.Task Http.Error Transaction.Transaction
-begin (Firestore apiKey projectId databaseId path) =
-    Task.map Transaction.new <|
+begin : Firestore -> Task.Task Http.Error Transaction
+begin (Firestore apiKey projectId databaseId _) =
+    Task.map Transaction <|
         Http.task
             { method = "POST"
             , headers = []
@@ -189,7 +190,7 @@ begin (Firestore apiKey projectId databaseId path) =
 {-| Commits a transaction, while optionally updating documents.
 -}
 commit : Decode.Value -> Firestore -> Task.Task Http.Error Commit
-commit body (Firestore apiKey projectId databaseId path) =
+commit body (Firestore apiKey projectId databaseId _) =
     Http.task
         { method = "POST"
         , headers = []
@@ -259,12 +260,10 @@ emptyResolver =
 
 
 -- Decoder
-{- `responseDecoder` function is being exposed, but this it only for unit testing -}
 
 
 type alias Response a =
-    { documents : List (Document.Document a)
-    }
+    { documents : List (Document.Document a) }
 
 
 responseDecoder : Decode.Decoder a -> Decode.Decoder (Response a)
@@ -289,8 +288,7 @@ commitResolver =
 
 
 type alias Error =
-    { code : ErrorInfo
-    }
+    { code : ErrorInfo }
 
 
 errorDecoder : Decode.Decoder Error
@@ -312,3 +310,11 @@ errorInfoDecoder =
         |> Pipeline.required "code" Decode.int
         |> Pipeline.required "message" Decode.string
         |> Pipeline.required "status" Decode.string
+
+
+
+-- Transaction
+
+
+type Transaction
+    = Transaction String
