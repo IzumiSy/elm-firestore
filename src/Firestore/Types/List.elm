@@ -11,11 +11,13 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+{-| -}
 decoder : Decode.Decoder a -> Decode.Decoder (List a)
 decoder elementDecoder =
     Decode.field "arrayValue" <| Decode.field "values" <| Decode.list elementDecoder
 
 
+{-| -}
 encoder : List a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
     Field.new <|

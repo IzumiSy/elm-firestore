@@ -12,6 +12,8 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 
 
+{-| Geopoint type for Firestore
+-}
 type Geopoint
     = Geopoint Int Int
 
@@ -22,11 +24,13 @@ type alias Payload =
     }
 
 
+{-| -}
 new : Payload -> Geopoint
 new payload =
     Geopoint payload.latitude payload.longitude
 
 
+{-| -}
 decoder : Decode.Decoder Geopoint
 decoder =
     Decode.succeed
@@ -37,6 +41,7 @@ decoder =
         |> Decode.field "geoPointValue"
 
 
+{-| -}
 encoder : Geopoint -> Field.Field
 encoder (Geopoint lat long) =
     Field.new <|
@@ -50,11 +55,13 @@ encoder (Geopoint lat long) =
             ]
 
 
+{-| -}
 longitude : Geopoint -> Int
 longitude (Geopoint _ long) =
     long
 
 
+{-| -}
 latitude : Geopoint -> Int
 latitude (Geopoint lat _) =
     lat

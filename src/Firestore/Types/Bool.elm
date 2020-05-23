@@ -11,11 +11,13 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+{-| -}
 decoder : Decode.Decoder Bool
 decoder =
     Decode.field "booleanValue" Decode.bool
 
 
+{-| -}
 encoder : Bool -> Field.Field
 encoder value =
     Field.new <|

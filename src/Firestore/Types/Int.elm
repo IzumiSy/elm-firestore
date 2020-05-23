@@ -11,6 +11,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+{-| -}
 decoder : Decode.Decoder Int
 decoder =
     Decode.field "integerValue" Decode.string
@@ -23,6 +24,7 @@ decoder =
             )
 
 
+{-| -}
 encoder : Int -> Field.Field
 encoder value =
     Field.new <|

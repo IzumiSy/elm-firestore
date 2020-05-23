@@ -12,11 +12,13 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+{-| -}
 decoder : Decode.Decoder a -> Decode.Decoder (Dict.Dict String a)
 decoder valueDecoder =
     Decode.field "mapValue" <| Decode.field "fields" <| Decode.dict valueDecoder
 
 
+{-| -}
 encoder : Dict.Dict String a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
     Field.new <|
