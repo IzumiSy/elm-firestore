@@ -12,7 +12,6 @@
         "Firestore.Document",
         "Firestore.Document.Fields",
         "Firestore.Transaction",
-        "Firestore.Types",
         "Firestore.Types.Reference",
         "Firestore.Types.Timestamp",
         "Firestore.Types.Geopoint",
