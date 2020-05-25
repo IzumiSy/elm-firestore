@@ -1,5 +1,5 @@
 module Firestore exposing
-    ( Firestore, init 
+    ( Firestore, init
     , withCollection, withDatabase, withAuthorization
     , get, patch, delete, begin, commit, create
     , Response, Error, ErrorInfo
@@ -32,15 +32,16 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import String.Interpolate as Interpolate
 import Task
+import Template exposing (render, template, withString, withValue)
 import Time
 
 
 type Firestore
-    = Firestore 
-        { apiKey : APIKey 
-        , projectId : ProjectId 
-        , databaseId : DatabaseId 
-        , path : Path 
+    = Firestore
+        { apiKey : APIKey
+        , projectId : ProjectId
+        , databaseId : DatabaseId
+        , path : Path
         , authorization : Authorization
         }
 
@@ -53,15 +54,15 @@ type alias Config =
     }
 
 
-{-| Builds a new Firestore connection with Config 
+{-| Builds a new Firestore connection with Config
 -}
 init : Config -> Firestore
 init { apiKey, projectId } =
-    Firestore 
-        { apiKey = apiKey 
-        , projectId = projectId 
-        , databaseId = defaultDatabase 
-        , path = Path.empty 
+    Firestore
+        { apiKey = apiKey
+        , projectId = projectId
+        , databaseId = defaultDatabase
+        , path = Path.empty
         , authorization = Authorization.empty
         }
 
@@ -86,7 +87,7 @@ Of course, you can make it a single string
 -}
 withCollection : String -> Firestore -> Firestore
 withCollection value (Firestore payload) =
-    Firestore { payload | path = (Path.append value payload.path) }
+    Firestore { payload | path = Path.append value payload.path }
 
 
 {-| Specifies database id to connecto to.
@@ -104,17 +105,13 @@ withAuthorization value (Firestore payload) =
 
 
 
--- Request
+-- CRUD
 
 
 {-| Gets a single document.
 -}
 get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-get fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
-    let
-        (DatabaseId databaseId_) = 
-            databaseId 
-    in
+get fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
     Http.task
         { method = "GET"
         , headers =
@@ -122,14 +119,7 @@ get fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
-        , url =
-            Interpolate.interpolate
-                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
-                [ ProjectId.unwrap projectId
-                , databaseId_
-                , Path.toString path
-                , APIKey.unwrap apiKey
-                ]
+        , url = buildUrl firestore
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver (responseDecoder fieldDecoder)
@@ -139,11 +129,7 @@ get fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization
 {-| Creates a new document.
 -}
 create : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-create fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
-    let
-        (DatabaseId databaseId_) = 
-            databaseId 
-    in
+create fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
     Http.task
         { method = "POST"
         , headers =
@@ -151,14 +137,7 @@ create fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, aut
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
-        , url =
-            Interpolate.interpolate
-                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
-                [ ProjectId.unwrap projectId
-                , databaseId_
-                , Path.toString path
-                , APIKey.unwrap apiKey
-                ]
+        , url = buildUrl firestore
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver (responseDecoder fieldDecoder)
@@ -168,26 +147,15 @@ create fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, aut
 {-| Updates or inserts a document.
 -}
 patch : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-patch fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
-    let
-        (DatabaseId databaseId_) = 
-            databaseId 
-    in
+patch fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
     Http.task
         { method = "PATCH"
         , headers =
             authorization
                 |> Authorization.header
-                |> Maybe.map List.singleton 
+                |> Maybe.map List.singleton
                 |> Maybe.withDefault []
-        , url =
-            Interpolate.interpolate
-                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
-                [ ProjectId.unwrap projectId
-                , databaseId_
-                , Path.toString path
-                , APIKey.unwrap apiKey
-                ]
+        , url = buildUrl firestore
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver (responseDecoder fieldDecoder)
@@ -197,11 +165,7 @@ patch fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, auth
 {-| Deletes a document.
 -}
 delete : Firestore -> Task.Task Http.Error ()
-delete (Firestore { apiKey, projectId, databaseId, path, authorization }) =
-    let
-        (DatabaseId databaseId_) = 
-            databaseId 
-    in
+delete ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
     Http.task
         { method = "GET"
         , headers =
@@ -209,43 +173,64 @@ delete (Firestore { apiKey, projectId, databaseId, path, authorization }) =
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
-        , url =
-            Interpolate.interpolate
-                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
-                [ ProjectId.unwrap projectId
-                , databaseId_
-                , Path.toString path
-                , APIKey.unwrap apiKey
-                ]
+        , url = buildUrl firestore
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
         }
 
 
+{-| Utility function to build URL for CRUD operation.
+-}
+buildUrl : Firestore -> String
+buildUrl (Firestore payload) =
+    let
+        (DatabaseId databaseId) =
+            payload.databaseId
+    in
+    template "https://firestore.googleapis.com/v1beta1/projects/"
+        |> withValue (ProjectId.unwrap << .projectId)
+        |> withString "/databases/"
+        |> withValue (always databaseId)
+        |> withString "/documents/"
+        |> withValue (Path.toString << .path)
+        |> withString "?key="
+        |> withValue (APIKey.unwrap << .apiKey)
+        |> render payload
+
+
+
+-- Transaction
+
+
+type Transaction
+    = Transaction String
+
+
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Http.Error Transaction
-begin (Firestore { apiKey, projectId, databaseId, authorization }) =
+begin (Firestore payload) =
     let
-        (DatabaseId databaseId_) = 
-            databaseId 
+        (DatabaseId databaseId) =
+            payload.databaseId
     in
     Task.map Transaction <|
         Http.task
             { method = "POST"
             , headers =
-                authorization
+                payload.authorization
                     |> Authorization.header
                     |> Maybe.map List.singleton
                     |> Maybe.withDefault []
             , url =
-                Interpolate.interpolate
-                    "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:beginTransaction?key={2}"
-                    [ ProjectId.unwrap projectId
-                    , databaseId_
-                    , APIKey.unwrap apiKey
-                    ]
+                template "https://firestore.googleapis.com/v1beta1/projects/"
+                    |> withValue (ProjectId.unwrap << .projectId)
+                    |> withString "/databases/"
+                    |> withValue (always databaseId)
+                    |> withString "/documents:beginTransaction?key="
+                    |> withValue (APIKey.unwrap << .apiKey)
+                    |> render payload
             , body = Http.emptyBody
             , timeout = Nothing
             , resolver = jsonResolver transactionResolver
@@ -255,25 +240,26 @@ begin (Firestore { apiKey, projectId, databaseId, authorization }) =
 {-| Commits a transaction, while optionally updating documents.
 -}
 commit : Decode.Value -> Firestore -> Task.Task Http.Error Commit
-commit body (Firestore { apiKey, projectId, databaseId, authorization }) =
+commit body (Firestore payload) =
     let
-        (DatabaseId databaseId_) = 
-            databaseId 
+        (DatabaseId databaseId) =
+            payload.databaseId
     in
     Http.task
         { method = "POST"
         , headers =
-            authorization
+            payload.authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
         , url =
-            Interpolate.interpolate
-                "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:commit?key={2}"
-                [ ProjectId.unwrap projectId
-                , databaseId_
-                , APIKey.unwrap apiKey
-                ]
+            template "https://firestore.googleapis.com/v1beta1/projects/"
+                |> withValue (ProjectId.unwrap << .projectId)
+                |> withString "/databases/"
+                |> withValue (always databaseId)
+                |> withString "/documents:commit?key="
+                |> withValue (APIKey.unwrap << .apiKey)
+                |> render payload
         , body = Http.jsonBody body
         , timeout = Nothing
         , resolver = jsonResolver commitResolver
@@ -396,11 +382,3 @@ type DatabaseId
 defaultDatabase : DatabaseId
 defaultDatabase =
     DatabaseId "(default)"
-
-
-
--- Transaction
-
-
-type Transaction
-    = Transaction String
