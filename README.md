@@ -80,7 +80,9 @@ init =
     in
     ( { firestore = firestore }
     , firestore 
-        |> Firestore.collection "documents"
+        |> Firestore.withDatabase "your-own-database" -- optional
+        |> Firesbase.withAuthorization "your-own-auth-token" -- optional
+        |> Firestore.withCollection "documents"
         |> Firestore.get decoder
         |> Task.attempt GotDocuments
     )
