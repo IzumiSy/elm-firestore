@@ -1,6 +1,6 @@
 module Firestore exposing
-    ( Firestore
-    , configure, collection, database, authorization
+    ( Firestore, init 
+    , withCollection, withDatabase, withAuthorization
     , get, patch, delete, begin, commit, create
     , Response, Error, ErrorInfo
     , responseDecoder
@@ -8,9 +8,9 @@ module Firestore exposing
 
 {-| A library to have your app interact with Firestore in Elm
 
-@docs Firestore
+@docs Firestore, init
 
-@docs configure, collection, database, authorization
+@docs withCollection, withDatabase, withAuthorization
 
 @docs get, patch, delete, begin, commit, create
 
@@ -36,7 +36,13 @@ import Time
 
 
 type Firestore
-    = Firestore APIKey ProjectId DatabaseId Path Authorization
+    = Firestore 
+        { apiKey : APIKey 
+        , projectId : ProjectId 
+        , databaseId : DatabaseId 
+        , path : Path 
+        , authorization : Authorization
+        }
 
 
 {-| Config record has all information which is required to send requests to Firestore through REST API
@@ -47,11 +53,17 @@ type alias Config =
     }
 
 
-{-| Builds a new Firestore connection with Config
+{-| Builds a new Firestore connection with Config 
 -}
-configure : Config -> Firestore
-configure { apiKey, projectId } =
-    Firestore apiKey projectId defaultDatabase Path.empty Authorization.empty
+init : Config -> Firestore
+init { apiKey, projectId } =
+    Firestore 
+        { apiKey = apiKey 
+        , projectId = projectId 
+        , databaseId = defaultDatabase 
+        , path = Path.empty 
+        , authorization = Authorization.empty
+        }
 
 
 {-| Drills down document paths with a specific path name.
@@ -72,23 +84,23 @@ Of course, you can make it a single string
         |> Task.attempt GotUserItemTags
 
 -}
-collection : String -> Firestore -> Firestore
-collection pathValue (Firestore apiKey projectId databaseId path auth) =
-    Firestore apiKey projectId databaseId (Path.append pathValue path) auth
+withCollection : String -> Firestore -> Firestore
+withCollection value (Firestore payload) =
+    Firestore { payload | path = (Path.append value payload.path) }
 
 
 {-| Specifies database id to connecto to.
 -}
-database : String -> Firestore -> Firestore
-database value (Firestore apiKey projectId _ path auth) =
-    Firestore apiKey projectId (DatabaseId value) path auth
+withDatabase : String -> Firestore -> Firestore
+withDatabase value (Firestore payload) =
+    Firestore { payload | databaseId = DatabaseId value }
 
 
 {-| Specifies authorization header
 -}
-authorization : Authorization -> Firestore -> Firestore
-authorization auth (Firestore apiKey projectId databaseId path _) =
-    Firestore apiKey projectId databaseId path auth
+withAuthorization : Authorization -> Firestore -> Firestore
+withAuthorization value (Firestore payload) =
+    Firestore { payload | authorization = value }
 
 
 
@@ -98,11 +110,15 @@ authorization auth (Firestore apiKey projectId databaseId path _) =
 {-| Gets a single document.
 -}
 get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-get fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
+get fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Http.task
         { method = "GET"
         , headers =
-            auth
+            authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
@@ -110,7 +126,7 @@ get fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) 
             Interpolate.interpolate
                 "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
                 [ ProjectId.unwrap projectId
-                , databaseId
+                , databaseId_
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
@@ -123,11 +139,15 @@ get fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) 
 {-| Creates a new document.
 -}
 create : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-create fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
+create fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Http.task
         { method = "POST"
         , headers =
-            auth
+            authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
@@ -135,7 +155,7 @@ create fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) p
             Interpolate.interpolate
                 "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
                 [ ProjectId.unwrap projectId
-                , databaseId
+                , databaseId_
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
@@ -148,11 +168,15 @@ create fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) p
 {-| Updates or inserts a document.
 -}
 patch : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-patch fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
+patch fields fieldDecoder (Firestore { apiKey, projectId, databaseId, path, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Http.task
         { method = "PATCH"
         , headers =
-            auth
+            authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton 
                 |> Maybe.withDefault []
@@ -160,7 +184,7 @@ patch fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) pa
             Interpolate.interpolate
                 "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
                 [ ProjectId.unwrap projectId
-                , databaseId
+                , databaseId_
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
@@ -173,11 +197,15 @@ patch fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) pa
 {-| Deletes a document.
 -}
 delete : Firestore -> Task.Task Http.Error ()
-delete (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
+delete (Firestore { apiKey, projectId, databaseId, path, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Http.task
         { method = "GET"
         , headers =
-            auth
+            authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
@@ -185,7 +213,7 @@ delete (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
             Interpolate.interpolate
                 "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents/{2}?key={3}"
                 [ ProjectId.unwrap projectId
-                , databaseId
+                , databaseId_
                 , Path.toString path
                 , APIKey.unwrap apiKey
                 ]
@@ -198,12 +226,16 @@ delete (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Http.Error Transaction
-begin (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
+begin (Firestore { apiKey, projectId, databaseId, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Task.map Transaction <|
         Http.task
             { method = "POST"
             , headers =
-                auth
+                authorization
                     |> Authorization.header
                     |> Maybe.map List.singleton
                     |> Maybe.withDefault []
@@ -211,7 +243,7 @@ begin (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
                 Interpolate.interpolate
                     "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:beginTransaction?key={2}"
                     [ ProjectId.unwrap projectId
-                    , databaseId
+                    , databaseId_
                     , APIKey.unwrap apiKey
                     ]
             , body = Http.emptyBody
@@ -223,11 +255,15 @@ begin (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
 {-| Commits a transaction, while optionally updating documents.
 -}
 commit : Decode.Value -> Firestore -> Task.Task Http.Error Commit
-commit body (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
+commit body (Firestore { apiKey, projectId, databaseId, authorization }) =
+    let
+        (DatabaseId databaseId_) = 
+            databaseId 
+    in
     Http.task
         { method = "POST"
         , headers =
-            auth
+            authorization
                 |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
@@ -235,7 +271,7 @@ commit body (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
             Interpolate.interpolate
                 "https://firestore.googleapis.com/v1beta1/projects/{0}/databases/{1}/documents:commit?key={2}"
                 [ ProjectId.unwrap projectId
-                , databaseId
+                , databaseId_
                 , APIKey.unwrap apiKey
                 ]
         , body = Http.jsonBody body
