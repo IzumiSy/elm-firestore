@@ -76,7 +76,6 @@ init =
             Firestore.configure 
                 { apiKey = APIKey.new "your-own-api-key"
                 , projectId = ProjectId.new "your-firestore-app"
-                , databaseId = DatabaseId.default
                 }
     in
     ( { firestore = firestore }
