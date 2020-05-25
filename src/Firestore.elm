@@ -74,21 +74,21 @@ Of course, you can make it a single string
 -}
 collection : String -> Firestore -> Firestore
 collection pathValue (Firestore apiKey projectId databaseId path auth) =
-    Firestore apiKey projectId databaseId (Path.append pathValue path auth)
+    Firestore apiKey projectId databaseId (Path.append pathValue path) auth
 
 
 {-| Specifies database id to connecto to.
 -}
 database : String -> Firestore -> Firestore
-database value (Firestore apiKey projectId _ path authorization) =
+database value (Firestore apiKey projectId _ path auth) =
     Firestore apiKey projectId (DatabaseId value) path auth
 
 
 {-| Specifies authorization header
 -}
-authorization : Authorization -> Firesbase -> Firebase
+authorization : Authorization -> Firestore -> Firestore
 authorization auth (Firestore apiKey projectId databaseId path _) =
-    Firebase apiKey projectId databaseId path auth
+    Firestore apiKey projectId databaseId path auth
 
 
 
@@ -103,6 +103,7 @@ get fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) path auth) 
         { method = "GET"
         , headers =
             auth
+                |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
         , url =
@@ -127,6 +128,7 @@ create fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) p
         { method = "POST"
         , headers =
             auth
+                |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
         , url =
@@ -151,7 +153,8 @@ patch fields fieldDecoder (Firestore apiKey projectId (DatabaseId databaseId) pa
         { method = "PATCH"
         , headers =
             auth
-                |> Maybe.map List.singleton
+                |> Authorization.header
+                |> Maybe.map List.singleton 
                 |> Maybe.withDefault []
         , url =
             Interpolate.interpolate
@@ -175,6 +178,7 @@ delete (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
         { method = "GET"
         , headers =
             auth
+                |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
         , url =
@@ -194,12 +198,13 @@ delete (Firestore apiKey projectId (DatabaseId databaseId) path auth) =
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Http.Error Transaction
-begin (Firestore apiKey projectId (DatabaesId databaseId) _ auth) =
+begin (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
     Task.map Transaction <|
         Http.task
             { method = "POST"
             , headers =
                 auth
+                    |> Authorization.header
                     |> Maybe.map List.singleton
                     |> Maybe.withDefault []
             , url =
@@ -223,6 +228,7 @@ commit body (Firestore apiKey projectId (DatabaseId databaseId) _ auth) =
         { method = "POST"
         , headers =
             auth
+                |> Authorization.header
                 |> Maybe.map List.singleton
                 |> Maybe.withDefault []
         , url =
