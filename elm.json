@@ -7,8 +7,8 @@
     "exposed-modules": [
         "Firestore",
         "Firestore.Config.APIKey",
-        "Firestore.Config.DatabaseId",
         "Firestore.Config.ProjectId",
+        "Firestore.Config.Authorization",
         "Firestore.Document",
         "Firestore.Document.Fields",
         "Firestore.Types.Reference",
