@@ -1,15 +1,14 @@
 module Firestore.Document exposing
     ( Document
-    , decoder, encode
+    , Field
+    , Fields
+    , decode
+    , encode
+    , field
+    , fields
+    , unwrapField
     )
 
-{-|
-
-@docs Document
-
--}
-
-import Firestore.Document.Fields as Fields
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -17,6 +16,13 @@ import Json.Encode as Encode
 import Time
 
 
+
+-- Document
+
+
+{-| A record strucutre for a document fetched from Firestore.
+`fields` field is expected to be a record that consists of types coming from modules under `Firestore.Types` namespace.
+-}
 type alias Document a =
     { name : String
     , fields : a
@@ -25,8 +31,8 @@ type alias Document a =
     }
 
 
-decoder : Decode.Decoder a -> Decode.Decoder (Document a)
-decoder fieldDecoder =
+decode : Decode.Decoder a -> Decode.Decoder (Document a)
+decode fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "fields" fieldDecoder
@@ -34,7 +40,43 @@ decoder fieldDecoder =
         |> Pipeline.required "updateTime" Iso8601.decoder
 
 
-encode : Fields.Fields -> Encode.Value
-encode fields =
+encode : Fields -> Encode.Value
+encode (Fields fields_) =
     Encode.object
-        [ ( "fields", Fields.encode fields ) ]
+        [ ( "fields"
+          , fields_
+                |> List.map (\( key, Field value ) -> ( key, value ))
+                |> Encode.object
+          )
+        ]
+
+
+
+-- Field
+
+
+type Field
+    = Field Encode.Value
+
+
+field : Encode.Value -> Field
+field =
+    Field
+
+
+unwrapField : Field -> Encode.Value
+unwrapField (Field value) =
+    value
+
+
+
+-- Fields
+
+
+type Fields
+    = Fields (List ( String, Field ))
+
+
+fields : List ( String, Field ) -> Fields
+fields =
+    Fields

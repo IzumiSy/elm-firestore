@@ -6,7 +6,7 @@ module Firestore.Types.Bool exposing (decoder, encoder)
 
 -}
 
-import Firestore.Document.Field as Field
+import Firestore.Document as Document
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -18,8 +18,8 @@ decoder =
 
 
 {-| -}
-encoder : Bool -> Field.Field
+encoder : Bool -> Document.Field
 encoder value =
-    Field.new <|
+    Document.field <|
         Encode.object
             [ ( "booleanValue", Encode.bool value ) ]

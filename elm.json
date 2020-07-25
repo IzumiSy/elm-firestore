@@ -7,10 +7,9 @@
     "exposed-modules": [
         "Firestore",
         "Firestore.Config.APIKey",
-        "Firestore.Config.ProjectId",
+        "Firestore.Config.Project",
+        "Firestore.Config.Database",
         "Firestore.Config.Authorization",
-        "Firestore.Document",
-        "Firestore.Document.Fields",
         "Firestore.Types.Reference",
         "Firestore.Types.Timestamp",
         "Firestore.Types.Geopoint",

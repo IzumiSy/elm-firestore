@@ -6,7 +6,7 @@ module Firestore.Types.Null exposing (decoder, encoder)
 
 -}
 
-import Firestore.Document.Field as Field
+import Firestore.Document as Document
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -18,9 +18,9 @@ decoder valueDecoder =
 
 
 {-| -}
-encoder : Maybe ( a, a -> Encode.Value ) -> Field.Field
+encoder : Maybe ( a, a -> Encode.Value ) -> Document.Field
 encoder maybeValueAndEncoder =
-    Field.new <|
+    Document.field <|
         Encode.object
             [ ( "nullValue"
               , maybeValueAndEncoder

@@ -3,7 +3,7 @@ module Tests.Firestore exposing (suite)
 import Dict
 import Expect
 import Firestore
-import Firestore.Document.Fields as Fields
+import Firestore.Document as Document
 import Firestore.Types.Bool as FSBool
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Int as FSInt
@@ -15,7 +15,6 @@ import Firestore.Types.String as FSString
 import Firestore.Types.Timestamp as Timestamp
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
-import Json.Encode as Encode
 import Test
 import Time
 
@@ -33,8 +32,8 @@ type alias Document =
     }
 
 
-decoder : Decode.Decoder Document
-decoder =
+documentDecoder : Decode.Decoder Document
+documentDecoder =
     Decode.succeed Document
         |> Pipeline.required "timestamp" Timestamp.decoder
         |> Pipeline.required "reference" Reference.decoder
@@ -47,10 +46,20 @@ decoder =
         |> Pipeline.required "nullable" (FSNull.decoder FSString.decoder)
 
 
+type alias WriteDocument =
+    { fields : Document }
+
+
+writeDecoder : Decode.Decoder WriteDocument
+writeDecoder =
+    Decode.succeed WriteDocument
+        |> Pipeline.required "fields" documentDecoder
+
+
 suite : Test.Test
 suite =
     Test.describe "firestore"
-        [ Test.test "responseDecoder works fine" <|
+        [ Test.test "documentDecoder" <|
             \_ ->
                 let
                     src =
@@ -123,9 +132,9 @@ suite =
                       """
                 in
                 src
-                    |> Decode.decodeString (Firestore.responseDecoder decoder)
+                    |> Decode.decodeString (Firestore.responseDecoder documentDecoder)
                     |> Expect.ok
-        , Test.test "Field encoders work fine" <|
+        , Test.test "encoder" <|
             \_ ->
                 [ ( "timestamp", Timestamp.encoder <| Timestamp.new <| Time.millisToPosix 100 )
                 , ( "reference", Reference.encoder <| Reference.new "aaa/bbb" )
@@ -137,8 +146,8 @@ suite =
                 , ( "integer", FSInt.encoder 99 )
                 , ( "nullable", FSNull.encoder Nothing )
                 ]
-                    |> Fields.new
-                    |> Fields.encode
-                    |> Decode.decodeValue decoder
+                    |> Document.fields
+                    |> Document.encode
+                    |> Decode.decodeValue writeDecoder
                     |> Expect.ok
         ]
