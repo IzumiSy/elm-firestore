@@ -12,6 +12,11 @@ The features elm-firestore library supports are as follows:
 | Collection group | :heavy_exclamation_mark: No |
 | Indexing | :heavy_exclamation_mark: No |
 
+### When will this package support realtime update?
+Realtime update listening is one of fundamental features Firestore offers, but this library internally uses Firestore RESTful API which is officially said to be out of support for realtime update. 
+
+I strongly recommend you to use Firestore SDK in JavaScript through Ports instead of this library if you have a strong need to use realtime update on Firestore. This library shall not support it unless Google changes their mind.
+
 ## Example
 Almost all [basic types](https://firebase.google.com/docs/firestore/reference/rest/v1beta1/Value) in Firestore are supported
 
