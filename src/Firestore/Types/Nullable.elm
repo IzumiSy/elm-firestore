@@ -1,6 +1,6 @@
-module Firestore.Types.Null exposing (decoder, encoder)
+module Firestore.Types.Nullable exposing (decoder, encoder)
 
-{-|
+{-| A nullable data type for Firestore
 
 @docs decoder, encoder
 

@@ -1,6 +1,6 @@
 module Firestore.Types.Bytes exposing (decoder, encoder)
 
-{-|
+{-| A byte data type for Firestore
 
 @docs decoder, encoder
 

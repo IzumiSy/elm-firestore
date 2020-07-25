@@ -1,6 +1,6 @@
 module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude, encoder, new)
 
-{-|
+{-| A geopoint data type for Firestore
 
 @docs Geopoint, decoder, latitude, longitude, encoder, new
 

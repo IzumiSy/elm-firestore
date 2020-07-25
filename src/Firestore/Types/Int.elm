@@ -1,6 +1,6 @@
 module Firestore.Types.Int exposing (decoder, encoder)
 
-{-|
+{-| An integer data type for Firestore
 
 @docs decoder, encoder
 

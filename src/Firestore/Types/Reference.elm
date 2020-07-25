@@ -1,6 +1,6 @@
 module Firestore.Types.Reference exposing (Reference, decoder, encoder, new)
 
-{-|
+{-| A reference data type for Firestore
 
 @docs Reference, decoder, encoder, new
 

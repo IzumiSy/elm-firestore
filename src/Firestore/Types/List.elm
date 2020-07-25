@@ -1,6 +1,6 @@
 module Firestore.Types.List exposing (decoder, encoder)
 
-{-|
+{-| A list data type for Firestore
 
 @docs decoder, encoder
 
@@ -27,7 +27,7 @@ encoder value valueEncoder =
             [ ( "arrayValue"
               , Encode.object
                     [ ( "values"
-                      , Encode.list (Document.unwrapField << valueEncoder ) value
+                      , Encode.list (Document.unwrapField << valueEncoder) value
                       )
                     ]
               )

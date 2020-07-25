@@ -1,6 +1,6 @@
 module Firestore.Types.Map exposing (decoder, encoder)
 
-{-|
+{-| A map data type for Firestore
 
 @docs decoder, encoder
 

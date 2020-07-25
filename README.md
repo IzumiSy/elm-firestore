@@ -26,7 +26,7 @@ import Firestore.Types.Int as FSInt
 import Firestore.Types.List as FSList
 import Firestore.Types.Map as FSMap
 import Firestore.Types.Bool as FSBool
-import Firestore.Types.Null as FSNull
+import Firestore.Types.Nullablen as FSNullable
 
 
 -- model
@@ -88,7 +88,7 @@ decoder =
         |> Pipeline.required "list" (FSList.decoder FSString.decoder)
         |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
         |> Pipeline.required "boolean" FSBool.decoder
-        |> Pipeline.required "nullable" (FSNull.decoder FSString.decoder)
+        |> Pipeline.required "nullable" (FSNullable.decoder FSString.decoder)
 
 
 

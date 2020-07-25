@@ -1,6 +1,6 @@
 module Firestore.Types.Bool exposing (decoder, encoder)
 
-{-|
+{-| A boolean data type for Firestore
 
 @docs decoder, encoder
 
