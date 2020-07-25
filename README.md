@@ -27,8 +27,8 @@ import Firestore.Types.Map as FSMap
 import Firestore.Types.Bool as FSBool
 import Firestore.Types.Null as FSNull
 import Firestore.Config.APIKey as APIKey
-import Firestore.Config.ProjectId as ProjectId
-import Firestore.Config.DatabaseId as DatabaseId
+import Firestore.Config.Project as Project
+import Firestore.Config.Database as Database
 
 
 -- model
@@ -62,13 +62,13 @@ init =
         firestore =
             Firestore.configure 
                 { apiKey = APIKey.new "your-own-api-key"
-                , projectId = ProjectId.new "your-firestore-app"
+                , project = Project.new "your-firestore-app"
                 }
     in
     ( { firestore = firestore }
     , firestore 
-        |> Firestore.withDatabase "your-own-database" -- optional
-        |> Firestore.withAuthorization "your-own-auth-token" -- optional
+        |> Firestore.withDatabase Database.default -- optional (default or specify your own with `new` function)
+        |> Firestore.withAuthorization (Authorization.new "your-own-auth-token") -- optional
         |> Firestore.withCollection "documents" -- optional
         |> Firestore.get decoder
         |> Task.attempt GotDocuments
