@@ -26,7 +26,7 @@ import Firestore.Types.Int as FSInt
 import Firestore.Types.List as FSList
 import Firestore.Types.Map as FSMap
 import Firestore.Types.Bool as FSBool
-import Firestore.Types.Nullablen as FSNullable
+import Firestore.Types.Nullable as FSNullable
 
 
 -- model
