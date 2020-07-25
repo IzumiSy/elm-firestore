@@ -60,7 +60,7 @@ type Authorization
     = Authorization String
 
 
-{-| Specifies authorization header
+{-| Specifies authorization header.
 -}
 withAuthorization : String -> Config -> Config
 withAuthorization value (Config apiKey_ project_ database_ _) =
@@ -86,7 +86,7 @@ type Database
     = Database String
 
 
-{-| Specifies database ID to connecto to.
+{-| Specifies database ID to connect to.
 -}
 withDatabase : String -> Config -> Config
 withDatabase value (Config apiKey_ project_ _ authorization_) =

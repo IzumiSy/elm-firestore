@@ -61,7 +61,7 @@ This function is aimed to be chanind with pipeline operators in order to build u
         |> Firestore.get
         |> Task.attempt GotUserItemTags
 
-Of course, you can make it a single string
+Of course, you can make it a single string as well
 
     firestore
         |> Firestore.collection "users/items/tags"
