@@ -1,28 +1,31 @@
 module Firestore.Config.Authorization exposing
-    ( Authorization, new, empty
-    , headers
+    ( Authorization, new
+    , empty, headers
     )
 
 {-| A module for Firebase Authorization token
 
-@docs Authorization, new, empty
-
-@docs headers
+@docs Authorization, new
 
 -}
 
 import Http
 
 
+{-| -}
 type Authorization
     = Authorization (Maybe String)
 
 
+{-| Creates a new Authorization from String
+-}
 new : String -> Authorization
 new value =
     Authorization (Just value)
 
 
+{-| Initializes Authorization with an empty value.
+-}
 empty : Authorization
 empty =
     Authorization Nothing

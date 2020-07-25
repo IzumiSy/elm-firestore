@@ -7,8 +7,6 @@ module Firestore.Config.Project exposing
 
 @docs Project, new
 
-@docs toString
-
 -}
 
 

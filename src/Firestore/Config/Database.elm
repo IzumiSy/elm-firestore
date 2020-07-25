@@ -7,8 +7,6 @@ module Firestore.Config.Database exposing
 
 @docs Database, new, default
 
-@docs toString
-
 -}
 
 

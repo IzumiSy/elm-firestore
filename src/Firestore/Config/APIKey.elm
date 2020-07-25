@@ -10,10 +10,13 @@ module Firestore.Config.APIKey exposing
 -}
 
 
+{-| -}
 type APIKey
     = APIKey String
 
 
+{-| Creates a new API key from String
+-}
 new : String -> APIKey
 new =
     APIKey

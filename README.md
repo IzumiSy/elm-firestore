@@ -60,16 +60,16 @@ init : ( Model, Cmd Msg )
 init =
     let
         firestore =
-            Firestore.configure 
+            Firestore.configure
                 { apiKey = APIKey.new "your-own-api-key"
                 , project = Project.new "your-firestore-app"
                 }
+                |> Firestore.withDatabase Database.default -- optional (use default or specify your own with `new` function)
+                |> Firestore.withAuthorization (Authorization.new "your-own-auth-token") -- optional
+                |> Firestore.withCollection "documents" -- optional
     in
     ( { firestore = firestore }
-    , firestore 
-        |> Firestore.withDatabase Database.default -- optional (default or specify your own with `new` function)
-        |> Firestore.withAuthorization (Authorization.new "your-own-auth-token") -- optional
-        |> Firestore.withCollection "documents" -- optional
+    , firestore
         |> Firestore.get decoder
         |> Task.attempt GotDocuments
     )
