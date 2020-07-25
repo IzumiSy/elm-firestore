@@ -1,6 +1,6 @@
 module Firestore exposing
     ( Firestore, init
-    , withCollection, withDatabase, withAuthorization
+    , withCollection, withConfig
     , get, list, patch, delete, create
     , Error(..), FirestoreError
     , Transaction, begin, commit
@@ -10,7 +10,7 @@ module Firestore exposing
 
 @docs Firestore, init
 
-@docs withCollection, withDatabase, withAuthorization
+@docs withCollection, withConfig
 
 
 # CRUDs
@@ -29,10 +29,7 @@ module Firestore exposing
 
 -}
 
-import Firestore.Config.APIKey as APIKey exposing (APIKey)
-import Firestore.Config.Authorization as Authorization exposing (Authorization)
-import Firestore.Config.Database as Database
-import Firestore.Config.Project as Project
+import Firestore.Config as Config
 import Firestore.Document as Document
 import Firestore.Path as Path exposing (Path)
 import Http
@@ -40,39 +37,18 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Task
-import Template exposing (render, template, withString, withValue)
 import Time
 
 
 type Firestore
-    = Firestore
-        { apiKey : APIKey
-        , project : Project.Project
-        , database : Database.Database
-        , path : Path
-        , authorization : Authorization
-        }
-
-
-{-| Config record has all information which is required to send requests to Firestore through REST API
--}
-type alias Config =
-    { apiKey : APIKey
-    , project : Project.Project
-    }
+    = Firestore Config.Config Path
 
 
 {-| Builds a new Firestore connection with Config
 -}
-init : Config -> Firestore
-init { apiKey, project } =
-    Firestore
-        { apiKey = apiKey
-        , project = project
-        , database = Database.default
-        , path = Path.empty
-        , authorization = Authorization.empty
-        }
+init : Config.Config -> Firestore
+init config =
+    Firestore config Path.empty
 
 
 {-| Drills down document paths with a specific path name.
@@ -94,22 +70,15 @@ Of course, you can make it a single string
 
 -}
 withCollection : String -> Firestore -> Firestore
-withCollection value (Firestore payload) =
-    Firestore { payload | path = Path.append value payload.path }
+withCollection value (Firestore config path) =
+    Firestore config (Path.append value path)
 
 
-{-| Specifies database id to connecto to.
+{-| Updates configuration
 -}
-withDatabase : Database.Database -> Firestore -> Firestore
-withDatabase value (Firestore payload) =
-    Firestore { payload | database = value }
-
-
-{-| Specifies authorization header
--}
-withAuthorization : Authorization -> Firestore -> Firestore
-withAuthorization value (Firestore payload) =
-    Firestore { payload | authorization = value }
+withConfig : Config.Config -> Firestore -> Firestore
+withConfig config (Firestore _ path) =
+    Firestore config path
 
 
 
@@ -119,11 +88,11 @@ withAuthorization value (Firestore payload) =
 {-| Gets a single document.
 -}
 get : Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
-get fieldDecoder ((Firestore { authorization }) as firestore) =
+get fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
-        , headers = Authorization.headers authorization
-        , url = crudUrl firestore
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (Path.toString path) config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -133,11 +102,11 @@ get fieldDecoder ((Firestore { authorization }) as firestore) =
 {-| Lists documents
 -}
 list : Decode.Decoder a -> Firestore -> Task.Task Error (List (Document.Document a))
-list fieldDecoder ((Firestore { authorization }) as firestore) =
+list fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
-        , headers = Authorization.headers authorization
-        , url = crudUrl firestore
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (Path.toString path) config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeList fieldDecoder
@@ -147,11 +116,11 @@ list fieldDecoder ((Firestore { authorization }) as firestore) =
 {-| Creates a new document.
 -}
 create : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
-create fields fieldDecoder ((Firestore { authorization }) as firestore) =
+create fields fieldDecoder (Firestore config path) =
     Http.task
         { method = "POST"
-        , headers = Authorization.headers authorization
-        , url = crudUrl firestore
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (Path.toString path) config
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -161,11 +130,11 @@ create fields fieldDecoder ((Firestore { authorization }) as firestore) =
 {-| Updates or inserts a document.
 -}
 patch : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
-patch fields fieldDecoder ((Firestore { authorization }) as firestore) =
+patch fields fieldDecoder (Firestore config path) =
     Http.task
         { method = "PATCH"
-        , headers = Authorization.headers authorization
-        , url = crudUrl firestore
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (Path.toString path) config
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -175,11 +144,11 @@ patch fields fieldDecoder ((Firestore { authorization }) as firestore) =
 {-| Deletes a document.
 -}
 delete : Firestore -> Task.Task Error ()
-delete ((Firestore { authorization }) as firestore) =
+delete (Firestore config path) =
     Http.task
         { method = "GET"
-        , headers = Authorization.headers authorization
-        , url = crudUrl firestore
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (Path.toString path) config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -197,19 +166,12 @@ type Transaction
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Error Transaction
-begin (Firestore payload) =
+begin (Firestore config _) =
     Task.map Transaction <|
         Http.task
             { method = "POST"
-            , headers = Authorization.headers payload.authorization
-            , url =
-                template "https://firestore.googleapis.com/v1beta1/projects/"
-                    |> withValue (Project.toString << .project)
-                    |> withString "/databases/"
-                    |> withValue (Database.toString << .database)
-                    |> withString "/documents:beginTransaction?key="
-                    |> withValue (APIKey.unwrap << .apiKey)
-                    |> render payload
+            , headers = Config.httpHeader config
+            , url = Config.endpoint "/documents:beginTransaction" config
             , body = Http.emptyBody
             , timeout = Nothing
             , resolver = jsonResolver transactionDecoder
@@ -219,18 +181,11 @@ begin (Firestore payload) =
 {-| Commits a transaction, while optionally updating documents.
 -}
 commit : Decode.Value -> Firestore -> Task.Task Error CommitTime
-commit body (Firestore payload) =
+commit body (Firestore config _) =
     Http.task
         { method = "POST"
-        , headers = Authorization.headers payload.authorization
-        , url =
-            template "https://firestore.googleapis.com/v1beta1/projects/"
-                |> withValue (Project.toString << .project)
-                |> withString "/databases/"
-                |> withValue (Database.toString << .database)
-                |> withString "/documents:commit?key="
-                |> withValue (APIKey.unwrap << .apiKey)
-                |> render payload
+        , headers = Config.httpHeader config
+        , url = Config.endpoint "/documents:commit" config
         , body = Http.jsonBody body
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
@@ -288,21 +243,6 @@ errorInfoDecoder =
 
 
 -- Internals
-
-
-{-| Utility function to build URL for CRUD operation.
--}
-crudUrl : Firestore -> String
-crudUrl (Firestore payload) =
-    template "https://firestore.googleapis.com/v1beta1/projects/"
-        |> withValue (Project.toString << .project)
-        |> withString "/databases/"
-        |> withValue (Database.toString << .database)
-        |> withString "/documents/"
-        |> withValue (Path.toString << .path)
-        |> withString "?key="
-        |> withValue (APIKey.unwrap << .apiKey)
-        |> render payload
 
 
 jsonResolver : Decode.Decoder a -> Http.Resolver Error a

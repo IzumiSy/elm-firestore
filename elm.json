@@ -6,10 +6,7 @@
     "version": "1.0.0",
     "exposed-modules": [
         "Firestore",
-        "Firestore.Config.APIKey",
-        "Firestore.Config.Project",
-        "Firestore.Config.Database",
-        "Firestore.Config.Authorization",
+        "Firestore.Config",
         "Firestore.Types.Reference",
         "Firestore.Types.Timestamp",
         "Firestore.Types.Geopoint",

@@ -17,6 +17,7 @@ Almost all [basic types](https://firebase.google.com/docs/firestore/reference/re
 
 ```elm
 import Firestore
+import Firestore.Config as Config
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Firestore.Types.Timestamp as Timestamp
@@ -26,9 +27,6 @@ import Firestore.Types.List as FSList
 import Firestore.Types.Map as FSMap
 import Firestore.Types.Bool as FSBool
 import Firestore.Types.Null as FSNull
-import Firestore.Config.APIKey as APIKey
-import Firestore.Config.Project as Project
-import Firestore.Config.Database as Database
 
 
 -- model
@@ -59,13 +57,17 @@ type alias Document =
 init : ( Model, Cmd Msg )
 init =
     let
-        firestore =
-            Firestore.configure
-                { apiKey = APIKey.new "your-own-api-key"
-                , project = Project.new "your-firestore-app"
+        config =
+            Config.new
+                { apiKey = "your-own-api-key"
+                , project = "your-firestore-app"
                 }
-                |> Firestore.withDatabase Database.default -- optional (use default or specify your own with `new` function)
-                |> Firestore.withAuthorization (Authorization.new "your-own-auth-token") -- optional
+                |> Firestore.withDatabase "your-own-database" -- optional
+                |> Firestore.withAuthorization "your-own-auth-token" -- optional
+
+        firestore =
+            config
+                |> Firestore.init
                 |> Firestore.withCollection "documents" -- optional
     in
     ( { firestore = firestore }
