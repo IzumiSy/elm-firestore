@@ -2,7 +2,8 @@ module Firestore.Document exposing
     ( Document
     , Field
     , Fields
-    , decode
+    , decodeList
+    , decodeOne
     , encode
     , field
     , fields
@@ -31,8 +32,14 @@ type alias Document a =
     }
 
 
-decode : Decode.Decoder a -> Decode.Decoder (Document a)
-decode fieldDecoder =
+decodeList : Decode.Decoder a -> Decode.Decoder (List (Document a))
+decodeList fieldDecoder =
+    Decode.succeed identity
+        |> Pipeline.required "documents" (fieldDecoder |> decodeOne |> Decode.list)
+
+
+decodeOne : Decode.Decoder a -> Decode.Decoder (Document a)
+decodeOne fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
         |> Pipeline.required "fields" fieldDecoder

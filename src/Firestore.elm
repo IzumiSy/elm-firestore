@@ -1,9 +1,9 @@
 module Firestore exposing
     ( Firestore, init
     , withCollection, withDatabase, withAuthorization
-    , get, patch, delete, begin, commit, create
-    , Response, Error(..), FirestoreError
-    , errorDecoder, responseDecoder
+    , get, list, patch, delete, create
+    , Error(..), FirestoreError
+    , begin, commit
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -12,11 +12,20 @@ module Firestore exposing
 
 @docs withCollection, withDatabase, withAuthorization
 
-@docs get, patch, delete, begin, commit, create
 
-@docs Response, Error, FirestoreError
+# CRUDs
 
-@docs Transaction
+@docs get, list, patch, delete, create
+
+
+# Error
+
+@docs Error, FirestoreError
+
+
+# Transaction
+
+@docs Transaction, begin, commit
 
 -}
 
@@ -109,55 +118,57 @@ withAuthorization value (Firestore payload) =
 
 {-| Gets a single document.
 -}
-get : Decode.Decoder a -> Firestore -> Task.Task Error (Response a)
+get : Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
 get fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "GET"
-        , headers =
-            authorization
-                |> Authorization.header
-                |> Maybe.map List.singleton
-                |> Maybe.withDefault []
-        , url = buildUrl firestore
+        , headers = Authorization.headers authorization
+        , url = crudUrl firestore
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver (responseDecoder fieldDecoder)
+        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
+        }
+
+
+{-| Lists documents
+-}
+list : Decode.Decoder a -> Firestore -> Task.Task Error (List (Document.Document a))
+list fieldDecoder ((Firestore { authorization }) as firestore) =
+    Http.task
+        { method = "GET"
+        , headers = Authorization.headers authorization
+        , url = crudUrl firestore
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver = jsonResolver <| Document.decodeList fieldDecoder
         }
 
 
 {-| Creates a new document.
 -}
-create : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Response a)
+create : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
 create fields fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "POST"
-        , headers =
-            authorization
-                |> Authorization.header
-                |> Maybe.map List.singleton
-                |> Maybe.withDefault []
-        , url = buildUrl firestore
+        , headers = Authorization.headers authorization
+        , url = crudUrl firestore
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
-        , resolver = jsonResolver (responseDecoder fieldDecoder)
+        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
 
 
 {-| Updates or inserts a document.
 -}
-patch : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Response a)
+patch : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
 patch fields fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "PATCH"
-        , headers =
-            authorization
-                |> Authorization.header
-                |> Maybe.map List.singleton
-                |> Maybe.withDefault []
-        , url = buildUrl firestore
+        , headers = Authorization.headers authorization
+        , url = crudUrl firestore
         , body = Http.jsonBody <| Document.encode fields
         , timeout = Nothing
-        , resolver = jsonResolver (responseDecoder fieldDecoder)
+        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
 
 
@@ -167,12 +178,8 @@ delete : Firestore -> Task.Task Error ()
 delete ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "GET"
-        , headers =
-            authorization
-                |> Authorization.header
-                |> Maybe.map List.singleton
-                |> Maybe.withDefault []
-        , url = buildUrl firestore
+        , headers = Authorization.headers authorization
+        , url = crudUrl firestore
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -194,11 +201,7 @@ begin (Firestore payload) =
     Task.map Transaction <|
         Http.task
             { method = "POST"
-            , headers =
-                payload.authorization
-                    |> Authorization.header
-                    |> Maybe.map List.singleton
-                    |> Maybe.withDefault []
+            , headers = Authorization.headers payload.authorization
             , url =
                 template "https://firestore.googleapis.com/v1beta1/projects/"
                     |> withValue (Project.toString << .project)
@@ -209,7 +212,7 @@ begin (Firestore payload) =
                     |> render payload
             , body = Http.emptyBody
             , timeout = Nothing
-            , resolver = jsonResolver transactionResolver
+            , resolver = jsonResolver transactionDecoder
             }
 
 
@@ -219,11 +222,7 @@ commit : Decode.Value -> Firestore -> Task.Task Error CommitTime
 commit body (Firestore payload) =
     Http.task
         { method = "POST"
-        , headers =
-            payload.authorization
-                |> Authorization.header
-                |> Maybe.map List.singleton
-                |> Maybe.withDefault []
+        , headers = Authorization.headers payload.authorization
         , url =
             template "https://firestore.googleapis.com/v1beta1/projects/"
                 |> withValue (Project.toString << .project)
@@ -234,12 +233,76 @@ commit body (Firestore payload) =
                 |> render payload
         , body = Http.jsonBody body
         , timeout = Nothing
-        , resolver = jsonResolver commitResolver
+        , resolver = jsonResolver commitDecoder
         }
 
 
 
--- Resolver
+-- Error
+
+
+type Error
+    = Http_ Http.Error
+    | Response FirestoreError
+
+
+type alias FirestoreError =
+    { code : Int
+    , message : String
+    , status : String
+    }
+
+
+
+-- Decoder
+
+
+transactionDecoder : Decode.Decoder String
+transactionDecoder =
+    Decode.field "transaction" Decode.string
+
+
+type alias CommitTime =
+    Time.Posix
+
+
+commitDecoder : Decode.Decoder CommitTime
+commitDecoder =
+    Decode.succeed identity
+        |> Pipeline.required "commitTime" Iso8601.decoder
+
+
+errorDecoder : Decode.Decoder Error
+errorDecoder =
+    Decode.succeed Response
+        |> Pipeline.required "error" errorInfoDecoder
+
+
+errorInfoDecoder : Decode.Decoder FirestoreError
+errorInfoDecoder =
+    Decode.succeed FirestoreError
+        |> Pipeline.required "code" Decode.int
+        |> Pipeline.required "message" Decode.string
+        |> Pipeline.required "status" Decode.string
+
+
+
+-- Internals
+
+
+{-| Utility function to build URL for CRUD operation.
+-}
+crudUrl : Firestore -> String
+crudUrl (Firestore payload) =
+    template "https://firestore.googleapis.com/v1beta1/projects/"
+        |> withValue (Project.toString << .project)
+        |> withString "/databases/"
+        |> withValue (Database.toString << .database)
+        |> withString "/documents/"
+        |> withValue (Path.toString << .path)
+        |> withString "?key="
+        |> withValue (APIKey.unwrap << .apiKey)
+        |> render payload
 
 
 jsonResolver : Decode.Decoder a -> Http.Resolver Error a
@@ -292,77 +355,3 @@ emptyResolver =
 
                 Http.GoodStatus_ _ _ ->
                     Ok ()
-
-
-
--- Decoder
-
-
-type alias Response a =
-    List (Document.Document a)
-
-
-responseDecoder : Decode.Decoder a -> Decode.Decoder (Response a)
-responseDecoder fieldDecoder =
-    Decode.succeed identity
-        |> Pipeline.required "documents" (fieldDecoder |> Document.decode |> Decode.list)
-
-
-transactionResolver : Decode.Decoder String
-transactionResolver =
-    Decode.field "transaction" Decode.string
-
-
-type alias CommitTime =
-    Time.Posix
-
-
-commitResolver : Decode.Decoder CommitTime
-commitResolver =
-    Decode.succeed identity
-        |> Pipeline.required "commitTime" Iso8601.decoder
-
-
-type Error
-    = Http_ Http.Error
-    | Response FirestoreError
-
-
-errorDecoder : Decode.Decoder Error
-errorDecoder =
-    Decode.succeed Response
-        |> Pipeline.required "error" errorInfoDecoder
-
-
-type alias FirestoreError =
-    { code : Int
-    , message : String
-    , status : String
-    }
-
-
-errorInfoDecoder : Decode.Decoder FirestoreError
-errorInfoDecoder =
-    Decode.succeed FirestoreError
-        |> Pipeline.required "code" Decode.int
-        |> Pipeline.required "message" Decode.string
-        |> Pipeline.required "status" Decode.string
-
-
-
--- Internals
-
-
-{-| Utility function to build URL for CRUD operation.
--}
-buildUrl : Firestore -> String
-buildUrl (Firestore payload) =
-    template "https://firestore.googleapis.com/v1beta1/projects/"
-        |> withValue (Project.toString << .project)
-        |> withString "/databases/"
-        |> withValue (Database.toString << .database)
-        |> withString "/documents/"
-        |> withValue (Path.toString << .path)
-        |> withString "?key="
-        |> withValue (APIKey.unwrap << .apiKey)
-        |> render payload

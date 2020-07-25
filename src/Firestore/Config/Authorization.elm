@@ -1,16 +1,13 @@
 module Firestore.Config.Authorization exposing
-    ( Authorization
-    , new, empty
-    , header
+    ( Authorization, new, empty
+    , headers
     )
 
 {-| A module for Firebase Authorization token
 
-@docs Authorization
+@docs Authorization, new, empty
 
-@docs new, empty
-
-@docs header
+@docs headers
 
 -}
 
@@ -31,6 +28,11 @@ empty =
     Authorization Nothing
 
 
-header : Authorization -> Maybe Http.Header
-header (Authorization value) =
-    Maybe.map (Http.header "Bearer") value
+{-| Converts Authorization into `List Http.Header`. This function is aimed to be used for `Http.toTask`.
+-}
+headers : Authorization -> List Http.Header
+headers (Authorization value) =
+    value
+        |> Maybe.map (Http.header "Bearer")
+        |> Maybe.map List.singleton
+        |> Maybe.withDefault []

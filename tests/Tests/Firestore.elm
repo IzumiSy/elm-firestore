@@ -132,7 +132,7 @@ suite =
                       """
                 in
                 src
-                    |> Decode.decodeString (Firestore.responseDecoder documentDecoder)
+                    |> Decode.decodeString (Document.decodeList documentDecoder)
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
