@@ -30,7 +30,6 @@ import Http
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
-import String.Interpolate as Interpolate
 import Task
 import Template exposing (render, template, withString, withValue)
 import Time
@@ -111,7 +110,7 @@ withAuthorization value (Firestore payload) =
 {-| Gets a single document.
 -}
 get : Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-get fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
+get fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "GET"
         , headers =
@@ -129,7 +128,7 @@ get fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorizatio
 {-| Creates a new document.
 -}
 create : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-create fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
+create fields fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "POST"
         , headers =
@@ -147,7 +146,7 @@ create fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, au
 {-| Updates or inserts a document.
 -}
 patch : Fields.Fields -> Decode.Decoder a -> Firestore -> Task.Task Http.Error (Response a)
-patch fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
+patch fields fieldDecoder ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "PATCH"
         , headers =
@@ -165,7 +164,7 @@ patch fields fieldDecoder ((Firestore { apiKey, projectId, databaseId, path, aut
 {-| Deletes a document.
 -}
 delete : Firestore -> Task.Task Http.Error ()
-delete ((Firestore { apiKey, projectId, databaseId, path, authorization }) as firestore) =
+delete ((Firestore { authorization }) as firestore) =
     Http.task
         { method = "GET"
         , headers =
