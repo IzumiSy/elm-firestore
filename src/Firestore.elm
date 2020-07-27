@@ -38,6 +38,7 @@ import Http
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Task
 import Time
 
@@ -210,13 +211,13 @@ begin (Firestore config _) =
 
 {-| Commits a transaction, while optionally updating documents.
 -}
-commit : Decode.Value -> Firestore -> Task.Task Error CommitTime
-commit body (Firestore config _) =
+commit : Transaction -> Firestore -> Task.Task Error CommitTime
+commit transaction (Firestore config _) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint "/documents:commit" config
-        , body = Http.jsonBody body
+        , body = Http.jsonBody <| transactionEncoder transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
         }
@@ -246,7 +247,7 @@ type alias FirestoreError =
 
 
 
--- Decoder
+-- Decoders
 
 
 transactionDecoder : Decode.Decoder String
@@ -276,6 +277,19 @@ errorInfoDecoder =
         |> Pipeline.required "code" Decode.int
         |> Pipeline.required "message" Decode.string
         |> Pipeline.required "status" Decode.string
+
+
+
+-- Encoders
+
+
+transactionEncoder : Transaction -> Encode.Value
+transactionEncoder (Transaction transaction) =
+    Encode.object
+        [ ( "transaction"
+          , Encode.string transaction
+          )
+        ]
 
 
 
