@@ -1,6 +1,6 @@
 module Firestore.Types.Geopoint exposing (Geopoint, decoder, latitude, longitude, encoder, new)
 
-{-| A geopoint data type for Firestore
+{-| Geopoint data type for Firestore
 
 @docs Geopoint, decoder, latitude, longitude, encoder, new
 
@@ -12,8 +12,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 
 
-{-| Geopoint type for Firestore
--}
+{-| -}
 type Geopoint
     = Geopoint Int Int
 

@@ -23,18 +23,23 @@ type Project
     = Project String
 
 
-{-| The type with all information which is required to send requests to Firestore through REST API
+{-| Data type for Firestore configuration
+
+This type internally has all information which is required to send requests to Firestore through REST API.
+
 -}
 type Config
     = Config APIKey Project Database (Maybe Authorization)
 
 
+{-| Creates a new Config
+-}
 new : { apiKey : String, project : String } -> Config
 new config =
     Config (APIKey config.apiKey) (Project config.project) (Database "(default)") Nothing
 
 
-{-| Build an endpoint string without path
+{-| Builds an endpoint string without path
 -}
 endpoint : String -> Config -> String
 endpoint path (Config (APIKey apiKey_) (Project project) (Database database_) _) =

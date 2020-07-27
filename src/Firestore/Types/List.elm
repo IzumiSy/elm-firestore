@@ -1,6 +1,6 @@
 module Firestore.Types.List exposing (decoder, encoder)
 
-{-| A list data type for Firestore
+{-| List data type for Firestore
 
 @docs decoder, encoder
 

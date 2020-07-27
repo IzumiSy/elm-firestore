@@ -1,6 +1,6 @@
 module Firestore.Types.String exposing (decoder, encoder)
 
-{-| A string data type for Firestore
+{-| String data type for Firestore
 
 @docs decoder, encoder
 

@@ -1,6 +1,6 @@
 module Firestore.Types.Reference exposing (Reference, decoder, encoder, new)
 
-{-| A reference data type for Firestore
+{-| Reference data type for Firestore
 
 @docs Reference, decoder, encoder, new
 
@@ -11,8 +11,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
-{-| Reference type for Firestore
--}
+{-| -}
 type Reference
     = Reference String
 

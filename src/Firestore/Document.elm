@@ -22,7 +22,9 @@ import Time
 
 
 {-| A record strucutre for a document fetched from Firestore.
+
 `fields` field is expected to be a record that consists of types coming from modules under `Firestore.Types` namespace.
+
 -}
 type alias Document a =
     { name : String

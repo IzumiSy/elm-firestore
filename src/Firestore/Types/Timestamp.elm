@@ -1,6 +1,6 @@
 module Firestore.Types.Timestamp exposing (Timestamp, decoder, toPosix, encoder, new)
 
-{-| A timestamp data type for Firestore
+{-| Timestamp data type for Firestore
 
 @docs Timestamp, decoder, toPosix, encoder, new
 
@@ -13,8 +13,7 @@ import Json.Encode as Encode
 import Time
 
 
-{-| Timestamp type for Firestore
--}
+{-| -}
 type Timestamp
     = Timestamp Time.Posix
 

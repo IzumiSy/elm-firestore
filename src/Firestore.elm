@@ -40,6 +40,8 @@ import Task
 import Time
 
 
+{-| Data type for Firestore
+-}
 type Firestore
     = Firestore Config.Config Path
 
@@ -52,6 +54,7 @@ init config =
 
 
 {-| Drills down document paths with a specific path name.
+
 This function is aimed to be chanind with pipeline operators in order to build up document path.
 
     firestore
@@ -159,6 +162,8 @@ delete (Firestore config path) =
 -- Transaction
 
 
+{-| Data type for Transaction
+-}
 type Transaction
     = Transaction String
 
@@ -196,11 +201,18 @@ commit body (Firestore config _) =
 -- Error
 
 
+{-| An error type
+
+This type is available in order to disregard type of errors between protocol related errors as Http\_ or backend related errors as Response.
+
+-}
 type Error
     = Http_ Http.Error
     | Response FirestoreError
 
 
+{-| Data structure for errors from Firestore
+-}
 type alias FirestoreError =
     { code : Int
     , message : String

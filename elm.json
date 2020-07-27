@@ -15,7 +15,7 @@
         "Firestore.Types.Int",
         "Firestore.Types.List",
         "Firestore.Types.Map",
-        "Firestore.Types.Null",
+        "Firestore.Types.Nullable",
         "Firestore.Types.String"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
