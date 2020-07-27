@@ -3,7 +3,7 @@
     "name": "IzumiSy/elm-firestore",
     "summary": "A library for integrating your app with Firestore in Elm",
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "exposed-modules": [
         "Firestore",
         "Firestore.Config",
