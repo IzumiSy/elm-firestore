@@ -9,7 +9,7 @@ import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Int as FSInt
 import Firestore.Types.List as FSList
 import Firestore.Types.Map as FSMap
-import Firestore.Types.Null as FSNull
+import Firestore.Types.Nullable as FSNullable
 import Firestore.Types.Reference as Reference
 import Firestore.Types.String as FSString
 import Firestore.Types.Timestamp as Timestamp
@@ -43,7 +43,7 @@ documentDecoder =
         |> Pipeline.required "list" (FSList.decoder FSString.decoder)
         |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
         |> Pipeline.required "boolean" FSBool.decoder
-        |> Pipeline.required "nullable" (FSNull.decoder FSString.decoder)
+        |> Pipeline.required "nullable" (FSNullable.decoder FSString.decoder)
 
 
 type alias WriteDocument =
@@ -144,7 +144,7 @@ suite =
                 , ( "boolean", FSBool.encoder True )
                 , ( "string", FSString.encoder "IzumiSy" )
                 , ( "integer", FSInt.encoder 99 )
-                , ( "nullable", FSNull.encoder Nothing )
+                , ( "nullable", FSNullable.encoder Nothing )
                 ]
                     |> Document.fields
                     |> Document.encode
