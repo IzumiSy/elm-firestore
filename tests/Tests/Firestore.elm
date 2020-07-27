@@ -2,8 +2,8 @@ module Tests.Firestore exposing (suite)
 
 import Dict
 import Expect
-import Firestore
-import Firestore.Document as Document
+import Firestore.Internals.Document as Document
+import Firestore.Internals.Draft as Draft
 import Firestore.Types.Bool as FSBool
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Int as FSInt
@@ -146,8 +146,8 @@ suite =
                 , ( "integer", FSInt.encoder 99 )
                 , ( "nullable", FSNullable.encoder Nothing )
                 ]
-                    |> Document.fields
-                    |> Document.encode
+                    |> Draft.new
+                    |> Draft.encode
                     |> Decode.decodeValue writeDecoder
                     |> Expect.ok
         ]

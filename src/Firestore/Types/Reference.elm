@@ -6,7 +6,7 @@ module Firestore.Types.Reference exposing (Reference, new, decoder, encoder)
 
 -}
 
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -29,8 +29,8 @@ decoder =
 
 
 {-| -}
-encoder : Reference -> Document.Field
+encoder : Reference -> Field.Field
 encoder (Reference value) =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "referenceValue", Encode.string value ) ]

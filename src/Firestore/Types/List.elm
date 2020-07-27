@@ -6,7 +6,7 @@ module Firestore.Types.List exposing (decoder, encoder)
 
 -}
 
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -20,14 +20,14 @@ decoder elementDecoder =
 
 
 {-| -}
-encoder : List a -> (a -> Document.Field) -> Document.Field
+encoder : List a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "arrayValue"
               , Encode.object
                     [ ( "values"
-                      , Encode.list (Document.unwrapField << valueEncoder) value
+                      , Encode.list (Field.unwrap << valueEncoder) value
                       )
                     ]
               )

@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore, init
     , withCollection, withConfig
-    , get, list, patch, delete, create
+    , Document, get, list, Draft, draft, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, begin, commit
     )
@@ -15,7 +15,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs create, get, list, patch, delete
+@docs Document, get, list, Draft, draft, create, patch, delete
 
 
 # Error
@@ -30,8 +30,10 @@ module Firestore exposing
 -}
 
 import Firestore.Config as Config
-import Firestore.Document as Document
-import Firestore.Path as Path exposing (Path)
+import Firestore.Internals.Document as Document
+import Firestore.Internals.Draft as Draft
+import Firestore.Internals.Field as Field
+import Firestore.Internals.Path as Path exposing (Path)
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -88,9 +90,19 @@ withConfig config (Firestore _ path) =
 -- CRUDs
 
 
+{-| A record structure for a document fetched from Firestore.
+-}
+type alias Document a =
+    { name : String
+    , fields : a
+    , createTime : Time.Posix
+    , updateTime : Time.Posix
+    }
+
+
 {-| Gets a single document.
 -}
-get : Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
+get : Decode.Decoder a -> Firestore -> Task.Task Error (Document a)
 get fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
@@ -102,9 +114,9 @@ get fieldDecoder (Firestore config path) =
         }
 
 
-{-| Lists documents
+{-| Lists documents.
 -}
-list : Decode.Decoder a -> Firestore -> Task.Task Error (List (Document.Document a))
+list : Decode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
 list fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
@@ -116,15 +128,28 @@ list fieldDecoder (Firestore config path) =
         }
 
 
+{-| A type for a document before persisted on Firestore.
+-}
+type Draft
+    = Draft Draft.Draft
+
+
+{-| Creates a new document for `create` or `patch`.
+-}
+draft : List ( String, Field.Field ) -> Draft
+draft =
+    Draft << Draft.new
+
+
 {-| Creates a new document.
 -}
-create : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
-create fields fieldDecoder (Firestore config path) =
+create : Decode.Decoder a -> Draft -> Firestore -> Task.Task Error (Document a)
+create fieldDecoder (Draft draft_) (Firestore config path) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint (Path.toString path) config
-        , body = Http.jsonBody <| Document.encode fields
+        , body = Http.jsonBody <| Draft.encode draft_
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
@@ -132,13 +157,13 @@ create fields fieldDecoder (Firestore config path) =
 
 {-| Updates or inserts a document.
 -}
-patch : Document.Fields -> Decode.Decoder a -> Firestore -> Task.Task Error (Document.Document a)
-patch fields fieldDecoder (Firestore config path) =
+patch : Decode.Decoder a -> Draft -> Firestore -> Task.Task Error (Document a)
+patch fieldDecoder (Draft draft_) (Firestore config path) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint (Path.toString path) config
-        , body = Http.jsonBody <| Document.encode fields
+        , body = Http.jsonBody <| Draft.encode draft_
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }

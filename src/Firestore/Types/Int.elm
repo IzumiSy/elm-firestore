@@ -6,7 +6,7 @@ module Firestore.Types.Int exposing (decoder, encoder)
 
 -}
 
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -25,8 +25,8 @@ decoder =
 
 
 {-| -}
-encoder : Int -> Document.Field
+encoder : Int -> Field.Field
 encoder value =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "integerValue", Encode.string <| String.fromInt value ) ]

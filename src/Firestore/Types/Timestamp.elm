@@ -14,7 +14,7 @@ module Firestore.Types.Timestamp exposing
 
 -}
 
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Iso8601
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -39,9 +39,9 @@ decoder =
 
 
 {-| -}
-encoder : Timestamp -> Document.Field
+encoder : Timestamp -> Field.Field
 encoder (Timestamp value) =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "timestampValue", Iso8601.encode value ) ]
 

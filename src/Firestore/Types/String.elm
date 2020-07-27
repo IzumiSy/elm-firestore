@@ -6,7 +6,7 @@ module Firestore.Types.String exposing (decoder, encoder)
 
 -}
 
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -18,8 +18,8 @@ decoder =
 
 
 {-| -}
-encoder : String -> Document.Field
+encoder : String -> Field.Field
 encoder value =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "stringValue", Encode.string value ) ]

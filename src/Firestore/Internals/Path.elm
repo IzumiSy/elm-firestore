@@ -1,4 +1,4 @@
-module Firestore.Path exposing
+module Firestore.Internals.Path exposing
     ( Path
     , append
     , empty

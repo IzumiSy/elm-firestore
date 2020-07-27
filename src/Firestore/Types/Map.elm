@@ -7,7 +7,7 @@ module Firestore.Types.Map exposing (decoder, encoder)
 -}
 
 import Dict
-import Firestore.Document as Document
+import Firestore.Internals.Field as Field
 import Json.Decode as Decode
 import Json.Encode as Encode
 
@@ -19,14 +19,14 @@ decoder valueDecoder =
 
 
 {-| -}
-encoder : Dict.Dict String a -> (a -> Document.Field) -> Document.Field
+encoder : Dict.Dict String a -> (a -> Field.Field) -> Field.Field
 encoder value valueEncoder =
-    Document.field <|
+    Field.field <|
         Encode.object
             [ ( "mapValue"
               , Encode.object
                     [ ( "fields"
-                      , Encode.dict identity (Document.unwrapField << valueEncoder) value
+                      , Encode.dict identity (Field.unwrap << valueEncoder) value
                       )
                     ]
               )
