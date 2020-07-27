@@ -25,14 +25,8 @@ type Geopoint
     = Geopoint Int Int
 
 
-type alias Payload =
-    { latitude : Int
-    , longitude : Int
-    }
-
-
 {-| -}
-new : Payload -> Geopoint
+new : { latitude : Int, longitude : Int } -> Geopoint
 new payload =
     Geopoint payload.latitude payload.longitude
 
