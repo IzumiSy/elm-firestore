@@ -1,11 +1,11 @@
 module Firestore.Config exposing
-    ( Config, new, endpoint
-    , withAuthorization, withDatabase, httpHeader
+    ( Config, new, endpoint, httpHeader
+    , withAuthorization, withDatabase
     )
 
 {-| Configuration types for Firestore
 
-@docs Config, new, endpoint
+@docs Config, new, endpoint, httpHeader
 
 @docs withAuthorization, withDatabase
 
@@ -72,6 +72,8 @@ withAuthorization value (Config apiKey_ project_ database_ _) =
     Config apiKey_ project_ database_ (Just <| Authorization value)
 
 
+{-| Extracts authorization with bearer prefix as `Http.Header`.
+-}
 httpHeader : Config -> List Http.Header
 httpHeader (Config _ _ _ maybeAuthorization) =
     maybeAuthorization
