@@ -7,7 +7,7 @@ module Firestore.Config exposing
 
 @docs Config, new, endpoint
 
-@docs withAuthorization, withDatabase, httpHeader
+@docs withAuthorization, withDatabase
 
 -}
 
@@ -72,8 +72,6 @@ withAuthorization value (Config apiKey_ project_ database_ _) =
     Config apiKey_ project_ database_ (Just <| Authorization value)
 
 
-{-| Extract authorization header as `Http.Header`. The return type is aimed to be used with `Http.task`.
--}
 httpHeader : Config -> List Http.Header
 httpHeader (Config _ _ _ maybeAuthorization) =
     maybeAuthorization

@@ -1,8 +1,16 @@
-module Firestore.Types.Timestamp exposing (Timestamp, decoder, toPosix, encoder, new)
+module Firestore.Types.Timestamp exposing
+    ( Timestamp, new, decoder, encoder
+    , toPosix
+    )
 
 {-| Timestamp data type for Firestore
 
-@docs Timestamp, decoder, toPosix, encoder, new
+@docs Timestamp, new, decoder, encoder
+
+
+# Extractors
+
+@docs toPosix
 
 -}
 

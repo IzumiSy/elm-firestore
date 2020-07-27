@@ -15,7 +15,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs get, list, patch, delete, create
+@docs create, get, list, patch, delete
 
 
 # Error
