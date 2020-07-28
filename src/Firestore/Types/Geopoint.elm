@@ -1,16 +1,13 @@
 module Firestore.Types.Geopoint exposing
-    ( Geopoint, new, decoder, encoder
-    , latitude, longitude
+    ( Geopoint, new, latitude, longitude
+    , encode, decode
     )
 
 {-| Geopoint data type for Firestore
 
-@docs Geopoint, new, decoder, encoder
+@docs Geopoint, new, latitude, longitude
 
-
-# Extractors
-
-@docs latitude, longitude
+@docs encode, decode
 
 -}
 
@@ -32,31 +29,6 @@ new payload =
 
 
 {-| -}
-decoder : Decode.Decoder Geopoint
-decoder =
-    Decode.succeed
-        (\lat long -> Decode.succeed (Geopoint lat long))
-        |> Pipeline.required "latitude" Decode.int
-        |> Pipeline.required "longitude" Decode.int
-        |> Pipeline.resolve
-        |> Decode.field "geoPointValue"
-
-
-{-| -}
-encoder : Geopoint -> Field.Field
-encoder (Geopoint lat long) =
-    Field.field <|
-        Encode.object
-            [ ( "geoPointValue"
-              , Encode.object
-                    [ ( "latitude", Encode.int lat )
-                    , ( "longitude", Encode.int long )
-                    ]
-              )
-            ]
-
-
-{-| -}
 longitude : Geopoint -> Int
 longitude (Geopoint _ long) =
     long
@@ -66,3 +38,28 @@ longitude (Geopoint _ long) =
 latitude : Geopoint -> Int
 latitude (Geopoint lat _) =
     lat
+
+
+{-| -}
+decode : Decode.Decoder Geopoint
+decode =
+    Decode.succeed
+        (\lat long -> Decode.succeed (Geopoint lat long))
+        |> Pipeline.required "latitude" Decode.int
+        |> Pipeline.required "longitude" Decode.int
+        |> Pipeline.resolve
+        |> Decode.field "geoPointValue"
+
+
+{-| -}
+encode : Geopoint -> Field.Field
+encode (Geopoint lat long) =
+    Field.field <|
+        Encode.object
+            [ ( "geoPointValue"
+              , Encode.object
+                    [ ( "latitude", Encode.int lat )
+                    , ( "longitude", Encode.int long )
+                    ]
+              )
+            ]

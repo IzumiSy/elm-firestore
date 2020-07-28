@@ -2,17 +2,12 @@ module Tests.Firestore exposing (suite)
 
 import Dict
 import Expect
+import Firestore.Decode as FSDecode
+import Firestore.Encode as FSEncode
 import Firestore.Internals.Document as Document
 import Firestore.Internals.Draft as Draft
-import Firestore.Types.Bool as FSBool
 import Firestore.Types.Geopoint as Geopoint
-import Firestore.Types.Int as FSInt
-import Firestore.Types.List as FSList
-import Firestore.Types.Map as FSMap
-import Firestore.Types.Nullable as FSNullable
 import Firestore.Types.Reference as Reference
-import Firestore.Types.String as FSString
-import Firestore.Types.Timestamp as Timestamp
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Test
@@ -20,7 +15,7 @@ import Time
 
 
 type alias Document =
-    { timestamp : Timestamp.Timestamp
+    { timestamp : Time.Posix
     , reference : Reference.Reference
     , geopoint : Geopoint.Geopoint
     , integer : Int
@@ -35,15 +30,15 @@ type alias Document =
 documentDecoder : Decode.Decoder Document
 documentDecoder =
     Decode.succeed Document
-        |> Pipeline.required "timestamp" Timestamp.decoder
-        |> Pipeline.required "reference" Reference.decoder
-        |> Pipeline.required "geopoint" Geopoint.decoder
-        |> Pipeline.required "integer" FSInt.decoder
-        |> Pipeline.required "string" FSString.decoder
-        |> Pipeline.required "list" (FSList.decoder FSString.decoder)
-        |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
-        |> Pipeline.required "boolean" FSBool.decoder
-        |> Pipeline.required "nullable" (FSNullable.decoder FSString.decoder)
+        |> Pipeline.required "timestamp" FSDecode.timestamp
+        |> Pipeline.required "reference" Reference.decode
+        |> Pipeline.required "geopoint" Geopoint.decode
+        |> Pipeline.required "integer" FSDecode.int
+        |> Pipeline.required "string" FSDecode.string
+        |> Pipeline.required "list" (FSDecode.list FSDecode.string)
+        |> Pipeline.required "map" (FSDecode.dict FSDecode.string)
+        |> Pipeline.required "boolean" FSDecode.bool
+        |> Pipeline.required "nullable" (FSDecode.maybe FSDecode.string)
 
 
 type alias WriteDocument =
@@ -136,15 +131,15 @@ suite =
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
-                [ ( "timestamp", Timestamp.encoder <| Timestamp.new <| Time.millisToPosix 100 )
-                , ( "reference", Reference.encoder <| Reference.new "aaa/bbb" )
-                , ( "geopoint", Geopoint.encoder <| Geopoint.new { latitude = 10, longitude = 10 } )
-                , ( "list", FSList.encoder [ "111", "222", "333" ] FSString.encoder )
-                , ( "map", FSMap.encoder (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]) FSString.encoder )
-                , ( "boolean", FSBool.encoder True )
-                , ( "string", FSString.encoder "IzumiSy" )
-                , ( "integer", FSInt.encoder 99 )
-                , ( "nullable", FSNullable.encoder Nothing )
+                [ ( "timestamp", FSEncode.timestamp <| Time.millisToPosix 100 )
+                , ( "reference", Reference.encode <| Reference.new "aaa/bbb" )
+                , ( "geopoint", Geopoint.encode <| Geopoint.new { latitude = 10, longitude = 10 } )
+                , ( "list", FSEncode.list [ "111", "222", "333" ] FSEncode.string )
+                , ( "map", FSEncode.dict (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]) FSEncode.string )
+                , ( "boolean", FSEncode.bool True )
+                , ( "string", FSEncode.string "IzumiSy" )
+                , ( "integer", FSEncode.int 99 )
+                , ( "nullable", FSEncode.maybe Nothing )
                 ]
                     |> Draft.new
                     |> Draft.encode
