@@ -194,6 +194,7 @@ type Transaction
     = Transaction String (List Draft)
 
 
+
 {-| Adds a new update into the transaction
 -}
 update : Draft -> Transaction -> Transaction
@@ -215,6 +216,10 @@ begin (Firestore config _) =
             , resolver = jsonResolver transactionDecoder
             }
 
+{-| A time transaction commited at
+-}
+type alias CommitTime =
+    Time.Posix
 
 {-| Commits a transaction, while optionally updating documents.
 
@@ -264,9 +269,6 @@ transactionDecoder : Decode.Decoder String
 transactionDecoder =
     Decode.field "transaction" Decode.string
 
-
-type alias CommitTime =
-    Time.Posix
 
 
 commitDecoder : Decode.Decoder CommitTime
