@@ -23,15 +23,10 @@ Almost all [basic types](https://firebase.google.com/docs/firestore/reference/re
 ```elm
 import Firestore
 import Firestore.Config as Config
+import Firestore.Encode as FSEncode
+import Firestore.Decode as FSDecode
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
-import Firestore.Types.Timestamp as Timestamp
-import Firestore.Types.String as FSString
-import Firestore.Types.Int as FSInt
-import Firestore.Types.List as FSList
-import Firestore.Types.Map as FSMap
-import Firestore.Types.Bool as FSBool
-import Firestore.Types.Nullable as FSNullable
 
 
 -- model
@@ -43,7 +38,7 @@ type alias Model =
 
 
 type alias Document =
-    { timestamp : Timestamp.Timestamp
+    { timestamp : Time.Posix
     , geopoint : Geopoint.Geopoint
     , reference : Reference.Reference
     , integer : Int
@@ -85,15 +80,15 @@ init =
 decoder : Decode.Decoder Document
 decoder =
     Decode.succeed Document
-        |> Pipeline.required "timestamp" Timestamp.decoder
-        |> Pipeline.required "geopoint" Geopoint.decoder
-        |> Pipeline.required "reference" Reference.decoder
-        |> Pipeline.required "integer" FSInt.decoder
-        |> Pipeline.required "string" FSString.decoder
-        |> Pipeline.required "list" (FSList.decoder FSString.decoder)
-        |> Pipeline.required "map" (FSMap.decoder FSString.decoder)
-        |> Pipeline.required "boolean" FSBool.decoder
-        |> Pipeline.required "nullable" (FSNullable.decoder FSString.decoder)
+        |> Pipeline.required "timestamp" FSDecode.timestamp
+        |> Pipeline.required "geopoint" Geopoint.decode
+        |> Pipeline.required "reference" Reference.decode
+        |> Pipeline.required "integer" FSDecode.int
+        |> Pipeline.required "string" FSDecode.string
+        |> Pipeline.required "list" (FSDecode.list FSDecode.string)
+        |> Pipeline.required "map" (FSDecode.dict FSDecode.string)
+        |> Pipeline.required "boolean" FSDecode.bool
+        |> Pipeline.required "nullable" (FSDecode.maybe FSDecode.string)
 
 
 
