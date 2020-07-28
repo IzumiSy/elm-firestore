@@ -3,7 +3,7 @@ module Firestore exposing
     , withCollection, withConfig
     , Document, get, list, Draft, draft, create, patch, delete
     , Error(..), FirestoreError
-    , Transaction, begin, commit
+    , Transaction, CommitTime, begin, commit, update
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -25,7 +25,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, begin, commit
+@docs Transaction, CommitTime, begin, commit, update
 
 -}
 
@@ -191,33 +191,43 @@ delete (Firestore config path) =
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction String
+    = Transaction String (List Draft)
+
+
+{-| Adds a new update into the transaction
+-}
+update : Draft -> Transaction -> Transaction
+update draft_ (Transaction id drafts) =
+    Transaction id (draft_ :: drafts)
 
 
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Error Transaction
 begin (Firestore config _) =
-    Task.map Transaction <|
+    Task.map (\transaction -> Transaction transaction []) <|
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
-            , url = Config.endpoint "/documents:beginTransaction" config
-            , body = Http.emptyBody
+            , url = Config.endpoint ":beginTransaction" config
+            , body = Http.jsonBody beginEncoder
             , timeout = Nothing
             , resolver = jsonResolver transactionDecoder
             }
 
 
 {-| Commits a transaction, while optionally updating documents.
+
+Only `readWrite` transaction is supported.
+
 -}
 commit : Transaction -> Firestore -> Task.Task Error CommitTime
 commit transaction (Firestore config _) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint "/documents:commit" config
-        , body = Http.jsonBody <| transactionEncoder transaction
+        , url = Config.endpoint ":commit" config
+        , body = Http.jsonBody <| commitEncoder transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
         }
@@ -283,11 +293,23 @@ errorInfoDecoder =
 -- Encoders
 
 
-transactionEncoder : Transaction -> Encode.Value
-transactionEncoder (Transaction transaction) =
+commitEncoder : Transaction -> Encode.Value
+commitEncoder (Transaction transaction drafts) =
     Encode.object
-        [ ( "transaction"
-          , Encode.string transaction
+        [ ( "transaction", Encode.string transaction )
+        , ( "writes", Encode.list Draft.encode <| List.map (\(Draft draft_) -> draft_) drafts )
+        ]
+
+
+beginEncoder : Encode.Value
+beginEncoder =
+    Encode.object
+        [ ( "options"
+          , Encode.object
+                [ ( "readWrite"
+                  , Encode.object []
+                  )
+                ]
           )
         ]
 

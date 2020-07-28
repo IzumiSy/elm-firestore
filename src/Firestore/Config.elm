@@ -47,6 +47,7 @@ endpoint path (Config (APIKey apiKey_) (Project project) (Database database_) _)
         |> withValue .project
         |> withString "/databases/"
         |> withValue .database
+        |> withString "/documents/"
         |> withString path
         |> withString "?key="
         |> withValue .apiKey

@@ -62,8 +62,8 @@ init =
                 { apiKey = "your-own-api-key"
                 , project = "your-firestore-app"
                 }
-                |> Firestore.withDatabase "your-own-database" -- optional
-                |> Firestore.withAuthorization "your-own-auth-token" -- optional
+                |> Config.withDatabase "your-own-database" -- optional
+                |> Config.withAuthorization "your-own-auth-token" -- optional
 
         firestore =
             config
@@ -73,7 +73,7 @@ init =
     ( { firestore = firestore }
     , firestore
         |> Firestore.get decoder
-        |> Task.attempt GotDocuments
+        |> Task.attempt GotDocument
     )
 
 
@@ -96,13 +96,13 @@ decoder =
 
 
 type Msg
-    = GotDocuments
+    = GotDocument (Result Firestore.Error (Firestore.Document Document))
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
-        GotDocuments result ->
+        GotDocument result ->
             case result of
                 Ok document ->
                     -- ...
