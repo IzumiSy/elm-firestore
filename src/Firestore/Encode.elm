@@ -1,59 +1,119 @@
-module Firestore.Encode exposing (bool, bytes, int, string, list, dict, maybe, timestamp)
+module Firestore.Encode exposing
+    ( Encoder, encode
+    , document
+    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+    )
 
 {-| Encoders for Firestore
 
-@docs bool, bytes, int, string, list, dict, maybe, timestamp
+@docs Encoder, encode
+
+
+# Constructors
+
+@docs document
+
+
+# Types
+
+@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
 
 -}
 
 import Dict
-import Firestore.Internals.Field as Field
+import Firestore.Types.Geopoint as Geopoint
+import Firestore.Types.Reference as Reference
 import Iso8601
 import Json.Encode as Encode
 import Time
 
 
+type Encoder
+    = Encoder (List ( String, Field ))
+
+
+{-| Generates Encode.Value from Encoder
+-}
+encode : Encoder -> Encode.Value
+encode (Encoder fields) =
+    Encode.object
+        [ ( "fields"
+          , fields
+                |> List.map (\( key, Field field ) -> ( key, field ))
+                |> Encode.object
+          )
+        ]
+
+
+
+-- Constructors
+
+
+{-| Creates a new encoder
+
+This function works like `Encode.object` but accepts a list of tuples which has only encoders provided from `Firestore.Encode` module
+
+    Firestore.Encode.document
+        [ ( "name", Firestore.Encode.string "IzumiSy" )
+        , ( "age", Firestore.Encode.int 26 )
+        , ( "canCode", Firestore.Encode.bool True )
+        ]
+
+-}
+document : List ( String, Field ) -> Encoder
+document =
+    Encoder
+
+
+
+-- Types
+
+
+type Field
+    = Field Encode.Value
+
+
 {-| -}
-bool : Bool -> Field.Field
+bool : Bool -> Field
 bool value =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "booleanValue", Encode.bool value ) ]
 
 
 {-| -}
-bytes : String -> Field.Field
+bytes : String -> Field
 bytes value =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "bytesValue", Encode.string value ) ]
 
 
 {-| -}
-int : Int -> Field.Field
+int : Int -> Field
 int value =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "integerValue", Encode.string <| String.fromInt value ) ]
 
 
 {-| -}
-string : String -> Field.Field
+string : String -> Field
 string value =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "stringValue", Encode.string value ) ]
 
 
 {-| -}
-list : List a -> (a -> Field.Field) -> Field.Field
+list : List a -> (a -> Field) -> Field
 list value valueEncoder =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "arrayValue"
               , Encode.object
                     [ ( "values"
-                      , Encode.list (Field.unwrap << valueEncoder) value
+                      , Encode.list ((\(Field field) -> field) << valueEncoder) value
                       )
                     ]
               )
@@ -61,14 +121,14 @@ list value valueEncoder =
 
 
 {-| -}
-dict : Dict.Dict String a -> (a -> Field.Field) -> Field.Field
+dict : Dict.Dict String a -> (a -> Field) -> Field
 dict value valueEncoder =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "mapValue"
               , Encode.object
                     [ ( "fields"
-                      , Encode.dict identity (Field.unwrap << valueEncoder) value
+                      , Encode.dict identity ((\(Field field) -> field) << valueEncoder) value
                       )
                     ]
               )
@@ -76,9 +136,9 @@ dict value valueEncoder =
 
 
 {-| -}
-maybe : Maybe ( a, a -> Encode.Value ) -> Field.Field
+maybe : Maybe ( a, a -> Encode.Value ) -> Field
 maybe maybeValueAndEncoder =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "nullValue"
               , maybeValueAndEncoder
@@ -89,8 +149,30 @@ maybe maybeValueAndEncoder =
 
 
 {-| -}
-timestamp : Time.Posix -> Field.Field
+timestamp : Time.Posix -> Field
 timestamp value =
-    Field.field <|
+    Field <|
         Encode.object
             [ ( "timestampValue", Iso8601.encode value ) ]
+
+
+{-| -}
+geopoint : Geopoint.Geopoint -> Field
+geopoint geopoint_ =
+    Field <|
+        Encode.object
+            [ ( "geoPointValue"
+              , Encode.object
+                    [ ( "latitude", Encode.int <| Geopoint.latitude geopoint_ )
+                    , ( "longitude", Encode.int <| Geopoint.longitude geopoint_ )
+                    ]
+              )
+            ]
+
+
+{-| -}
+reference : Reference.Reference -> Field
+reference reference_ =
+    Field <|
+        Encode.object
+            [ ( "referenceValue", Encode.string <| Reference.toString reference_ ) ]

@@ -1,19 +1,10 @@
-module Firestore.Types.Reference exposing
-    ( Reference, new
-    , encode, decode
-    )
+module Firestore.Types.Reference exposing (Reference, new, toString)
 
 {-| Reference data type for Firestore
 
-@docs Reference, new
-
-@docs encode, decode
+@docs Reference, new, toString
 
 -}
-
-import Firestore.Internals.Field as Field
-import Json.Decode as Decode
-import Json.Encode as Encode
 
 
 {-| -}
@@ -28,14 +19,6 @@ new =
 
 
 {-| -}
-decode : Decode.Decoder Reference
-decode =
-    Decode.field "referenceValue" <| Decode.map Reference Decode.string
-
-
-{-| -}
-encode : Reference -> Field.Field
-encode (Reference value) =
-    Field.field <|
-        Encode.object
-            [ ( "referenceValue", Encode.string value ) ]
+toString : Reference -> String
+toString (Reference value) =
+    value

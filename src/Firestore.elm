@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, list, Draft, draft, create, patch, delete
+    , Document, get, list, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, list, Draft, draft, create, patch, delete
+@docs Document, get, list, create, patch, delete
 
 
 # Error
@@ -33,9 +33,9 @@ module Firestore exposing
 -}
 
 import Firestore.Config as Config
+import Firestore.Decode as FSDecode
+import Firestore.Encode as FSEncode
 import Firestore.Internals.Document as Document
-import Firestore.Internals.Draft as Draft
-import Firestore.Internals.Field as Field
 import Firestore.Internals.Path as Path exposing (Path)
 import Http
 import Iso8601
@@ -106,7 +106,7 @@ type alias Document a =
 
 {-| Gets a single document.
 -}
-get : Decode.Decoder a -> Firestore -> Task.Task Error (Document a)
+get : FSDecode.Decoder a -> Firestore -> Task.Task Error (Document a)
 get fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
@@ -120,7 +120,7 @@ get fieldDecoder (Firestore config path) =
 
 {-| Lists documents.
 -}
-list : Decode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
+list : FSDecode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
 list fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
@@ -132,40 +132,15 @@ list fieldDecoder (Firestore config path) =
         }
 
 
-{-| A type for a document before persisted on Firestore.
-
-This type works like a wrapper for encoders that ensures encoders given to `create` or `patch` are consisted of ones provided from `Firestore.Encode` module.
-
--}
-type Draft
-    = Draft Draft.Draft
-
-
-{-| Creates a new document for `create` or `patch`.
-
-This function works like `Encode.object` but accepts a list of tuples which has encoders provided from `Firestore.Encode` module
-
-    Firestore.draft
-        [ ( "name", Firestore.Encode.string "IzumiSy" )
-        , ( "age", Firestore.Encode.int 26 )
-        , ( "canCode", Firestore.Encode.bool True )
-        ]
-
--}
-draft : List ( String, Field.Field ) -> Draft
-draft =
-    Draft << Draft.new
-
-
 {-| Creates a new document.
 -}
-create : Decode.Decoder a -> Draft -> Firestore -> Task.Task Error (Document a)
-create fieldDecoder (Draft draft_) (Firestore config path) =
+create : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
+create fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint (Path.toString path) config
-        , body = Http.jsonBody <| Draft.encode draft_
+        , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
@@ -173,13 +148,13 @@ create fieldDecoder (Draft draft_) (Firestore config path) =
 
 {-| Updates or inserts a document.
 -}
-patch : Decode.Decoder a -> Draft -> Firestore -> Task.Task Error (Document a)
-patch fieldDecoder (Draft draft_) (Firestore config path) =
+patch : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
+patch fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint (Path.toString path) config
-        , body = Http.jsonBody <| Draft.encode draft_
+        , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
@@ -206,7 +181,7 @@ delete (Firestore config path) =
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction String (List Draft)
+    = Transaction String (List FSEncode.Encoder)
 
 
 {-| Adds a new update into the transaction
@@ -221,9 +196,9 @@ type Transaction
         |> Task.attempt Commited
 
 -}
-update : Draft -> Transaction -> Transaction
-update draft_ (Transaction id drafts) =
-    Transaction id (draft_ :: drafts)
+update : FSEncode.Encoder -> Transaction -> Transaction
+update encoder (Transaction id encoders) =
+    Transaction id (encoder :: encoders)
 
 
 {-| Starts a new transaction.
@@ -324,7 +299,7 @@ commitEncoder : Transaction -> Encode.Value
 commitEncoder (Transaction transaction drafts) =
     Encode.object
         [ ( "transaction", Encode.string transaction )
-        , ( "writes", Encode.list Draft.encode <| List.map (\(Draft draft_) -> draft_) drafts )
+        , ( "writes", Encode.list FSEncode.encode drafts )
         ]
 
 

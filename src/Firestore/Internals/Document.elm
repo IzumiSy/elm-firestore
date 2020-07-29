@@ -4,6 +4,7 @@ module Firestore.Internals.Document exposing
     , decodeOne
     )
 
+import Firestore.Decode as FSDecode
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -18,16 +19,16 @@ type alias Document a =
     }
 
 
-decodeList : Decode.Decoder a -> Decode.Decoder (List (Document a))
+decodeList : FSDecode.Decoder a -> Decode.Decoder (List (Document a))
 decodeList fieldDecoder =
     Decode.succeed identity
         |> Pipeline.required "documents" (fieldDecoder |> decodeOne |> Decode.list)
 
 
-decodeOne : Decode.Decoder a -> Decode.Decoder (Document a)
+decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)
 decodeOne fieldDecoder =
     Decode.succeed Document
         |> Pipeline.required "name" Decode.string
-        |> Pipeline.required "fields" fieldDecoder
+        |> Pipeline.required "fields" (FSDecode.decode fieldDecoder)
         |> Pipeline.required "createTime" Iso8601.decoder
         |> Pipeline.required "updateTime" Iso8601.decoder
