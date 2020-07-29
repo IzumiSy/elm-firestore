@@ -1,13 +1,22 @@
 module Firestore.Config exposing
-    ( Config, new, endpoint, httpHeader
-    , withAuthorization, withDatabase
+    ( Config
+    , new, withAuthorization, withDatabase
+    , endpoint, httpHeader
     )
 
 {-| Configuration types for Firestore
 
-@docs Config, new, endpoint, httpHeader
+@docs Config
 
-@docs withAuthorization, withDatabase
+
+# Constructors
+
+@docs new, withAuthorization, withDatabase
+
+
+# Extractors
+
+@docs endpoint, httpHeader
 
 -}
 

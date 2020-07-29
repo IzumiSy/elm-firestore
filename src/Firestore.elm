@@ -1,6 +1,6 @@
 module Firestore exposing
-    ( Firestore, init
-    , withCollection, withConfig
+    ( Firestore
+    , init, withCollection, withConfig
     , Document, get, list, Draft, draft, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, commit, update
@@ -8,9 +8,12 @@ module Firestore exposing
 
 {-| A library to have your app interact with Firestore in Elm
 
-@docs Firestore, init
+@docs Firestore
 
-@docs withCollection, withConfig
+
+# Constructors
+
+@docs init, withCollection, withConfig
 
 
 # CRUDs
@@ -25,7 +28,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, CommitTime, begin, commit, update
+@docs Transaction, CommitTime, begin, update, commit
 
 -}
 
