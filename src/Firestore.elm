@@ -3,7 +3,7 @@ module Firestore exposing
     , init, withCollection, withConfig
     , Document, get, list, Draft, draft, create, patch, delete
     , Error(..), FirestoreError
-    , Transaction, CommitTime, begin, commit, update
+    , Transaction, CommitTime, begin, update, commit
     )
 
 {-| A library to have your app interact with Firestore in Elm
