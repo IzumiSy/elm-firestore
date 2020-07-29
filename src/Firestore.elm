@@ -130,12 +130,24 @@ list fieldDecoder (Firestore config path) =
 
 
 {-| A type for a document before persisted on Firestore.
+
+This type works like a wrapper for encoders that ensures encoders given to `create` or `patch` are consisted of ones provided from `Firestore.Encode` module.
+
 -}
 type Draft
     = Draft Draft.Draft
 
 
 {-| Creates a new document for `create` or `patch`.
+
+This function works like `Encode.object` but accepts a list of tuples which has encoders provided from `Firestore.Encode` module
+
+    Firestore.draft
+        [ ( "name", Firestore.Encode.string "IzumiSy" )
+        , ( "age", Firestore.Encode.int 26 )
+        , ( "canCode", Firestore.Encode.bool True )
+        ]
+
 -}
 draft : List ( String, Field.Field ) -> Draft
 draft =
@@ -195,6 +207,16 @@ type Transaction
 
 
 {-| Adds a new update into the transaction
+
+    model.firestore
+        |> Firestore.commit
+            (transaction
+                |> Firestore.update draft1
+                |> Firestore.update draft2
+                |> Firestore.update draft3
+            )
+        |> Task.attempt Commited
+
 -}
 update : Draft -> Transaction -> Transaction
 update draft_ (Transaction id drafts) =
@@ -224,7 +246,7 @@ type alias CommitTime =
 
 {-| Commits a transaction, while optionally updating documents.
 
-Only `readWrite` transaction is supported.
+Only `readWrite` transaction is currently supported which requires authorization that can be set via `Config.withAuthorization` function.
 
 -}
 commit : Transaction -> Firestore -> Task.Task Error CommitTime
