@@ -66,10 +66,7 @@ type Authorization
     = Authorization String
 
 
-{-| Specifies Firebase Authorization token.
-
-A Firebase Authorization token can be obtained through [`firebase.User#getIdToken`][verify_token] method.
-You can pass it into Elm application through Flag or Ports to call this function with.
+{-| Specifies Firebase Authorization token which can be obtained through [`firebase.User#getIdToken`][verify_token] method.
 
 [verify_token]: https://firebase.google.com/docs/auth/admin/verify-id-tokens#web
 
