@@ -23,7 +23,6 @@ Almost all [basic types](https://firebase.google.com/docs/firestore/reference/re
 ```elm
 import Firestore
 import Firestore.Config as Config
-import Firestore.Encode as FSEncode
 import Firestore.Decode as FSDecode
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
@@ -34,6 +33,7 @@ import Firestore.Types.Reference as Reference
 
 type alias Model =
     { firestore : Firestore.Firestore
+    , document : Firestore.Document Document
     }
 
 
@@ -77,18 +77,18 @@ init =
     )
 
 
-decoder : Decode.Decoder Document
+decoder : FSDecode.Decoder Document
 decoder =
-    Decode.succeed Document
-        |> Pipeline.required "timestamp" FSDecode.timestamp
-        |> Pipeline.required "geopoint" Geopoint.decode
-        |> Pipeline.required "reference" Reference.decode
-        |> Pipeline.required "integer" FSDecode.int
-        |> Pipeline.required "string" FSDecode.string
-        |> Pipeline.required "list" (FSDecode.list FSDecode.string)
-        |> Pipeline.required "map" (FSDecode.dict FSDecode.string)
-        |> Pipeline.required "boolean" FSDecode.bool
-        |> Pipeline.required "nullable" (FSDecode.maybe FSDecode.string)
+    FSDecode.document Document
+        |> FSDecode.required "timestamp" FSDecode.timestamp
+        |> FSDecode.required "geopoint" Geopoint.decode
+        |> FSDecode.required "reference" Reference.decode
+        |> FSDecode.required "integer" FSDecode.int
+        |> FSDecode.required "string" FSDecode.string
+        |> FSDecode.required "list" (FSDecode.list FSDecode.string)
+        |> FSDecode.required "map" (FSDecode.dict FSDecode.string)
+        |> FSDecode.required "boolean" FSDecode.bool
+        |> FSDecode.required "nullable" (FSDecode.maybe FSDecode.string)
 
 
 
@@ -105,7 +105,7 @@ update msg model =
         GotDocument result ->
             case result of
                 Ok document ->
-                    -- ...
+                    ( { model | document = document }, Cmd.none )
 
                 Err (Firestore.Http_ httpErr) ->
                     -- ...
