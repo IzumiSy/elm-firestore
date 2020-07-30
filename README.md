@@ -6,7 +6,7 @@ The features elm-firestore library supports are as follows:
 
 |Feature|Supported?|
 |:------|:---------|
-| Simple CRUD operation (get, create, patch, delete) | :white_check_mark: Yes |
+| Simple CRUD operation (get, list, create, patch, delete) | :white_check_mark: Yes |
 | Transactions | :white_check_mark: Yes |
 | Realtime update listening | :heavy_exclamation_mark: No|
 | Collection group | :heavy_exclamation_mark: No |
@@ -81,8 +81,8 @@ decoder : FSDecode.Decoder Document
 decoder =
     FSDecode.document Document
         |> FSDecode.required "timestamp" FSDecode.timestamp
-        |> FSDecode.required "geopoint" Geopoint.decode
-        |> FSDecode.required "reference" Reference.decode
+        |> FSDecode.required "geopoint" FSDecode.geopoint
+        |> FSDecode.required "reference" FSDecode.reference
         |> FSDecode.required "integer" FSDecode.int
         |> FSDecode.required "string" FSDecode.string
         |> FSDecode.required "list" (FSDecode.list FSDecode.string)
