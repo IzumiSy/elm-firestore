@@ -28,11 +28,16 @@ import Json.Encode as Encode
 import Time
 
 
+{-| An encoder consisted of Firestore specific encoders.
+
+This can be encoded into `Json.Value` through `encode` function.
+
+-}
 type Encoder
     = Encoder (List ( String, Field ))
 
 
-{-| Generates Encode.Value from Encoder
+{-| Generates Json.Encode.Value from Encoder
 -}
 encode : Encoder -> Encode.Value
 encode (Encoder fields) =
@@ -69,6 +74,8 @@ document =
 -- Types
 
 
+{-| An identifier type for Firestore encoder
+-}
 type Field
     = Field Encode.Value
 

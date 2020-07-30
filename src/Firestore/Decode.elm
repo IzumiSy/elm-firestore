@@ -29,6 +29,11 @@ import Json.Decode.Pipeline as Pipeline
 import Time
 
 
+{-| A decoder consisted of Firestore specific decoders.
+
+`Json.Decode.Decoder` can be generate from this through `decode` function.
+
+-}
 type Decoder a
     = Decoder (Decode.Decoder a)
 
@@ -59,11 +64,25 @@ document =
     Decoder << Decode.succeed
 
 
+{-| Decodes a required field.
+
+This function is internally delegated into [`json.Decode.Pipeline.required`][required].
+
+[required]: https://package.elm-lang.org/packages/NoRedInk/elm-json-decode-pipeline/latest/Json-Decode-Pipeline#required
+
+-}
 required : String -> Field a -> Decoder (a -> b) -> Decoder b
 required name (Field fieldDecoder) (Decoder encoder) =
     Decoder <| Pipeline.required name fieldDecoder encoder
 
 
+{-| Decodes an optional field.
+
+This function is internally delegated into [`Json.Decode.Pipeline.optional`][optional].
+
+[optional]: https://package.elm-lang.org/packages/NoRedInk/elm-json-decode-pipeline/latest/Json-Decode-Pipeline#optional
+
+-}
 optional : String -> Field a -> a -> Decoder (a -> b) -> Decoder b
 optional name (Field fieldDecoder) default (Decoder encoder) =
     Decoder <| Pipeline.optional name fieldDecoder default encoder
@@ -73,6 +92,8 @@ optional name (Field fieldDecoder) default (Decoder encoder) =
 -- Types
 
 
+{-| An identifier type for Firestore encoder
+-}
 type Field a
     = Field (Decode.Decoder a)
 
