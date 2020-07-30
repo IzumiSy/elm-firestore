@@ -33,7 +33,7 @@ import Firestore.Types.Reference as Reference
 
 type alias Model =
     { firestore : Firestore.Firestore
-    , document : Firestore.Document Document
+    , document : Maybe (Firestore.Document Document)
     }
 
 
@@ -70,7 +70,7 @@ init =
                 |> Firestore.init
                 |> Firestore.withCollection "documents" -- optional
     in
-    ( { firestore = firestore }
+    ( { firestore = firestore, document = Nothing }
     , firestore
         |> Firestore.get decoder
         |> Task.attempt GotDocument
@@ -105,7 +105,7 @@ update msg model =
         GotDocument result ->
             case result of
                 Ok document ->
-                    ( { model | document = document }, Cmd.none )
+                    ( { model | document = Just document }, Cmd.none )
 
                 Err (Firestore.Http_ httpErr) ->
                     -- ...
