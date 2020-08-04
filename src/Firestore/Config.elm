@@ -20,8 +20,9 @@ module Firestore.Config exposing
 
 -}
 
+import Firestore.Internals.Path as Path
 import Http
-import Template exposing (render, template, withString, withValue)
+import Url.Builder as UrlBuilder
 
 
 type APIKey
@@ -50,21 +51,17 @@ new config =
 
 {-| Builds an endpoint string without path
 -}
-endpoint : String -> Config -> String
-endpoint path (Config (APIKey apiKey_) (Project project) (Database database_) _) =
-    template "https://firestore.googleapis.com/v1beta1/projects/"
-        |> withValue .project
-        |> withString "/databases/"
-        |> withValue .database
-        |> withString "/documents/"
-        |> withString path
-        |> withString "?key="
-        |> withValue .apiKey
-        |> render
-            { project = project
-            , database = database_
-            , apiKey = apiKey_
-            }
+endpoint : List UrlBuilder.QueryParameter -> Path.Path -> Config -> String
+endpoint params path (Config (APIKey apiKey_) (Project project) (Database database_) _) =
+    UrlBuilder.absolute
+        [ "https://firestore.googleapis.com/v1beta1/projects/"
+        , project
+        , "databases"
+        , database_
+        , "documents"
+        , Path.toString path
+        ]
+        (List.append params [ UrlBuilder.string "key" apiKey_ ])
 
 
 
