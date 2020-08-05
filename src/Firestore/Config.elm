@@ -53,16 +53,16 @@ new config =
 -}
 endpoint : List UrlBuilder.QueryParameter -> Path.Path -> Config -> String
 endpoint params path (Config (APIKey apiKey_) (Project project) (Database database_) _) =
-    UrlBuilder.absolute
-        [ "https://firestore.googleapis.com/v1beta1/projects/"
-        , project
-        , "databases"
-        , database_
-        , "documents"
-        , Path.toString path
-        ]
-        (List.append params [ UrlBuilder.string "key" apiKey_ ])
-
+    String.append "https://firestore.googleapis.com" <|
+        UrlBuilder.absolute
+            [ "v1beta1/projects"
+            , project
+            , "databases"
+            , database_
+            , "documents"
+            , Path.toString path
+            ]
+            (List.append params [ UrlBuilder.string "key" apiKey_ ])
 
 
 -- Authorization
