@@ -24,4 +24,6 @@ append value (Path paths) =
 
 toString : Path -> String
 toString (Path paths) =
-    String.join "/" paths
+    paths
+        |> List.reverse
+        |> String.join "/"
