@@ -106,7 +106,6 @@ encoder doc =
         , ( "list", FSEncode.list doc.list FSEncode.string )
         , ( "map", FSEncode.dict doc.map FSEncode.string )
         , ( "boolean", FSEncode.bool doc.boolean )
-        , ( "nullable", FSEncode.maybe doc.nullable ) -- TODO: there is something missing here!
         ]
 
 
