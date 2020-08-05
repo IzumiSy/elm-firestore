@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, list, create, patch, delete
+    , Document, get, ListOption, list, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, list, create, patch, delete
+@docs Document, get, ListOption, list, create, patch, delete
 
 
 # Error
@@ -44,6 +44,7 @@ import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
 import Task
 import Time
+import Url.Builder as UrlBuilder
 
 
 {-| Data type for Firestore
@@ -111,21 +112,35 @@ get fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
-        , url = Config.endpoint (Path.toString path) config
+        , url = Config.endpoint [] path config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
         }
 
 
+{-| Data structure for query parameter in calling `list` operation.
+-}
+type alias ListOption =
+    { pageSize : Int
+    , orderBy : String
+    }
+
+
 {-| Lists documents.
 -}
-list : FSDecode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
-list fieldDecoder (Firestore config path) =
+list : ListOption -> FSDecode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
+list option fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
-        , url = Config.endpoint (Path.toString path) config
+        , url =
+            Config.endpoint
+                [ UrlBuilder.int "pageSize" option.pageSize
+                , UrlBuilder.string "orderBy" option.orderBy
+                ]
+                path
+                config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeList fieldDecoder
@@ -139,7 +154,7 @@ create fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint (Path.toString path) config
+        , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -153,7 +168,7 @@ patch fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
-        , url = Config.endpoint (Path.toString path) config
+        , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -167,7 +182,7 @@ delete (Firestore config path) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
-        , url = Config.endpoint (Path.toString path) config
+        , url = Config.endpoint [] path config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -209,7 +224,7 @@ begin (Firestore config _) =
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
-            , url = Config.endpoint ":beginTransaction" config
+            , url = Config.endpoint [] (Path.append ":beginTransaction" Path.empty) config
             , body = Http.jsonBody beginEncoder
             , timeout = Nothing
             , resolver = jsonResolver transactionDecoder
@@ -232,7 +247,7 @@ commit transaction (Firestore config _) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint ":commit" config
+        , url = Config.endpoint [] (Path.append ":commit" Path.empty) config
         , body = Http.jsonBody <| commitEncoder transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
