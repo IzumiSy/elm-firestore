@@ -1,5 +1,6 @@
 module Firestore.Internals.Document exposing
     ( Document
+    , Documents
     , decodeList
     , decodeOne
     )
@@ -19,10 +20,17 @@ type alias Document a =
     }
 
 
-decodeList : FSDecode.Decoder a -> Decode.Decoder (List (Document a))
-decodeList fieldDecoder =
-    Decode.succeed identity
+type alias Documents a b =
+    { documents : List (Document a)
+    , nextPageToken : Maybe b
+    }
+
+
+decodeList : (String -> b) -> FSDecode.Decoder a -> Decode.Decoder (Documents a b)
+decodeList pageTokener fieldDecoder =
+    Decode.succeed Documents
         |> Pipeline.required "documents" (fieldDecoder |> decodeOne |> Decode.list)
+        |> Pipeline.optional "nextPageToken" (Decode.map (pageTokener >> Just) Decode.string) Nothing
 
 
 decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)

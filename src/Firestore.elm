@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, ListOption, list, create, patch, delete
+    , Document, get, PageToken, Documents, ListOption, list, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, ListOption, list, create, patch, delete
+@docs Document, get, PageToken, Documents, ListOption, list, create, patch, delete
 
 
 # Error
@@ -119,17 +119,35 @@ get fieldDecoder (Firestore config path) =
         }
 
 
+{-| The next page token.
+
+This token is required in fetching the next page offset by `pageSize` in `list` operation.
+
+-}
+type PageToken
+    = PageToken String
+
+
+{-| A record structure composed of multiple documents fetched from Firestore.
+-}
+type alias Documents a =
+    { documents : List (Document a)
+    , nextPageToken : Maybe PageToken
+    }
+
+
 {-| Data structure for query parameter in calling `list` operation.
 -}
 type alias ListOption =
     { pageSize : Int
     , orderBy : String
+    , pageToken : Maybe PageToken
     }
 
 
 {-| Lists documents.
 -}
-list : ListOption -> FSDecode.Decoder a -> Firestore -> Task.Task Error (List (Document a))
+list : ListOption -> FSDecode.Decoder a -> Firestore -> Task.Task Error (Documents a)
 list option fieldDecoder (Firestore config path) =
     Http.task
         { method = "GET"
@@ -138,12 +156,19 @@ list option fieldDecoder (Firestore config path) =
             Config.endpoint
                 [ UrlBuilder.int "pageSize" option.pageSize
                 , UrlBuilder.string "orderBy" option.orderBy
+                , option.pageToken
+                    |> Maybe.map (\(PageToken value) -> value)
+                    |> Maybe.withDefault ""
+                    |> UrlBuilder.string "pageToken"
                 ]
                 path
                 config
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver <| Document.decodeList fieldDecoder
+        , resolver =
+            fieldDecoder
+                |> Document.decodeList PageToken
+                |> jsonResolver
         }
 
 
@@ -157,7 +182,10 @@ create fieldDecoder encoder (Firestore config path) =
         , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
-        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
         }
 
 
@@ -171,7 +199,10 @@ patch fieldDecoder encoder (Firestore config path) =
         , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
-        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
         }
 
 

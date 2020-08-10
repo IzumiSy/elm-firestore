@@ -47,6 +47,10 @@ type alias WriteDocument =
     { fields : Document }
 
 
+type PageToken
+    = PageToken String
+
+
 writeDecoder : Decode.Decoder WriteDocument
 writeDecoder =
     Decode.succeed WriteDocument
@@ -124,12 +128,13 @@ suite =
         "createTime": "2019-09-23T18:13:38.231211Z",
         "updateTime": "2019-09-24T14:10:55.934407Z"
       }
-    ]
+    ],
+    "nextPageToken": "token"
   }
                       """
                 in
                 src
-                    |> Decode.decodeString (Document.decodeList documentDecoder)
+                    |> Decode.decodeString (Document.decodeList PageToken documentDecoder)
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
