@@ -189,30 +189,10 @@ create fieldDecoder encoder (Firestore config path) =
         }
 
 
-{-| Updates or inserts a document.
-
-To only update specific fields, please use `patchFields`. This function behaves the same as `create`.
-
--}
-patch : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
-patch fieldDecoder encoder (Firestore config path) =
-    Http.task
-        { method = "PATCH"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint [] path config
-        , body = Http.jsonBody <| FSEncode.encode encoder
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Document.decodeOne
-                |> jsonResolver
-        }
-
-
 {-| Updates only specific fields. If the fields do not exists, they will be created.
 -}
-patchFields : FSDecode.Decoder a -> List ( String, FSEncode.Field ) -> Firestore -> Task.Task Error (Document a)
-patchFields fieldDecoder fieldList (Firestore config path) =
+patch : FSDecode.Decoder a -> List ( String, FSEncode.Field ) -> Firestore -> Task.Task Error (Document a)
+patch fieldDecoder fieldList (Firestore config path) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
