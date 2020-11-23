@@ -1,7 +1,8 @@
 module Firestore.Encode exposing
     ( Encoder, encode
     , document
-    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+    , Field, bool, bytes, int, string, list, dict, nullable, timestamp, geopoint, reference
+    , maybe
     )
 
 {-| Encoders for Firestore
@@ -16,7 +17,12 @@ module Firestore.Encode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+@docs Field, bool, bytes, int, string, list, dict, nullable, timestamp, geopoint, reference
+
+
+# DEPRECATED
+
+@docs maybe
 
 -}
 
@@ -142,7 +148,22 @@ dict value valueEncoder =
             ]
 
 
-{-| -}
+{-| Note: This will be renamed to `maybe` in the next major version
+-}
+nullable : (a -> Encode.Value) -> Maybe a -> Field
+nullable valueEncoder maybeValue =
+    Field <|
+        Encode.object
+            [ ( "nullValue"
+              , maybeValue
+                    |> Maybe.map valueEncoder
+                    |> Maybe.withDefault Encode.null
+              )
+            ]
+
+
+{-| DEPRECATED. Use `nullable` instead
+-}
 maybe : Maybe ( a, a -> Encode.Value ) -> Field
 maybe maybeValueAndEncoder =
     Field <|
