@@ -1,8 +1,7 @@
 module Firestore.Encode exposing
     ( Encoder, encode
     , document
-    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
-    , null
+    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
 {-| Encoders for Firestore
@@ -17,7 +16,7 @@ module Firestore.Encode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
 
 -}
 

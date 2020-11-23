@@ -2,7 +2,7 @@ module Firestore.Decode exposing
     ( Decoder, decode
     , document, required, optional
     , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
-    , map, map2, andThen, succeed, fail
+    , map, andThen, succeed, fail
     )
 
 {-| Decoders for Firestore
@@ -22,7 +22,7 @@ module Firestore.Decode exposing
 
 # Utility Functions
 
-@docs map, map2, andThen, succeed, fail
+@docs map, andThen, succeed, fail
 
 -}
 
@@ -214,13 +214,6 @@ map : (a -> b) -> Field a -> Field b
 map fun (Field valueDecoder) =
     valueDecoder
         |> Decode.map fun
-        |> Field
-
-
-{-| -}
-map2 : (a -> b -> c) -> Field a -> Field b -> Field c
-map2 fun (Field valueDecoder1) (Field valueDecoder2) =
-    Decode.map2 fun valueDecoder1 valueDecoder2
         |> Field
 
 
