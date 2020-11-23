@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+    , Document, get, PageToken, Documents, ListOption, list, create, patch, patchFields, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+@docs Document, get, PageToken, Documents, ListOption, list, create, patch, patchFields, delete
 
 
 # Error
@@ -190,6 +190,9 @@ create fieldDecoder encoder (Firestore config path) =
 
 
 {-| Updates or inserts a document.
+
+To only update specific fields, please use `patchFields`. This function behaves the same as `create`.
+
 -}
 patch : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
 patch fieldDecoder encoder (Firestore config path) =
@@ -198,6 +201,29 @@ patch fieldDecoder encoder (Firestore config path) =
         , headers = Config.httpHeader config
         , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
+        }
+
+
+{-| Updates only specific fields. If the fields do not exists, they will be created.
+-}
+patchFields : FSDecode.Decoder a -> List ( String, FSEncode.Field ) -> Firestore -> Task.Task Error (Document a)
+patchFields fieldDecoder fieldList (Firestore config path) =
+    Http.task
+        { method = "PATCH"
+        , headers = Config.httpHeader config
+        , url =
+            Config.endpoint
+                (fieldList
+                    |> List.map (\( fieldPath, _ ) -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
+                )
+                path
+                config
+        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document <| fieldList
         , timeout = Nothing
         , resolver =
             fieldDecoder
