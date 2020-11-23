@@ -1,8 +1,8 @@
 module Firestore.Encode exposing
     ( Encoder, encode
     , document
-    , Field, bool, bytes, int, string, list, dict, nullable, timestamp, geopoint, reference
-    , maybe
+    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+    , null
     )
 
 {-| Encoders for Firestore
@@ -17,12 +17,7 @@ module Firestore.Encode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, nullable, timestamp, geopoint, reference
-
-
-# DEPRECATED
-
-@docs maybe
+@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
 
 -}
 
@@ -119,8 +114,8 @@ string value =
 
 
 {-| -}
-list : List a -> (a -> Field) -> Field
-list value valueEncoder =
+list : (a -> Field) -> List a -> Field
+list valueEncoder value =
     Field <|
         Encode.object
             [ ( "arrayValue"
@@ -134,8 +129,8 @@ list value valueEncoder =
 
 
 {-| -}
-dict : Dict.Dict String a -> (a -> Field) -> Field
-dict value valueEncoder =
+dict : (a -> Field) -> Dict.Dict String a -> Field
+dict valueEncoder value =
     Field <|
         Encode.object
             [ ( "mapValue"
@@ -148,32 +143,17 @@ dict value valueEncoder =
             ]
 
 
-{-| Note: This will be renamed to `maybe` in the next major version
--}
-nullable : (a -> Encode.Value) -> Maybe a -> Field
-nullable valueEncoder maybeValue =
-    Field <|
-        Encode.object
-            [ ( "nullValue"
-              , maybeValue
-                    |> Maybe.map valueEncoder
-                    |> Maybe.withDefault Encode.null
-              )
-            ]
+{-| -}
+null : Field
+null =
+    Field <| Encode.object [ ( "nullValue", Encode.null ) ]
 
 
-{-| DEPRECATED. Use `nullable` instead
--}
-maybe : Maybe ( a, a -> Encode.Value ) -> Field
-maybe maybeValueAndEncoder =
-    Field <|
-        Encode.object
-            [ ( "nullValue"
-              , maybeValueAndEncoder
-                    |> Maybe.map (\( value, valueEncoder ) -> valueEncoder value)
-                    |> Maybe.withDefault Encode.null
-              )
-            ]
+{-| -}
+maybe : (a -> Field) -> Maybe a -> Field
+maybe valueEncoder =
+    Maybe.map valueEncoder
+        >> Maybe.withDefault null
 
 
 {-| -}

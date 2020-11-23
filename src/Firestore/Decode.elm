@@ -1,7 +1,7 @@
 module Firestore.Decode exposing
     ( Decoder, decode
     , document, required, optional
-    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
 {-| Decoders for Firestore
@@ -16,7 +16,7 @@ module Firestore.Decode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
 
 -}
 
@@ -155,10 +155,24 @@ dict (Field valueDecoder) =
 
 
 {-| -}
+null : Field ()
+null =
+    Decode.null ()
+        |> Decode.field "nullValue"
+        |> Field
+
+
+{-| -}
 maybe : Field a -> Field (Maybe a)
 maybe (Field valueDecoder) =
-    Decode.nullable valueDecoder
-        |> Decode.field "nullValue"
+    let
+        (Field nullDecoder) =
+            null
+    in
+    Decode.oneOf
+        [ nullDecoder |> Decode.map (\() -> Nothing)
+        , valueDecoder |> Decode.map Just
+        ]
         |> Field
 
 
