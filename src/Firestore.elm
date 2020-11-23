@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, PageToken, Documents, ListOption, list, create, patch, patchFields, delete
+    , Document, get, PageToken, Documents, ListOption, list, create, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, patch, patchFields, delete
+@docs Document, get, PageToken, Documents, ListOption, list, create, patch, delete
 
 
 # Error
