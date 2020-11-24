@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+    , Document, get, PageToken, Documents, ListOption, list, create, put, patch, delete
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+@docs Document, get, PageToken, Documents, ListOption, list, create, put, patch, delete
 
 
 # Error
@@ -178,6 +178,22 @@ create : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error 
 create fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "POST"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [] path config
+        , body = Http.jsonBody <| FSEncode.encode encoder
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
+        }
+
+{-| Override a document.
+-}
+put : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
+put fieldDecoder encoder (Firestore config path) =
+    Http.task
+        { method = "PUT"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] path config
         , body = Http.jsonBody <| FSEncode.encode encoder
