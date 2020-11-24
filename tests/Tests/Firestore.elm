@@ -146,7 +146,7 @@ suite =
                 , ( "boolean", FSEncode.bool True )
                 , ( "string", FSEncode.string "IzumiSy" )
                 , ( "integer", FSEncode.int 99 )
-                , ( "nullable", FSEncode.maybe Nothing )
+                , ( "nullable", FSEncode.null )
                 ]
                     |> FSEncode.document
                     |> FSEncode.encode
