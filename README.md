@@ -103,8 +103,8 @@ encoder doc =
         , ( "reference", FSEncode.reference doc.reference )
         , ( "integer", FSEncode.int doc.integer )
         , ( "string", FSEncode.string doc.string )
-        , ( "list", FSEncode.list doc.list FSEncode.string )
-        , ( "map", FSEncode.dict doc.map FSEncode.string )
+        , ( "list", FSEncode.list FSEncode.string doc.list)
+        , ( "map", FSEncode.dict FSEncode.string doc.map)
         , ( "boolean", FSEncode.bool doc.boolean )
         ]
 

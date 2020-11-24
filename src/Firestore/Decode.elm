@@ -1,7 +1,8 @@
 module Firestore.Decode exposing
     ( Decoder, decode
     , document, required, optional
-    , Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+    , map, andThen, succeed, fail
     )
 
 {-| Decoders for Firestore
@@ -16,7 +17,12 @@ module Firestore.Decode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, maybe, timestamp, geopoint, reference
+@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+
+
+# Utility Functions
+
+@docs map, andThen, succeed, fail
 
 -}
 
@@ -155,10 +161,24 @@ dict (Field valueDecoder) =
 
 
 {-| -}
+null : Field ()
+null =
+    Decode.null ()
+        |> Decode.field "nullValue"
+        |> Field
+
+
+{-| -}
 maybe : Field a -> Field (Maybe a)
 maybe (Field valueDecoder) =
-    Decode.nullable valueDecoder
-        |> Decode.field "nullValue"
+    let
+        (Field nullDecoder) =
+            null
+    in
+    Decode.oneOf
+        [ nullDecoder |> Decode.map (\() -> Nothing)
+        , valueDecoder |> Decode.map Just
+        ]
         |> Field
 
 
@@ -187,3 +207,40 @@ reference =
         |> Decode.field "referenceValue"
         |> Decode.map Reference.new
         |> Field
+
+
+{-| -}
+map : (a -> b) -> Field a -> Field b
+map fun (Field valueDecoder) =
+    valueDecoder
+        |> Decode.map fun
+        |> Field
+
+
+{-| -}
+andThen : (a -> Field b) -> Field a -> Field b
+andThen fun (Field valueDecoder) =
+    valueDecoder
+        |> Decode.andThen
+            (\a ->
+                let
+                    (Field valueDecoderNew) =
+                        fun a
+                in
+                valueDecoderNew
+            )
+        |> Field
+
+
+{-| -}
+succeed : a -> Field a
+succeed =
+    Decode.succeed
+        >> Field
+
+
+{-| -}
+fail : String -> Field a
+fail =
+    Decode.fail
+        >> Field

@@ -9,6 +9,7 @@
         "Firestore.Config",
         "Firestore.Encode",
         "Firestore.Decode",
+        "Firestore.Codec",
         "Firestore.Types.Reference",
         "Firestore.Types.Geopoint"
     ],
