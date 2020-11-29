@@ -276,7 +276,7 @@ patch fieldDecoder { updateFields, deleteFields } (Firestore config path) =
 delete : Firestore -> Task.Task Error ()
 delete (Firestore config path) =
     Http.task
-        { method = "GET"
+        { method = "DELETE"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] path config
         , body = Http.emptyBody
@@ -290,7 +290,7 @@ delete (Firestore config path) =
 deleteExisting : Firestore -> Task.Task Error ()
 deleteExisting (Firestore config path) =
     Http.task
-        { method = "GET"
+        { method = "DELETE"
         , headers = Config.httpHeader config
         , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] path config
         , body = Http.emptyBody
