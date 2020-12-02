@@ -124,7 +124,7 @@ update msg model =
         SaveDocument doc ->
             ( model
             , model.firestore
-                |> Firestore.create decoder (encoder doc)
+                |> Firestore.insert decoder (encoder doc)
                 |> Task.attempt GotDocument
             )
 
