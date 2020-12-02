@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withCollection, withConfig
-    , Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+    , Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -18,7 +18,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, patch, delete
+@docs Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
 
 
 # Error
@@ -147,8 +147,16 @@ type alias ListOption =
 
 {-| Lists documents.
 -}
-list : ListOption -> FSDecode.Decoder a -> Firestore -> Task.Task Error (Documents a)
-list option fieldDecoder (Firestore config path) =
+list :
+    FSDecode.Decoder a
+    ->
+        { pageSize : Int
+        , orderBy : String
+        , pageToken : Maybe PageToken
+        }
+    -> Firestore
+    -> Task.Task Error (Documents a)
+list fieldDecoder option (Firestore config path) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
@@ -172,10 +180,10 @@ list option fieldDecoder (Firestore config path) =
         }
 
 
-{-| Creates a new document.
+{-| Insert a document into a collection. The document will get a fresh document id.
 -}
-create : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
-create fieldDecoder encoder (Firestore config path) =
+insert : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
+insert fieldDecoder encoder (Firestore config path) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
@@ -189,21 +197,24 @@ create fieldDecoder encoder (Firestore config path) =
         }
 
 
-{-| Updates only specific fields. If the fields do not exists, they will be created.
+{-| Creates a document with a given document id.
+Takes the document id as the first argument.
 -}
-patch : FSDecode.Decoder a -> List ( String, FSEncode.Field ) -> Firestore -> Task.Task Error (Document a)
-patch fieldDecoder fieldList (Firestore config path) =
+create :
+    FSDecode.Decoder a
+    -> { id : String, document : FSEncode.Encoder }
+    -> Firestore
+    -> Task.Task Error (Document a)
+create fieldDecoder { id, document } (Firestore config path) =
     Http.task
-        { method = "PATCH"
+        { method = "POST"
         , headers = Config.httpHeader config
         , url =
             Config.endpoint
-                (fieldList
-                    |> List.map (\( fieldPath, _ ) -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
-                )
+                [ UrlBuilder.string "documentId" id ]
                 path
                 config
-        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document <| fieldList
+        , body = Http.jsonBody <| FSEncode.encode document
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -212,14 +223,76 @@ patch fieldDecoder fieldList (Firestore config path) =
         }
 
 
-{-| Deletes a document.
+{-| Updates an existing document. Creates one if not present.
+-}
+upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
+upsert fieldDecoder encoder (Firestore config path) =
+    Http.task
+        { method = "PATCH"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [] path config
+        , body = Http.jsonBody <| FSEncode.encode encoder
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
+        }
+
+
+{-| Updates only specific fields. If the fields do not exists, they will be created.
+-}
+patch :
+    FSDecode.Decoder a
+    -> { updateFields : List ( String, FSEncode.Field ), deleteFields : List String }
+    -> Firestore
+    -> Task.Task Error (Document a)
+patch fieldDecoder { updateFields, deleteFields } (Firestore config path) =
+    Http.task
+        { method = "PATCH"
+        , headers = Config.httpHeader config
+        , url =
+            Config.endpoint
+                ((updateFields
+                    |> List.map (\( fieldPath, _ ) -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
+                 )
+                    ++ (deleteFields
+                            |> List.map (\fieldPath -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
+                       )
+                )
+                path
+                config
+        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document <| updateFields
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Document.decodeOne
+                |> jsonResolver
+        }
+
+
+{-| Deletes a document. Will succeed if document does not exist.
 -}
 delete : Firestore -> Task.Task Error ()
 delete (Firestore config path) =
     Http.task
-        { method = "GET"
+        { method = "DELETE"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] path config
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver = emptyResolver
+        }
+
+
+{-| Deletes a document. Will fail if document does not exist.
+-}
+deleteExisting : Firestore -> Task.Task Error ()
+deleteExisting (Firestore config path) =
+    Http.task
+        { method = "DELETE"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] path config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
