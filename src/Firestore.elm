@@ -75,7 +75,7 @@ withConfig config (Firestore _) =
 {-| Type to point document path to operate.
 
 A `Path` value is always required in calling CRUD operations.
-This interface design enforce users to call `path` function to build `Path` value beforehand in order to prevent forgetting specifiying path to operate.
+This interface design enforces users to call `path` function to build `Path` value beforehand in order to prevent forgetting specifiying path to operate.
 
 -}
 type Path
