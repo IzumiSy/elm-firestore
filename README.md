@@ -61,21 +61,18 @@ type alias Document =
 init : ( Model, Cmd Msg )
 init =
     let
-        config =
+        firestore =
             Config.new
                 { apiKey = "your-own-api-key"
                 , project = "your-firestore-app"
                 }
                 |> Config.withDatabase "your-own-database" -- optional
                 |> Config.withAuthorization "your-own-auth-token" -- optional
-
-        firestore =
-            config
                 |> Firestore.init
-                |> Firestore.withCollection "documents" -- optional
     in
     ( { firestore = firestore, document = Nothing }
     , firestore
+        |> Firestore.path "users/documents"
         |> Firestore.get decoder
         |> Task.attempt GotDocument
     )
@@ -124,6 +121,7 @@ update msg model =
         SaveDocument doc ->
             ( model
             , model.firestore
+                |> Firestore.path "users/documents"
                 |> Firestore.insert decoder (encoder doc)
                 |> Task.attempt GotDocument
             )

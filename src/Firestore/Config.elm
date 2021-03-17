@@ -51,7 +51,7 @@ new config =
 
 {-| Builds an endpoint string without path
 -}
-endpoint : List UrlBuilder.QueryParameter -> Path.Path -> Config -> String
+endpoint : List UrlBuilder.QueryParameter -> String -> Config -> String
 endpoint params path (Config (APIKey apiKey_) (Project project) (Database database_) _) =
     String.append "https://firestore.googleapis.com" <|
         UrlBuilder.absolute
@@ -60,7 +60,7 @@ endpoint params path (Config (APIKey apiKey_) (Project project) (Database databa
             , "databases"
             , database_
             , "documents"
-            , Path.toString path
+            , path
             ]
             (List.append params [ UrlBuilder.string "key" apiKey_ ])
 
