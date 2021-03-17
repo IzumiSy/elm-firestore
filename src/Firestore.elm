@@ -324,8 +324,8 @@ update encoder (Transaction id encoders) =
 
 {-| Starts a new transaction.
 -}
-begin : Path -> Task.Task Error Transaction
-begin (Path _ (Firestore config)) =
+begin : Firestore -> Task.Task Error Transaction
+begin (Firestore config) =
     Task.map (\transaction -> Transaction transaction []) <|
         Http.task
             { method = "POST"
@@ -348,8 +348,8 @@ type alias CommitTime =
 Only `readWrite` transaction is currently supported which requires authorization that can be set via `Config.withAuthorization` function.
 
 -}
-commit : Transaction -> Path -> Task.Task Error CommitTime
-commit transaction (Path _ (Firestore config)) =
+commit : Transaction -> Firestore -> Task.Task Error CommitTime
+commit transaction (Firestore config) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
