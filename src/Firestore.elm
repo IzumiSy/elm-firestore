@@ -52,33 +52,37 @@ import Time
 import Url.Builder as UrlBuilder
 
 
-{-| Data type for Firestore
+{-| Data type for Firestore.
 -}
 type Firestore
     = Firestore Config.Config
 
 
-{-| Builds a new Firestore connection with Config
+{-| Builds a new Firestore connection with Config.
 -}
 init : Config.Config -> Firestore
 init config =
     Firestore config
 
 
-{-| Updates configuration
+{-| Updates configuration.
 -}
 withConfig : Config.Config -> Firestore -> Firestore
 withConfig config (Firestore _) =
     Firestore config
 
 
-{-| Type to point document path to operate
+{-| Type to point document path to operate.
+
+The `Path` value is always required in calling CRUD operations.
+Function interfaces enforce users to call `path` function to build `Path` value beforehand in order to prevent forgetting specifiying path to operate.
+
 -}
 type Path
     = Path String Firestore
 
 
-{-| Specifies document path with a specific path name.
+{-| Specifies document path.
 
     firestore
         |> Firestore.path "users/items/tags"
