@@ -1,6 +1,7 @@
 module Firestore exposing
     ( Firestore
-    , init, withCollection, withConfig
+    , init, withConfig
+    , Path, path
     , Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
@@ -8,12 +9,17 @@ module Firestore exposing
 
 {-| A library to have your app interact with Firestore in Elm
 
-@docs Firestore
+@docs Firestore, Collection
 
 
 # Constructors
 
-@docs init, withCollection, withConfig
+@docs init, withConfig
+
+
+# Path
+
+@docs Path, path
 
 
 # CRUDs
@@ -36,7 +42,6 @@ import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals.Document as Document
-import Firestore.Internals.Path as Path exposing (Path)
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -47,48 +52,47 @@ import Time
 import Url.Builder as UrlBuilder
 
 
-{-| Data type for Firestore
+{-| Data type for Firestore.
 -}
 type Firestore
-    = Firestore Config.Config Path
+    = Firestore Config.Config
 
 
-{-| Builds a new Firestore connection with Config
+{-| Builds a new Firestore connection with Config.
 -}
 init : Config.Config -> Firestore
 init config =
-    Firestore config Path.empty
+    Firestore config
 
 
-{-| Drills down document paths with a specific path name.
-
-This function is aimed to be chanind with pipeline operators in order to build up document path.
-
-    firestore
-        |> Firestore.collection "users"
-        |> Firestore.collection "items"
-        |> Firestore.collection "tags"
-        |> Firestore.get
-        |> Task.attempt GotUserItemTags
-
-Of course, you can make it a single string as well
-
-    firestore
-        |> Firestore.collection "users/items/tags"
-        |> Firestore.get
-        |> Task.attempt GotUserItemTags
-
--}
-withCollection : String -> Firestore -> Firestore
-withCollection value (Firestore config path) =
-    Firestore config (Path.append value path)
-
-
-{-| Updates configuration
+{-| Updates configuration.
 -}
 withConfig : Config.Config -> Firestore -> Firestore
-withConfig config (Firestore _ path) =
-    Firestore config path
+withConfig config (Firestore _) =
+    Firestore config
+
+
+{-| Type to point document path to operate.
+
+A `Path` value is always required in calling CRUD operations.
+This interface design enforces users to call `path` function to build `Path` value beforehand in order to prevent forgetting specifiying path to operate.
+
+-}
+type Path
+    = Path String Firestore
+
+
+{-| Specifies document path.
+
+    firestore
+        |> Firestore.path "users/items/tags"
+        |> Firestore.get tagsDecoder
+        |> Task.attempt GotUserItemTags
+
+-}
+path : String -> Firestore -> Path
+path value (Firestore config) =
+    Path value (Firestore config)
 
 
 
@@ -107,12 +111,12 @@ type alias Document a =
 
 {-| Gets a single document.
 -}
-get : FSDecode.Decoder a -> Firestore -> Task.Task Error (Document a)
-get fieldDecoder (Firestore config path) =
+get : FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+get fieldDecoder (Path path_ (Firestore config)) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] path config
+        , url = Config.endpoint [] path_ config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = jsonResolver <| Document.decodeOne fieldDecoder
@@ -149,14 +153,10 @@ type alias ListOption =
 -}
 list :
     FSDecode.Decoder a
-    ->
-        { pageSize : Int
-        , orderBy : String
-        , pageToken : Maybe PageToken
-        }
-    -> Firestore
+    -> ListOption
+    -> Path
     -> Task.Task Error (Documents a)
-list fieldDecoder option (Firestore config path) =
+list fieldDecoder option (Path path_ (Firestore config)) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
@@ -169,7 +169,7 @@ list fieldDecoder option (Firestore config path) =
                     |> Maybe.withDefault ""
                     |> UrlBuilder.string "pageToken"
                 ]
-                path
+                path_
                 config
         , body = Http.emptyBody
         , timeout = Nothing
@@ -182,12 +182,12 @@ list fieldDecoder option (Firestore config path) =
 
 {-| Insert a document into a collection. The document will get a fresh document id.
 -}
-insert : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
-insert fieldDecoder encoder (Firestore config path) =
+insert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
+insert fieldDecoder encoder (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] path config
+        , url = Config.endpoint [] path_ config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver =
@@ -203,16 +203,16 @@ Takes the document id as the first argument.
 create :
     FSDecode.Decoder a
     -> { id : String, document : FSEncode.Encoder }
-    -> Firestore
+    -> Path
     -> Task.Task Error (Document a)
-create fieldDecoder { id, document } (Firestore config path) =
+create fieldDecoder { id, document } (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
         , url =
             Config.endpoint
                 [ UrlBuilder.string "documentId" id ]
-                path
+                path_
                 config
         , body = Http.jsonBody <| FSEncode.encode document
         , timeout = Nothing
@@ -225,12 +225,12 @@ create fieldDecoder { id, document } (Firestore config path) =
 
 {-| Updates an existing document. Creates one if not present.
 -}
-upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Firestore -> Task.Task Error (Document a)
-upsert fieldDecoder encoder (Firestore config path) =
+upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
+upsert fieldDecoder encoder (Path path_ (Firestore config)) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] path config
+        , url = Config.endpoint [] path_ config
         , body = Http.jsonBody <| FSEncode.encode encoder
         , timeout = Nothing
         , resolver =
@@ -245,9 +245,9 @@ upsert fieldDecoder encoder (Firestore config path) =
 patch :
     FSDecode.Decoder a
     -> { updateFields : List ( String, FSEncode.Field ), deleteFields : List String }
-    -> Firestore
+    -> Path
     -> Task.Task Error (Document a)
-patch fieldDecoder { updateFields, deleteFields } (Firestore config path) =
+patch fieldDecoder { updateFields, deleteFields } (Path path_ (Firestore config)) =
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
@@ -260,7 +260,7 @@ patch fieldDecoder { updateFields, deleteFields } (Firestore config path) =
                             |> List.map (\fieldPath -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
                        )
                 )
-                path
+                path_
                 config
         , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document <| updateFields
         , timeout = Nothing
@@ -273,12 +273,12 @@ patch fieldDecoder { updateFields, deleteFields } (Firestore config path) =
 
 {-| Deletes a document. Will succeed if document does not exist.
 -}
-delete : Firestore -> Task.Task Error ()
-delete (Firestore config path) =
+delete : Path -> Task.Task Error ()
+delete (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] path config
+        , url = Config.endpoint [] path_ config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -287,12 +287,12 @@ delete (Firestore config path) =
 
 {-| Deletes a document. Will fail if document does not exist.
 -}
-deleteExisting : Firestore -> Task.Task Error ()
-deleteExisting (Firestore config path) =
+deleteExisting : Path -> Task.Task Error ()
+deleteExisting (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] path config
+        , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] path_ config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -329,12 +329,12 @@ update encoder (Transaction id encoders) =
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Error Transaction
-begin (Firestore config _) =
+begin (Firestore config) =
     Task.map (\transaction -> Transaction transaction []) <|
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
-            , url = Config.endpoint [] (Path.append ":beginTransaction" Path.empty) config
+            , url = Config.endpoint [] ":beginTransaction" config
             , body = Http.jsonBody beginEncoder
             , timeout = Nothing
             , resolver = jsonResolver transactionDecoder
@@ -353,11 +353,11 @@ Only `readWrite` transaction is currently supported which requires authorization
 
 -}
 commit : Transaction -> Firestore -> Task.Task Error CommitTime
-commit transaction (Firestore config _) =
+commit transaction (Firestore config) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Path.append ":commit" Path.empty) config
+        , url = Config.endpoint [] ":commit" config
         , body = Http.jsonBody <| commitEncoder transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder

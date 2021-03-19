@@ -20,17 +20,17 @@ module Firestore.Config exposing
 
 -}
 
-import Firestore.Internals.Path as Path
 import Http
+import Typed exposing (Typed)
 import Url.Builder as UrlBuilder
 
 
-type APIKey
-    = APIKey String
+type alias APIKey =
+    Typed APIKeyType String Typed.ReadWrite
 
 
-type Project
-    = Project String
+type alias Project =
+    Typed ProjectType String Typed.ReadWrite
 
 
 {-| Data type for Firestore configuration
@@ -46,31 +46,31 @@ type Config
 -}
 new : { apiKey : String, project : String } -> Config
 new config =
-    Config (APIKey config.apiKey) (Project config.project) (Database "(default)") Nothing
+    Config (Typed.new config.apiKey) (Typed.new config.project) defaultDatabase Nothing
 
 
 {-| Builds an endpoint string without path
 -}
-endpoint : List UrlBuilder.QueryParameter -> Path.Path -> Config -> String
-endpoint params path (Config (APIKey apiKey_) (Project project) (Database database_) _) =
+endpoint : List UrlBuilder.QueryParameter -> String -> Config -> String
+endpoint params path (Config apiKey_ project (Database database_) _) =
     String.append "https://firestore.googleapis.com" <|
         UrlBuilder.absolute
             [ "v1beta1/projects"
-            , project
+            , Typed.value project
             , "databases"
-            , database_
+            , Typed.value database_
             , "documents"
-            , Path.toString path
+            , path
             ]
-            (List.append params [ UrlBuilder.string "key" apiKey_ ])
+            (List.append params [ UrlBuilder.string "key" (Typed.value apiKey_) ])
 
 
 
 -- Authorization
 
 
-type Authorization
-    = Authorization String
+type alias Authorization =
+    Typed AuthorizationType String Typed.ReadWrite
 
 
 {-| Specifies Firebase Authorization token which can be obtained through [`firebase.User#getIdToken`][verify_token] method.
@@ -80,7 +80,7 @@ type Authorization
 -}
 withAuthorization : String -> Config -> Config
 withAuthorization value (Config apiKey_ project_ database_ _) =
-    Config apiKey_ project_ database_ (Just <| Authorization value)
+    Config apiKey_ project_ database_ (Just <| Typed.new value)
 
 
 {-| Extracts authorization with bearer prefix as `Http.Header`.
@@ -88,7 +88,7 @@ withAuthorization value (Config apiKey_ project_ database_ _) =
 httpHeader : Config -> List Http.Header
 httpHeader (Config _ _ _ maybeAuthorization) =
     maybeAuthorization
-        |> Maybe.map (\(Authorization authorization) -> authorization)
+        |> Maybe.map Typed.value
         |> Maybe.map (Http.header "Bearer")
         |> Maybe.map List.singleton
         |> Maybe.withDefault []
@@ -98,12 +98,41 @@ httpHeader (Config _ _ _ maybeAuthorization) =
 -- Database
 
 
+type alias DatabaseID =
+    Typed DatabaseIDType String Typed.ReadWrite
+
+
 type Database
-    = Database String
+    = Database DatabaseID
 
 
 {-| Specifies database ID to connect to.
 -}
 withDatabase : String -> Config -> Config
 withDatabase value (Config apiKey_ project_ _ authorization_) =
-    Config apiKey_ project_ (Database value) authorization_
+    Config apiKey_ project_ (Database <| Typed.new value) authorization_
+
+
+
+-- internals
+
+
+type APIKeyType
+    = APIKeyType
+
+
+type ProjectType
+    = ProjectType
+
+
+type AuthorizationType
+    = AuthorizationType
+
+
+type DatabaseIDType
+    = DatabaseIDType
+
+
+defaultDatabase : Database
+defaultDatabase =
+    Database <| Typed.new "(default)"
