@@ -2,7 +2,7 @@ module Firestore exposing
     ( Firestore
     , init, withConfig
     , Path, path
-    , Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
+    , Document, get, Documents, list, create, insert, upsert, patch, delete, deleteExisting
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -24,7 +24,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
+@docs Document, get, Documents, list, create, insert, upsert, patch, delete, deleteExisting
 
 
 # Error
@@ -41,8 +41,7 @@ module Firestore exposing
 import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
-import Firestore.Internals.Document as Document
-import Firestore.Internals.PageToken as InternalPageToken
+import Firestore.Internals as Internals
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Http
@@ -122,33 +121,15 @@ get fieldDecoder (Path path_ (Firestore config)) =
         , url = Config.endpoint [] path_ config
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
+        , resolver = jsonResolver <| Internals.decodeOne fieldDecoder
         }
-
-
-{-| The next page token.
-
-This token is required in fetching the next page offset by `pageSize` in `list` operation.
-
--}
-type PageToken
-    = PageToken InternalPageToken.PageToken
 
 
 {-| A record structure composed of multiple documents fetched from Firestore.
 -}
 type alias Documents a =
     { documents : List (Document a)
-    , nextPageToken : Maybe PageToken
-    }
-
-
-{-| Data structure for query parameter in calling `list` operation.
--}
-type alias ListOption =
-    { pageSize : Int
-    , orderBy : String
-    , pageToken : Maybe PageToken
+    , nextPageToken : Maybe ListOptions.PageToken
     }
 
 
@@ -168,7 +149,7 @@ list fieldDecoder options (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeList (InternalPageToken.new >> PageToken)
+                |> Internals.decodeList (Internals.PageToken >> ListOptions.PageToken)
                 |> jsonResolver
         }
 
@@ -188,7 +169,7 @@ insert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
@@ -216,7 +197,7 @@ create fieldDecoder { id, document } (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
@@ -236,7 +217,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
@@ -265,7 +246,7 @@ patch fieldDecoder options (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 

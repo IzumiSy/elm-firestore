@@ -1,17 +1,17 @@
 module Firestore.Options.List exposing
-    ( Options, default, queryParameters
+    ( Options, PageToken(..), default, queryParameters
     , pageToken, orderBy, pageSize
     )
 
 {-| A type to define `list` operation parameters
 
-@docs Options, default, queryParameters
+@docs Options, PageToken, default, queryParameters
 
 @docs pageToken, orderBy, pageSize
 
 -}
 
-import Firestore.Internals.PageToken as PageToken exposing (PageToken)
+import Firestore.Internals as Internals
 import Url.Builder as UrlBuilder
 
 
@@ -21,6 +21,15 @@ type Options
         , orderBy : Maybe String
         , pageToken : Maybe PageToken
         }
+
+
+{-| The next page token.
+
+This token is required in fetching the next page offset by `pageSize` in `list` operation.
+
+-}
+type PageToken
+    = PageToken Internals.PageToken
 
 
 {-| Construts options for list operation
@@ -55,6 +64,6 @@ queryParameters (Options options) =
         [ Maybe.map (UrlBuilder.int "pageSize") options.pageSize
         , Maybe.map (UrlBuilder.string "orderBy") options.orderBy
         , options.pageToken
-            |> Maybe.map PageToken.value
+            |> Maybe.map (\(PageToken (Internals.PageToken value)) -> value)
             |> Maybe.map (UrlBuilder.string "pageToken")
         ]
