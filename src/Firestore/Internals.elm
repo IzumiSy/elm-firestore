@@ -43,5 +43,7 @@ decodeOne fieldDecoder =
         |> Pipeline.required "updateTime" Iso8601.decoder
 
 
+{-| Internal implementation of PageToken
+-}
 type PageToken
     = PageToken String

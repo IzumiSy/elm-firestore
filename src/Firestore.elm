@@ -2,7 +2,7 @@ module Firestore exposing
     ( Firestore
     , init, withConfig
     , Path, path
-    , Document, get, Documents, list, create, insert, upsert, patch, delete, deleteExisting
+    , Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -24,7 +24,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, Documents, list, create, insert, upsert, patch, delete, deleteExisting
+@docs Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
 
 
 # Error
