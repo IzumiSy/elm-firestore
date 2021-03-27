@@ -1,12 +1,12 @@
 module Firestore.Encode exposing
-    ( Encoder, encode
+    ( Encoder, encode, Field
     , document
-    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+    , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
 {-| Encoders for Firestore
 
-@docs Encoder, encode
+@docs Encoder, encode, Field
 
 
 # Constructors
@@ -16,7 +16,7 @@ module Firestore.Encode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+@docs bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
 
 -}
 
@@ -50,6 +50,12 @@ encode (Encoder fields) =
         ]
 
 
+{-| An identifier type for Firestore encoder
+-}
+type Field
+    = Field Encode.Value
+
+
 
 -- Constructors
 
@@ -72,12 +78,6 @@ document =
 
 
 -- Types
-
-
-{-| An identifier type for Firestore encoder
--}
-type Field
-    = Field Encode.Value
 
 
 {-| -}

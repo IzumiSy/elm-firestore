@@ -10,6 +10,7 @@ import Firestore.Decode as FSDecode
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
+import Json.Encode as Encode
 import Time
 
 
