@@ -12,8 +12,6 @@
         "Firestore.Codec",
         "Firestore.Options.List",
         "Firestore.Options.Patch",
-        "Firestore.Options.Create",
-        "Firestore.Options.Delete",
         "Firestore.Types.Reference",
         "Firestore.Types.Geopoint"
     ],
