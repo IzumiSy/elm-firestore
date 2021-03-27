@@ -1,22 +1,22 @@
 module Firestore.Encode exposing
-    ( Encoder, encode
-    , document
-    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+    ( Encoder, Field, encode
+    , document, field, encoder
+    , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
 {-| Encoders for Firestore
 
-@docs Encoder, encode
+@docs Encoder, Field, encode
 
 
 # Constructors
 
-@docs document
+@docs document, field, encoder
 
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+@docs bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
 
 -}
 
@@ -34,7 +34,7 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (List ( String, Field ))
+    = Encoder (Dict.Dict String Field)
 
 
 {-| Generates Json.Encode.Value from Encoder
@@ -44,7 +44,8 @@ encode (Encoder fields) =
     Encode.object
         [ ( "fields"
           , fields
-                |> List.map (\( key, Field field ) -> ( key, field ))
+                |> Dict.toList
+                |> List.map (\( key, Field field_ ) -> ( key, field_ ))
                 |> Encode.object
           )
         ]
@@ -54,20 +55,42 @@ encode (Encoder fields) =
 -- Constructors
 
 
-{-| Creates a new encoder
+type OneOrMoreField
+    = OneOrMoreField
 
-This function works like `Encode.object` but accepts a list of tuples which has only encoders provided from `Firestore.Encode` module
+
+type Document a
+    = Document Encoder
+
+
+{-| Begins a new encoder
+-}
+document : Document a
+document =
+    Document <| Encoder Dict.empty
+
+
+{-| Defines a new field in an encoder
+-}
+field : String -> Field -> Document a -> Document OneOrMoreField
+field name field_ (Document (Encoder fields)) =
+    Document <| Encoder <| Dict.insert name field_ fields
+
+
+{-| Generates Firestore.Encoder
+
+This function is a finalizer for encoder constructing functions.
 
     Firestore.Encode.document
-        [ ( "name", Firestore.Encode.string "IzumiSy" )
-        , ( "age", Firestore.Encode.int 26 )
-        , ( "canCode", Firestore.Encode.bool True )
-        ]
+        |> Firestore.Encode.field "name" (Firestore.Encode.string "IzumiSy") )
+        |> Firestore.Encode.field "age" (Firestore.Encode.int 26)
+        |> Firestore.Encode.field "canCode" (Firestore.Encode.bool True)
+        |> Firestore.Encode.encoder
 
 -}
-document : List ( String, Field ) -> Encoder
-document =
-    Encoder
+encoder : Document OneOrMoreField -> Encoder
+encoder (Document encoder_) =
+    encoder_
 
 
 
@@ -120,7 +143,7 @@ list valueEncoder value =
             [ ( "arrayValue"
               , Encode.object
                     [ ( "values"
-                      , Encode.list ((\(Field field) -> field) << valueEncoder) value
+                      , Encode.list ((\(Field field_) -> field_) << valueEncoder) value
                       )
                     ]
               )
@@ -135,7 +158,7 @@ dict valueEncoder value =
             [ ( "mapValue"
               , Encode.object
                     [ ( "fields"
-                      , Encode.dict identity ((\(Field field) -> field) << valueEncoder) value
+                      , Encode.dict identity ((\(Field field_) -> field_) << valueEncoder) value
                       )
                     ]
               )
