@@ -1,6 +1,7 @@
-module Firestore.Internals.Document exposing
+module Firestore.Internals exposing
     ( Document
     , Documents
+    , PageToken(..)
     , decodeList
     , decodeOne
     )
@@ -30,7 +31,7 @@ decodeList : (String -> b) -> FSDecode.Decoder a -> Decode.Decoder (Documents a 
 decodeList pageTokener fieldDecoder =
     Decode.succeed Documents
         |> Pipeline.required "documents" (fieldDecoder |> decodeOne |> Decode.list)
-        |> Pipeline.optional "nextPageToken" (Decode.map (pageTokener >> Just) Decode.string) Nothing
+        |> Pipeline.optional "nextPageToken" (Decode.map (Just << pageTokener) Decode.string) Nothing
 
 
 decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)
@@ -40,3 +41,9 @@ decodeOne fieldDecoder =
         |> Pipeline.required "fields" (FSDecode.decode fieldDecoder)
         |> Pipeline.required "createTime" Iso8601.decoder
         |> Pipeline.required "updateTime" Iso8601.decoder
+
+
+{-| Internal implementation of PageToken
+-}
+type PageToken
+    = PageToken String

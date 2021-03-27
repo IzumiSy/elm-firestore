@@ -2,7 +2,7 @@ module Firestore exposing
     ( Firestore
     , init, withConfig
     , Path, path
-    , Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
+    , Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Error(..), FirestoreError
     , Transaction, CommitTime, begin, update, commit
     )
@@ -24,7 +24,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, get, PageToken, Documents, ListOption, list, create, insert, upsert, patch, delete, deleteExisting
+@docs Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
 
 
 # Error
@@ -41,7 +41,9 @@ module Firestore exposing
 import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
-import Firestore.Internals.Document as Document
+import Firestore.Internals as Internals
+import Firestore.Options.List as ListOptions
+import Firestore.Options.Patch as PatchOptions
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -119,33 +121,15 @@ get fieldDecoder (Path path_ (Firestore config)) =
         , url = Config.endpoint [] path_ config
         , body = Http.emptyBody
         , timeout = Nothing
-        , resolver = jsonResolver <| Document.decodeOne fieldDecoder
+        , resolver = jsonResolver <| Internals.decodeOne fieldDecoder
         }
-
-
-{-| The next page token.
-
-This token is required in fetching the next page offset by `pageSize` in `list` operation.
-
--}
-type PageToken
-    = PageToken String
 
 
 {-| A record structure composed of multiple documents fetched from Firestore.
 -}
 type alias Documents a =
     { documents : List (Document a)
-    , nextPageToken : Maybe PageToken
-    }
-
-
-{-| Data structure for query parameter in calling `list` operation.
--}
-type alias ListOption =
-    { pageSize : Int
-    , orderBy : String
-    , pageToken : Maybe PageToken
+    , nextPageToken : Maybe ListOptions.PageToken
     }
 
 
@@ -153,34 +137,27 @@ type alias ListOption =
 -}
 list :
     FSDecode.Decoder a
-    -> ListOption
+    -> ListOptions.Options
     -> Path
     -> Task.Task Error (Documents a)
-list fieldDecoder option (Path path_ (Firestore config)) =
+list fieldDecoder options (Path path_ (Firestore config)) =
     Http.task
         { method = "GET"
         , headers = Config.httpHeader config
-        , url =
-            Config.endpoint
-                [ UrlBuilder.int "pageSize" option.pageSize
-                , UrlBuilder.string "orderBy" option.orderBy
-                , option.pageToken
-                    |> Maybe.map (\(PageToken value) -> value)
-                    |> Maybe.withDefault ""
-                    |> UrlBuilder.string "pageToken"
-                ]
-                path_
-                config
+        , url = Config.endpoint (ListOptions.queryParameters options) path_ config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeList PageToken
+                |> Internals.decodeList (Internals.PageToken >> ListOptions.PageToken)
                 |> jsonResolver
         }
 
 
-{-| Insert a document into a collection. The document will get a fresh document id.
+{-| Insert a document into a collection.
+
+The document will get a fresh document id.
+
 -}
 insert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
 insert fieldDecoder encoder (Path path_ (Firestore config)) =
@@ -192,13 +169,15 @@ insert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
 
 {-| Creates a document with a given document id.
+
 Takes the document id as the first argument.
+
 -}
 create :
     FSDecode.Decoder a
@@ -218,12 +197,15 @@ create fieldDecoder { id, document } (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
 
-{-| Updates an existing document. Creates one if not present.
+{-| Updates an existing document.
+
+Creates one if not present.
+
 -}
 upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
 upsert fieldDecoder encoder (Path path_ (Firestore config)) =
@@ -235,43 +217,44 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
 
-{-| Updates only specific fields. If the fields do not exists, they will be created.
+{-| Updates only specific fields.
+
+If the fields do not exists, they will be created.
+
 -}
 patch :
     FSDecode.Decoder a
-    -> { updateFields : List ( String, FSEncode.Field ), deleteFields : List String }
+    -> PatchOptions.Options
     -> Path
     -> Task.Task Error (Document a)
-patch fieldDecoder { updateFields, deleteFields } (Path path_ (Firestore config)) =
+patch fieldDecoder options (Path path_ (Firestore config)) =
+    let
+        ( params, fields ) =
+            PatchOptions.queryParameters options
+    in
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url =
-            Config.endpoint
-                ((updateFields
-                    |> List.map (\( fieldPath, _ ) -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
-                 )
-                    ++ (deleteFields
-                            |> List.map (\fieldPath -> UrlBuilder.string "updateMask.fieldPaths" fieldPath)
-                       )
-                )
-                path_
-                config
-        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document <| updateFields
+            Config.endpoint params path_ config
+        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document fields
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Document.decodeOne
+                |> Internals.decodeOne
                 |> jsonResolver
         }
 
 
-{-| Deletes a document. Will succeed if document does not exist.
+{-| Deletes a document.
+
+Will succeed if document does not exist.
+
 -}
 delete : Path -> Task.Task Error ()
 delete (Path path_ (Firestore config)) =
@@ -285,7 +268,10 @@ delete (Path path_ (Firestore config)) =
         }
 
 
-{-| Deletes a document. Will fail if document does not exist.
+{-| Deletes a document.
+
+Will fail if document does not exist.
+
 -}
 deleteExisting : Path -> Task.Task Error ()
 deleteExisting (Path path_ (Firestore config)) =

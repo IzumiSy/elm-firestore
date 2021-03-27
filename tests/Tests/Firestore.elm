@@ -5,7 +5,7 @@ import Expect
 import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
-import Firestore.Internals.Document as Document
+import Firestore.Internals as Internals
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Decode as Decode
@@ -133,7 +133,7 @@ suite =
                       """
                 in
                 src
-                    |> Decode.decodeString (Document.decodeList PageToken documentDecoder)
+                    |> Decode.decodeString (Internals.decodeList PageToken documentDecoder)
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
