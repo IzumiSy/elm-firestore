@@ -34,8 +34,25 @@ new =
 
 
 value : Query -> Encode.Value
-value _ =
-    Encode.null
+value (Query query) =
+    -- Encode.null
+    Encode.object
+        [ ( "where"
+          , case query.where_ of
+                Just (FieldFilter fieldPath op _) ->
+                    Encode.object
+                        [ ( "op", opValue op )
+                        , ( "field"
+                          , Encode.object
+                                [ ( "fieldPath", Encode.string fieldPath )
+                                ]
+                          )
+                        ]
+
+                Nothing ->
+                    Encode.object []
+          )
+        ]
 
 
 {-| Filter type.
@@ -78,3 +95,30 @@ type Select
 select : Select -> Query -> Query
 select value_ (Query query) =
     Query { query | select = Just value_ }
+
+
+
+-- Internals
+
+
+opValue : Op -> Encode.Value
+opValue op =
+    Encode.string <|
+        case op of
+            LessThan ->
+                "LESS_THAN"
+
+            LessThanOrEqual ->
+                "LESS_THAN_OR_EQUAL"
+
+            GreaterThan ->
+                "GREATER_THAN"
+
+            GreaterThanOrEqual ->
+                "GREATER_THAN_OR_EQUAL"
+
+            Equal ->
+                "EQUAL"
+
+            NotEqual ->
+                "NOT_EQUAL"
