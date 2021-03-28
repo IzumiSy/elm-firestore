@@ -1,21 +1,25 @@
 module Firestore.Query exposing
-    ( Query, new, value
+    ( Query, new, encode
     , select
     , where_, Op(..), fieldFilter
+    , Value, bool, int, string, timestamp
     )
 
 {-|
 
-@docs Query, new, value
+@docs Query, new, encode
 
 @docs select
 
 @docs where_, Op, fieldFilter
 
+@docs Value, bool, int, string, timestamp
+
 -}
 
-import Firestore.Encode as FSEncode
-import Json.Encode as Encode
+import Firestore.Internals.Encode as Encode
+import Json.Encode as JsonEncode
+import Time
 
 
 type Query
@@ -33,25 +37,27 @@ new =
         }
 
 
-value : Query -> Encode.Value
-value (Query query) =
-    -- Encode.null
-    Encode.object
-        [ ( "where"
-          , case query.where_ of
-                Just (FieldFilter fieldPath op _) ->
-                    Encode.object
+encode : Query -> JsonEncode.Value
+encode (Query query) =
+    let
+        whereQuery =
+            case query.where_ of
+                Just (FieldFilter fieldPath op (Value value)) ->
+                    JsonEncode.object
                         [ ( "op", opValue op )
                         , ( "field"
-                          , Encode.object
-                                [ ( "fieldPath", Encode.string fieldPath )
+                          , JsonEncode.object
+                                [ ( "fieldPath", JsonEncode.string fieldPath )
                                 ]
                           )
+                        , ( "value", value )
                         ]
 
                 Nothing ->
-                    Encode.object []
-          )
+                    JsonEncode.object []
+    in
+    JsonEncode.object
+        [ ( "where", whereQuery )
         ]
 
 
@@ -61,7 +67,7 @@ value (Query query) =
 
 -}
 type Where
-    = FieldFilter String Op FSEncode.Field
+    = FieldFilter String Op Value
 
 
 {-| Filter operation.
@@ -83,11 +89,13 @@ where_ value_ (Query query) =
     Query { query | where_ = Just value_ }
 
 
-fieldFilter : String -> Op -> FSEncode.Field -> Where
+fieldFilter : String -> Op -> Value -> Where
 fieldFilter =
     FieldFilter
 
 
+{-| Projection type
+-}
 type Select
     = Select
 
@@ -97,11 +105,40 @@ select value_ (Query query) =
     Query { query | select = Just value_ }
 
 
+{-| A predicate value for querying operation
+-}
+type Value
+    = Value JsonEncode.Value
+
+
+bool : Bool -> Value
+bool =
+    Value << Encode.bool
+
+
+{-| -}
+int : Int -> Value
+int =
+    Value << Encode.int
+
+
+{-| -}
+string : String -> Value
+string =
+    Value << Encode.string
+
+
+{-| -}
+timestamp : Time.Posix -> Value
+timestamp =
+    Value << Encode.timestamp
+
+
 
 -- Internals
 
 
-opValue : Op -> Encode.Value
+opValue : Op -> JsonEncode.Value
 opValue op =
     Encode.string <|
         case op of

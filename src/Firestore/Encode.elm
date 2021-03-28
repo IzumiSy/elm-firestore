@@ -21,10 +21,10 @@ module Firestore.Encode exposing
 -}
 
 import Dict
+import Firestore.Internals.Encode as Encode
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
-import Iso8601
-import Json.Encode as Encode
+import Json.Encode as JsonEncode
 import Time
 
 
@@ -39,13 +39,13 @@ type Encoder
 
 {-| Generates Json.Encode.Value from Encoder
 -}
-encode : Encoder -> Encode.Value
+encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
-    Encode.object
+    JsonEncode.object
         [ ( "fields"
           , fields
                 |> List.map (\( key, Field field ) -> ( key, field ))
-                |> Encode.object
+                |> JsonEncode.object
           )
         ]
 
@@ -53,7 +53,7 @@ encode (Encoder fields) =
 {-| An identifier type for Firestore encoder
 -}
 type Field
-    = Field Encode.Value
+    = Field JsonEncode.Value
 
 
 
@@ -82,104 +82,74 @@ document =
 
 {-| -}
 bool : Bool -> Field
-bool value =
-    Field <|
-        Encode.object
-            [ ( "booleanValue", Encode.bool value ) ]
+bool =
+    Field << Encode.bool
 
 
 {-| -}
 bytes : String -> Field
-bytes value =
-    Field <|
-        Encode.object
-            [ ( "bytesValue", Encode.string value ) ]
+bytes =
+    Field << Encode.bytes
 
 
 {-| -}
 int : Int -> Field
-int value =
-    Field <|
-        Encode.object
-            [ ( "integerValue", Encode.string <| String.fromInt value ) ]
+int =
+    Field << Encode.int
 
 
 {-| -}
 string : String -> Field
-string value =
-    Field <|
-        Encode.object
-            [ ( "stringValue", Encode.string value ) ]
+string =
+    Field << Encode.string
 
 
 {-| -}
 list : (a -> Field) -> List a -> Field
 list valueEncoder value =
-    Field <|
-        Encode.object
-            [ ( "arrayValue"
-              , Encode.object
-                    [ ( "values"
-                      , Encode.list ((\(Field field) -> field) << valueEncoder) value
-                      )
-                    ]
-              )
-            ]
+    Field <| Encode.list (unfield << valueEncoder) value
 
 
 {-| -}
 dict : (a -> Field) -> Dict.Dict String a -> Field
 dict valueEncoder value =
-    Field <|
-        Encode.object
-            [ ( "mapValue"
-              , Encode.object
-                    [ ( "fields"
-                      , Encode.dict identity ((\(Field field) -> field) << valueEncoder) value
-                      )
-                    ]
-              )
-            ]
+    Field <| Encode.dict (unfield << valueEncoder) value
 
 
 {-| -}
 null : Field
 null =
-    Field <| Encode.object [ ( "nullValue", Encode.null ) ]
+    Field Encode.null
 
 
 {-| -}
 maybe : (a -> Field) -> Maybe a -> Field
 maybe valueEncoder =
-    Maybe.map valueEncoder
-        >> Maybe.withDefault null
+    Field << Encode.maybe (unfield << valueEncoder)
 
 
 {-| -}
 timestamp : Time.Posix -> Field
-timestamp value =
-    Field <|
-        Encode.object
-            [ ( "timestampValue", Iso8601.encode value ) ]
+timestamp =
+    Field << Encode.timestamp
 
 
 {-| -}
 geopoint : Geopoint.Geopoint -> Field
-geopoint geopoint_ =
-    Field <|
-        Encode.object
-            [ ( "geoPointValue"
-              , Encode.object
-                    [ ( "latitude", Encode.int <| Geopoint.latitude geopoint_ )
-                    , ( "longitude", Encode.int <| Geopoint.longitude geopoint_ )
-                    ]
-              )
-            ]
+geopoint =
+    Field << Encode.geopoint
 
 
 {-| -}
 reference : Reference.Reference -> Field
-reference reference_ =
-    Field <|
-        Encode.object
-            [ ( "referenceValue", Encode.string <| Reference.toString reference_ ) ]
+reference =
+    Field << Encode.reference
+
+
+
+-- Internals
+
+
+unfield : Field -> JsonEncode.Value
+unfield (Field value) =
+    value
