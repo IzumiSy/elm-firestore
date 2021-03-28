@@ -73,13 +73,13 @@ decode =
 
 {-| -}
 type Document a cons
-    = Document (Decoder cons) (a -> List ( String, Encode.Field ))
+    = Document (Decoder cons) (a -> Dict String Encode.Field)
 
 
 {-| -}
 document : cons -> Document a cons
 document fun =
-    Document (Decode.document fun) (always [])
+    Document (Decode.document fun) (always Dict.empty)
 
 
 {-| -}
@@ -93,7 +93,7 @@ required : String -> (a -> b) -> Field b -> Document a (b -> cons) -> Document a
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
-        (\value -> ( name, getter value |> eField ) :: e value)
+        (\value -> Dict.insert name (getter value |> eField) (e value))
 
 
 {-| -}
@@ -101,7 +101,7 @@ optional : String -> (a -> b) -> Field b -> b -> Document a (b -> cons) -> Docum
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
-        (\value -> ( name, getter value |> eField ) :: e value)
+        (\value -> Dict.insert name (getter value |> eField ) (e value))
 
 
 
