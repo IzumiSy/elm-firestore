@@ -224,7 +224,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
 
 {-| Updates only specific fields.
 
-If the fields do not exists, they will be created.
+If the requested fields do not exists, they will be created.
 
 -}
 patch :
@@ -234,15 +234,19 @@ patch :
     -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
-        ( params, fields ) =
-            PatchOptions.queryParameters options
+        ( params, document ) =
+            PatchOptions.payload options
     in
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url =
             Config.endpoint params path_ config
-        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document fields
+        , body =
+            document
+                |> Maybe.map FSEncode.encode
+                |> Maybe.withDefault (Encode.object [])
+                |> Http.jsonBody
         , timeout = Nothing
         , resolver =
             fieldDecoder

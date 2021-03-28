@@ -1,11 +1,11 @@
 module Firestore.Options.Patch exposing
-    ( Options, empty, queryParameters
+    ( Options, empty, payload
     , addUpdate, addDelete
     )
 
 {-| A type to define `patch` operation parameters
 
-@docs Options, empty, queryParameters
+@docs Options, empty, payload
 
 @docs addUpdate, addDelete
 
@@ -47,14 +47,30 @@ addUpdate path field (Options options) =
 
 addDelete : String -> Options -> Options
 addDelete path (Options options) =
-    Options { options | deletes = Set.insert path options.deletes }
+    Options
+        { options
+            | deletes = Set.insert path options.deletes
+            , updateFields = Dict.remove path options.updateFields
+        }
 
 
-queryParameters : Options -> ( List UrlBuilder.QueryParameter, List ( String, FSEncode.Field ) )
-queryParameters (Options options) =
+payload : Options -> ( List UrlBuilder.QueryParameter, Maybe FSEncode.Encoder )
+payload (Options options) =
+    let
+        requestingDocument =
+            if not <| Dict.isEmpty options.updateFields then
+                options.updateFields
+                    |> Dict.toList
+                    |> List.foldr (\( path, field ) acc -> FSEncode.field path field acc) FSEncode.document
+                    |> FSEncode.encoder
+                    |> Just
+
+            else
+                Nothing
+    in
     ( List.concat
         [ Set.toList options.updates |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         , Set.toList options.deletes |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         ]
-    , Dict.toList options.updateFields
+    , requestingDocument
     )
