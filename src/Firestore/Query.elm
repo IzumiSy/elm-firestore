@@ -1,7 +1,6 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , select
-    , where_, Op(..), fieldFilter
+    , Where(..), where_, FieldOp(..), UnaryOp(..)
     , Value, bool, int, string, timestamp
     )
 
@@ -9,9 +8,7 @@ module Firestore.Query exposing
 
 @docs Query, new, encode
 
-@docs select
-
-@docs where_, Op, fieldFilter
+@docs Where, where_, FieldOp, UnaryOp
 
 @docs Value, bool, int, string, timestamp
 
@@ -25,7 +22,6 @@ import Time
 type Query
     = Query
         { where_ : Maybe Where
-        , select : Maybe Select
         }
 
 
@@ -33,32 +29,18 @@ new : Query
 new =
     Query
         { where_ = Nothing
-        , select = Nothing
         }
 
 
 encode : Query -> JsonEncode.Value
-encode (Query query) =
-    let
-        whereQuery =
-            case query.where_ of
-                Just (FieldFilter fieldPath op (Value value)) ->
-                    JsonEncode.object
-                        [ ( "op", opValue op )
-                        , ( "field"
-                          , JsonEncode.object
-                                [ ( "fieldPath", JsonEncode.string fieldPath )
-                                ]
-                          )
-                        , ( "value", value )
-                        ]
-
-                Nothing ->
-                    JsonEncode.object []
-    in
+encode query =
     JsonEncode.object
-        [ ( "where", whereQuery )
+        [ ( "where", whereQuery query )
         ]
+
+
+
+-- Where
 
 
 {-| Filter type.
@@ -67,15 +49,16 @@ encode (Query query) =
 
 -}
 type Where
-    = FieldFilter String Op Value
+    = FieldFilter String FieldOp Value
+    | UnaryFilter String UnaryOp
 
 
-{-| Filter operation.
+{-| Operations for FieldFilter.
 
     TODO: Support of array-related operations (eg, NotIn, In, etc...)
 
 -}
-type Op
+type FieldOp
     = LessThan
     | LessThanOrEqual
     | GreaterThan
@@ -84,25 +67,22 @@ type Op
     | NotEqual
 
 
+{-| Oprations for UnaryFilter
+-}
+type UnaryOp
+    = IsNaN
+    | IsNull
+    | IsNotNaN
+    | IsNotNull
+
+
 where_ : Where -> Query -> Query
 where_ value_ (Query query) =
     Query { query | where_ = Just value_ }
 
 
-fieldFilter : String -> Op -> Value -> Where
-fieldFilter =
-    FieldFilter
 
-
-{-| Projection type
--}
-type Select
-    = Select
-
-
-select : Select -> Query -> Query
-select value_ (Query query) =
-    Query { query | select = Just value_ }
+-- Value
 
 
 {-| A predicate value for querying operation
@@ -138,8 +118,44 @@ timestamp =
 -- Internals
 
 
-opValue : Op -> JsonEncode.Value
-opValue op =
+whereQuery : Query -> JsonEncode.Value
+whereQuery (Query query) =
+    case query.where_ of
+        Just (FieldFilter fieldPath op (Value value)) ->
+            JsonEncode.object
+                [ ( "fieldFilter"
+                  , JsonEncode.object
+                        [ ( "op", fieldOpValue op )
+                        , ( "field"
+                          , JsonEncode.object
+                                [ ( "fieldPath", JsonEncode.string fieldPath )
+                                ]
+                          )
+                        , ( "value", value )
+                        ]
+                  )
+                ]
+
+        Just (UnaryFilter fieldPath op) ->
+            JsonEncode.object
+                [ ( "unaryFilter"
+                  , JsonEncode.object
+                        [ ( "op", unaryOpValue op )
+                        , ( "field"
+                          , JsonEncode.object
+                                [ ( "fieldPath", JsonEncode.string fieldPath )
+                                ]
+                          )
+                        ]
+                  )
+                ]
+
+        Nothing ->
+            JsonEncode.object []
+
+
+fieldOpValue : FieldOp -> JsonEncode.Value
+fieldOpValue op =
     Encode.string <|
         case op of
             LessThan ->
@@ -159,3 +175,20 @@ opValue op =
 
             NotEqual ->
                 "NOT_EQUAL"
+
+
+unaryOpValue : UnaryOp -> JsonEncode.Value
+unaryOpValue op =
+    Encode.string <|
+        case op of
+            IsNaN ->
+                "IS_NAN"
+
+            IsNull ->
+                "IS_NULL"
+
+            IsNotNaN ->
+                "IS_NOT_NAN"
+
+            IsNotNull ->
+                "IS_NOT_NULL"
