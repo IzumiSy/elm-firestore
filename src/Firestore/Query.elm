@@ -1,6 +1,6 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , Where(..), where_, FieldOp(..), UnaryOp(..)
+    , Where(..), where_, FieldOp(..), UnaryOp(..), CompositeOp(..)
     , Value, bool, int, string, timestamp
     )
 
@@ -8,7 +8,7 @@ module Firestore.Query exposing
 
 @docs Query, new, encode
 
-@docs Where, where_, FieldOp, UnaryOp
+@docs Where, where_, FieldOp, UnaryOp, CompositeOp
 
 @docs Value, bool, int, string, timestamp
 
@@ -49,7 +49,8 @@ encode query =
 
 -}
 type Where
-    = FieldFilter String FieldOp Value
+    = CompositeFilter String CompositeOp (List Where)
+    | FieldFilter String FieldOp Value
     | UnaryFilter String UnaryOp
 
 
@@ -74,6 +75,10 @@ type UnaryOp
     | IsNull
     | IsNotNaN
     | IsNotNull
+
+
+type CompositeOp
+    = And
 
 
 where_ : Where -> Query -> Query
@@ -147,11 +152,14 @@ whereQuery (Query query) =
                                 ]
                           )
                         ]
-                  )
-                ]
 
-        Nothing ->
-            JsonEncode.object []
+
+compositeOpValue : CompositeOp -> JsonEncode.Value
+compositeOpValue op =
+    Encode.string <|
+        case op of
+            And ->
+                "AND"
 
 
 fieldOpValue : FieldOp -> JsonEncode.Value
