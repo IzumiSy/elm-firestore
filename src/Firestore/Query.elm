@@ -14,9 +14,11 @@ module Firestore.Query exposing
 
 -}
 
+import Cons
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
 import Time
+import Typed exposing (Typed)
 
 
 type Query
@@ -33,14 +35,22 @@ new =
 
 
 encode : Query -> JsonEncode.Value
-encode query =
+encode (Query query) =
     JsonEncode.object
-        [ ( "where", whereQuery query )
+        [ ( "where"
+          , query.where_
+                |> Maybe.map whereValue
+                |> Maybe.withDefault (JsonEncode.object [])
+          )
         ]
 
 
 
 -- Where
+
+
+type alias FieldPath =
+    Typed FieldPathType String Typed.WriteOnly
 
 
 {-| Filter type.
@@ -49,9 +59,9 @@ encode query =
 
 -}
 type Where
-    = CompositeFilter String CompositeOp (List Where)
-    | FieldFilter String FieldOp Value
-    | UnaryFilter String UnaryOp
+    = CompositeFilter CompositeOp (Cons.Cons Where)
+    | FieldFilter FieldPath FieldOp Value
+    | UnaryFilter FieldPath UnaryOp
 
 
 {-| Operations for FieldFilter.
@@ -123,17 +133,35 @@ timestamp =
 -- Internals
 
 
-whereQuery : Query -> JsonEncode.Value
-whereQuery (Query query) =
-    case query.where_ of
-        Just (FieldFilter fieldPath op (Value value)) ->
+type FieldPathType
+    = FieldPathType
+
+
+whereValue : Where -> JsonEncode.Value
+whereValue where__ =
+    case where__ of
+        CompositeFilter op filters ->
+            JsonEncode.object
+                [ ( "compositeFilter"
+                  , JsonEncode.object
+                        [ ( "op", compositeOpValue op )
+                        , ( "filters"
+                          , filters
+                                |> Cons.toList
+                                |> JsonEncode.list whereValue
+                          )
+                        ]
+                  )
+                ]
+
+        FieldFilter fieldPath op (Value value) ->
             JsonEncode.object
                 [ ( "fieldFilter"
                   , JsonEncode.object
                         [ ( "op", fieldOpValue op )
                         , ( "field"
                           , JsonEncode.object
-                                [ ( "fieldPath", JsonEncode.string fieldPath )
+                                [ ( "fieldPath", Typed.encode JsonEncode.string fieldPath )
                                 ]
                           )
                         , ( "value", value )
@@ -141,17 +169,19 @@ whereQuery (Query query) =
                   )
                 ]
 
-        Just (UnaryFilter fieldPath op) ->
+        UnaryFilter fieldPath op ->
             JsonEncode.object
                 [ ( "unaryFilter"
                   , JsonEncode.object
                         [ ( "op", unaryOpValue op )
                         , ( "field"
                           , JsonEncode.object
-                                [ ( "fieldPath", JsonEncode.string fieldPath )
+                                [ ( "fieldPath", Typed.encode JsonEncode.string fieldPath )
                                 ]
                           )
                         ]
+                  )
+                ]
 
 
 compositeOpValue : CompositeOp -> JsonEncode.Value
