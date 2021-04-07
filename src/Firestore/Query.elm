@@ -1,6 +1,8 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , Where(..), where_, FieldOp(..), UnaryOp(..), CompositeOp(..)
+    , offset, limit
+    , OrderBy, Direction(..), orderBy
+    , Where, FieldOp(..), UnaryOp(..), CompositeOp(..), compositeFilter, fieldFilter, unaryFilter, where_
     , Value, bool, int, string, timestamp
     )
 
@@ -8,7 +10,11 @@ module Firestore.Query exposing
 
 @docs Query, new, encode
 
-@docs Where, where_, FieldOp, UnaryOp, CompositeOp
+@docs offset, limit
+
+@docs OrderBy, Direction, orderBy
+
+@docs Where, FieldOp, UnaryOp, CompositeOp, compositeFilter, fieldFilter, unaryFilter, where_
 
 @docs Value, bool, int, string, timestamp
 
@@ -23,6 +29,9 @@ import Typed exposing (Typed)
 type Query
     = Query
         { where_ : Maybe Where
+        , orderBy : Maybe OrderBy
+        , offset : Maybe Int
+        , limit : Maybe Int
         }
 
 
@@ -32,6 +41,9 @@ new : Query
 new =
     Query
         { where_ = Nothing
+        , orderBy = Nothing
+        , offset = Nothing
+        , limit = Nothing
         }
 
 
@@ -46,6 +58,39 @@ encode (Query query) =
                 |> Maybe.withDefault (JsonEncode.object [])
           )
         ]
+
+
+{-| Sets offset value
+-}
+offset : Int -> Query -> Query
+offset value (Query query) =
+    Query { query | offset = Just value }
+
+
+{-| Sets limit value
+-}
+limit : Int -> Query -> Query
+limit value (Query query) =
+    Query { query | limit = Just value }
+
+
+
+-- OrderBy
+
+
+type OrderBy
+    = OrderBy String Direction
+
+
+type Direction
+    = Unspecified
+    | Ascending
+    | Descending
+
+
+orderBy : String -> Direction -> Query -> Query
+orderBy fieldPath direction (Query query) =
+    Query { query | orderBy = Just <| OrderBy fieldPath direction }
 
 
 
@@ -65,6 +110,27 @@ type Where
     = CompositeFilter CompositeOp Where (List Where)
     | FieldFilter FieldPath FieldOp Value
     | UnaryFilter FieldPath UnaryOp
+
+
+{-| Constructs CompositeFilter
+-}
+compositeFilter : CompositeOp -> Where -> List Where -> Where
+compositeFilter =
+    CompositeFilter
+
+
+{-| Constructs FieldFilter
+-}
+fieldFilter : String -> FieldOp -> Value -> Where
+fieldFilter fieldPath =
+    FieldFilter (Typed.writeOnly fieldPath)
+
+
+{-| Constructs UnaryFilter
+-}
+unaryFilter : String -> UnaryOp -> Where
+unaryFilter fieldPath =
+    UnaryFilter (Typed.writeOnly fieldPath)
 
 
 {-| Operations for FieldFilter.
@@ -106,7 +172,7 @@ where_ value_ (Query query) =
 -- Value
 
 
-{-| A predicate value for querying operation
+{-| A value type for querying operation
 -}
 type Value
     = Value JsonEncode.Value
