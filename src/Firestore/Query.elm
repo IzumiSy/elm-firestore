@@ -14,7 +14,6 @@ module Firestore.Query exposing
 
 -}
 
-import Cons
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
 import Time
@@ -55,11 +54,11 @@ type alias FieldPath =
 
 {-| Filter type.
 
-    TODO: Support of CompositeFilter and UnaryFilter
+    CompositeFilter requires at least one filter, so it has non-empty list like structure.
 
 -}
 type Where
-    = CompositeFilter CompositeOp (Cons.Cons Where)
+    = CompositeFilter CompositeOp Where (List Where)
     | FieldFilter FieldPath FieldOp Value
     | UnaryFilter FieldPath UnaryOp
 
@@ -140,15 +139,13 @@ type FieldPathType
 whereValue : Where -> JsonEncode.Value
 whereValue where__ =
     case where__ of
-        CompositeFilter op filters ->
+        CompositeFilter op filter filters ->
             JsonEncode.object
                 [ ( "compositeFilter"
                   , JsonEncode.object
                         [ ( "op", compositeOpValue op )
                         , ( "filters"
-                          , filters
-                                |> Cons.toList
-                                |> JsonEncode.list whereValue
+                          , JsonEncode.list whereValue (filter :: filters)
                           )
                         ]
                   )
