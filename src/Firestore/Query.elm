@@ -26,6 +26,8 @@ type Query
         }
 
 
+{-| Constrcuts an empty query
+-}
 new : Query
 new =
     Query
@@ -33,6 +35,8 @@ new =
         }
 
 
+{-| Encodes query
+-}
 encode : Query -> JsonEncode.Value
 encode (Query query) =
     JsonEncode.object
@@ -86,10 +90,13 @@ type UnaryOp
     | IsNotNull
 
 
+{-| Operations for CompositeFilter
+-}
 type CompositeOp
     = And
 
 
+{-| -}
 where_ : Where -> Query -> Query
 where_ value_ (Query query) =
     Query { query | where_ = Just value_ }
@@ -105,6 +112,7 @@ type Value
     = Value JsonEncode.Value
 
 
+{-| -}
 bool : Bool -> Value
 bool =
     Value << Encode.bool
