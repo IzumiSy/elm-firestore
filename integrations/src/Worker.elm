@@ -30,20 +30,11 @@ init _ =
     )
 
 
-type Msg
-    = NoOp
-
-
-update : Msg -> Model -> ( Model, Cmd msg )
-update _ _ =
-    ( (), Cmd.none )
-
-
-main : Program () Model Msg
+main : Program () Model ()
 main =
     Platform.worker
         { init = init
-        , update = update
+        , update = \_ _ -> ( (), Cmd.none )
         , subscriptions = \_ -> Sub.none
         }
 
