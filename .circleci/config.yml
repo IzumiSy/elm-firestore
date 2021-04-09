@@ -35,7 +35,7 @@ jobs:
 
       - run:
           name: Setup Firestore Emulator
-          command: npx firebase setup:emulators:firestore
+          command: npm run test:setup
 
       - run:
           name: Run tests

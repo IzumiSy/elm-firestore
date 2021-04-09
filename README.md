@@ -156,6 +156,7 @@ $ npm run build
 ### Testing
 
 ```shell
+$ npm run test:setup
 $ npm test
 ```
 

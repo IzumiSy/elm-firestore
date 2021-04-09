@@ -3,6 +3,7 @@
   "scripts": {
     "build": "elm make src/Firestore.elm",
     "test": "./test.sh",
+    "test:setup": "firebase setup:emulators:firestore",
     "publish": "elm publish"
   },
   "devDependencies": {
