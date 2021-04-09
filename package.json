@@ -1,11 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "build": "elm make src/Firestore.elm",
-    "test": "elm-test",
+    "build": "cd lib && elm make",
+    "publish": "cd lib && elm publish",
+    "test": "elm-test lib/",
     "test:integration:setup": "firebase setup:emulators:firestore",
-    "test:integration": "./integrations/test.sh",
-    "publish": "elm publish"
+    "test:integration": "./integrations/test.sh"
   },
   "devDependencies": {
     "elm": "^0.19.1-3",
