@@ -17,7 +17,18 @@ jobs:
     working_directory: ~/repo
 
     steps:
+      - run:
+          name: setup OpenJDK
+          command: |
+            sudo apt update
+            sudo apt install openjdk-8-jre
+
       - checkout
-      - run: npm install
+
+      - run:
+          name: setup Node.js packages
+          command: |
+            npm install
+
       - run: npx firebase setup:emulators:firestore
       - run: npm test
