@@ -153,11 +153,18 @@ $ npm install
 $ npm run build
 ```
 
-### Testing
+### Unit testing
 
 ```shell
-$ npm run test:setup
 $ npm test
+```
+
+### Integration testing
+This requires you to install Open JDK to run Firestore Emulator.
+
+```shell
+$ npm run test:integration:setup
+$ npm run test:integration
 ```
 
 ## License
