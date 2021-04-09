@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - run:
-          name: setup OpenJDK
+          name: Setup OpenJDK
           command: |
             sudo apt update
             sudo apt install openjdk-8-jre
@@ -26,9 +26,13 @@ jobs:
       - checkout
 
       - run:
-          name: setup Node.js packages
-          command: |
-            npm install
+          name: Setup Node.js packages
+          command: npm install
 
-      - run: npx firebase setup:emulators:firestore
-      - run: npm test
+      - run:
+          name: Setup Firestore Emulator
+          command: npx firebase setup:emulators:firestore
+
+      - run:
+          name: Run tests
+          command: npm test
