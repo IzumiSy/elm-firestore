@@ -34,12 +34,15 @@ jobs:
           command: npm install
 
       - run:
-          name: Setup Firestore Emulator
-          command: npm run test:setup
+          name: Run unit tests
+          command: npm test
 
       - run:
-          name: Run tests
-          command: npm test
+          name: Run integration tests
+          command: |
+            npm run test:integration:setup
+            npm run test:integration
+
 
       - save_cache:
           key: v1-deps-{{ checksum "package-lock.json" }}
