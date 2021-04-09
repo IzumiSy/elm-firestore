@@ -1,2 +1,4 @@
 node_modules/
 elm-stuff/
+firestore-debug.log
+ui-debug.log

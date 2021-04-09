@@ -17,6 +17,31 @@ jobs:
     working_directory: ~/repo
 
     steps:
+      - run:
+          name: Setup OpenJDK
+          command: |
+            sudo apt update
+            sudo apt install openjdk-8-jre
+
       - checkout
-      - run: npm install
-      - run: npm test
+
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "package-lock.json" }}
+
+      - run:
+          name: Setup Node.js packages
+          command: npm install
+
+      - run:
+          name: Setup Firestore Emulator
+          command: npx firebase setup:emulators:firestore
+
+      - run:
+          name: Run tests
+          command: npm test
+
+      - save_cache:
+          key: v1-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
