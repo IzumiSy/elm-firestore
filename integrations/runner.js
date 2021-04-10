@@ -15,6 +15,12 @@ describe("tests", () => {
     })
   })
 
+  it("TestList", done => {
+    onComplete("testListResult", () => {
+      done()
+    })
+  })
+
   it("TestInsert", done => {
     onComplete("testInsertResult", () => {
       done()

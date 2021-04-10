@@ -22,6 +22,7 @@ init _ =
     , Cmd.batch
         (List.map (\runner -> runner firestore)
             [ runTestGet
+            , runTestList
             , runTestInsert
             , runTestCreate
             , runTestUpsert
@@ -49,6 +50,14 @@ runTestGet _ =
 
 
 port testGetResult : () -> Cmd msg
+
+
+runTestList : Firestore.Firestore -> Cmd msg
+runTestList _ =
+    testListResult ()
+
+
+port testListResult : () -> Cmd msg
 
 
 runTestInsert : Firestore.Firestore -> Cmd msg
