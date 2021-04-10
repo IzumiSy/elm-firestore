@@ -3,7 +3,7 @@
   "scripts": {
     "build": "cd lib && elm make",
     "publish": "cd lib && elm publish",
-    "test": "elm-test lib/",
+    "test": "cd lib && elm-test",
     "test:integration:setup": "firebase setup:emulators:firestore",
     "test:integration": "./integrations/test.sh"
   },
