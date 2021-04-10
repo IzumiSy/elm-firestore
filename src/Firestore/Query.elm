@@ -26,6 +26,8 @@ import Time
 import Typed exposing (Typed)
 
 
+{-| A data structure for query operation
+-}
 type Query
     = Query
         { where_ : Maybe Where
@@ -35,7 +37,7 @@ type Query
         }
 
 
-{-| Constrcuts an empty query
+{-| Constructs an empty query
 -}
 new : Query
 new =
@@ -60,14 +62,14 @@ encode (Query query) =
         ]
 
 
-{-| Sets offset value
+{-| Sets the number of results to skip.
 -}
 offset : Int -> Query -> Query
 offset value (Query query) =
     Query { query | offset = Just value }
 
 
-{-| Sets limit value
+{-| Sets the maximum number of results to return.
 -}
 limit : Int -> Query -> Query
 limit value (Query query) =
@@ -78,16 +80,22 @@ limit value (Query query) =
 -- OrderBy
 
 
+{-| OrderBy type
+-}
 type OrderBy
     = OrderBy String Direction
 
 
+{-| Ordering direction
+-}
 type Direction
     = Unspecified
     | Ascending
     | Descending
 
 
+{-| Sets OrderBy value to query
+-}
 orderBy : String -> Direction -> Query -> Query
 orderBy fieldPath direction (Query query) =
     Query { query | orderBy = Just <| OrderBy fieldPath direction }
@@ -101,7 +109,7 @@ type alias FieldPath =
     Typed FieldPathType String Typed.WriteOnly
 
 
-{-| Filter type.
+{-| Where type.
 
     CompositeFilter requires at least one filter, so it has non-empty list like structure.
 
@@ -162,7 +170,8 @@ type CompositeOp
     = And
 
 
-{-| -}
+{-| Sets filter to query
+-}
 where_ : Where -> Query -> Query
 where_ value_ (Query query) =
     Query { query | where_ = Just value_ }

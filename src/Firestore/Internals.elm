@@ -4,9 +4,11 @@ module Firestore.Internals exposing
     , PageToken(..)
     , decodeList
     , decodeOne
+    , decodeQuery
     )
 
 import Firestore.Decode as FSDecode
+import Firestore.Query exposing (Query)
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -19,6 +21,15 @@ type alias Document a =
     , createTime : Time.Posix
     , updateTime : Time.Posix
     }
+
+
+decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)
+decodeOne fieldDecoder =
+    Decode.succeed Document
+        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "fields" (FSDecode.decode fieldDecoder)
+        |> Pipeline.required "createTime" Iso8601.decoder
+        |> Pipeline.required "updateTime" Iso8601.decoder
 
 
 type alias Documents a b =
@@ -34,13 +45,21 @@ decodeList pageTokener fieldDecoder =
         |> Pipeline.optional "nextPageToken" (Decode.map (Just << pageTokener) Decode.string) Nothing
 
 
-decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)
-decodeOne fieldDecoder =
-    Decode.succeed Document
-        |> Pipeline.required "name" Decode.string
-        |> Pipeline.required "fields" (FSDecode.decode fieldDecoder)
-        |> Pipeline.required "createTime" Iso8601.decoder
-        |> Pipeline.required "updateTime" Iso8601.decoder
+type alias Query a b =
+    { transaction : b
+    , document : Document a
+    , readTime : Time.Posix
+    , skippedResults : Int
+    }
+
+
+decodeQuery : (String -> b) -> FSDecode.Decoder a -> Decode.Decoder (Query a b)
+decodeQuery transactioner fieldDecoder =
+    Decode.succeed Query
+        |> Pipeline.required "transaction" (Decode.map transactioner Decode.string)
+        |> Pipeline.required "document" (decodeOne fieldDecoder)
+        |> Pipeline.required "readTime" Iso8601.decoder
+        |> Pipeline.required "skippedResults" Decode.int
 
 
 {-| Internal implementation of PageToken
