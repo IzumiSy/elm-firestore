@@ -3,8 +3,9 @@ module Firestore exposing
     , init, withConfig
     , Path, path
     , Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
+    , runQuery
     , Error(..), FirestoreError
-    , Transaction, CommitTime, begin, update, commit
+    , Transaction, TransactionId, CommitTime, begin, update, commit
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -27,6 +28,11 @@ module Firestore exposing
 @docs Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
 
 
+# Query
+
+@docs Query, runQuery
+
+
 # Error
 
 @docs Error, FirestoreError
@@ -34,7 +40,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, CommitTime, begin, update, commit
+@docs Transaction, TransactionId, CommitTime, begin, update, commit
 
 -}
 
@@ -44,6 +50,7 @@ import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
+import Firestore.Query as Query
 import Http
 import Iso8601
 import Json.Decode as Decode
@@ -285,14 +292,51 @@ deleteExisting (Path path_ (Firestore config)) =
         }
 
 
+{-| A record structure for query operation result
+-}
+type alias Query a =
+    { transaction : TransactionId
+    , document : Document a
+    , readTime : Time.Posix
+    , skippedResults : Int
+    }
+
+
+{-| Runs a query operation
+-}
+runQuery :
+    FSDecode.Decoder a
+    -> Query.Query
+    -> Path
+    -> Task.Task Error (Query a)
+runQuery fieldDecoder query (Path path_ (Firestore config)) =
+    Http.task
+        { method = "POST"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [] (path_ ++ ":runQuery") config
+        , body = Http.jsonBody <| Query.encode query
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeQuery TransactionId
+                |> jsonResolver
+        }
+
+
 
 -- Transaction
+
+
+{-| Transaction ID
+-}
+type TransactionId
+    = TransactionId String
 
 
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction String (List FSEncode.Encoder)
+    = Transaction TransactionId (List FSEncode.Encoder)
 
 
 {-| Adds a new update into the transaction
@@ -377,9 +421,9 @@ type alias FirestoreError =
 -- Decoders
 
 
-transactionDecoder : Decode.Decoder String
+transactionDecoder : Decode.Decoder TransactionId
 transactionDecoder =
-    Decode.field "transaction" Decode.string
+    Decode.field "transaction" (Decode.map TransactionId Decode.string)
 
 
 commitDecoder : Decode.Decoder CommitTime
@@ -407,9 +451,9 @@ errorInfoDecoder =
 
 
 commitEncoder : Transaction -> Encode.Value
-commitEncoder (Transaction transaction drafts) =
+commitEncoder (Transaction (TransactionId id) drafts) =
     Encode.object
-        [ ( "transaction", Encode.string transaction )
+        [ ( "transaction", Encode.string id )
         , ( "writes", Encode.list FSEncode.encode drafts )
         ]
 

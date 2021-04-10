@@ -1,13 +1,13 @@
 module Firestore.Decode exposing
-    ( Decoder, decode
+    ( Decoder, decode, Field
     , document, required, optional
-    , Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+    , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     , map, andThen, succeed, fail
     )
 
 {-| Decoders for Firestore
 
-@docs Decoder, decode
+@docs Decoder, decode, Field
 
 
 # Constructors
@@ -17,7 +17,7 @@ module Firestore.Decode exposing
 
 # Types
 
-@docs Field, bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
+@docs bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
 
 
 # Utility Functions
@@ -49,6 +49,12 @@ type Decoder a
 decode : Decoder a -> Decode.Decoder a
 decode (Decoder decoder) =
     decoder
+
+
+{-| An identifier type for Firestore encoder
+-}
+type Field a
+    = Field (Decode.Decoder a)
 
 
 
@@ -96,12 +102,6 @@ optional name (Field fieldDecoder) default (Decoder encoder) =
 
 
 -- Types
-
-
-{-| An identifier type for Firestore encoder
--}
-type Field a
-    = Field (Decode.Decoder a)
 
 
 {-| -}

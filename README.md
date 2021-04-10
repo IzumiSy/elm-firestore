@@ -13,6 +13,7 @@ The features elm-firestore library supports are as follows:
 | Realtime update listening                                | :heavy_exclamation_mark: No |
 | Collection group                                         | :heavy_exclamation_mark: No |
 | Indexing                                                 | :heavy_exclamation_mark: No |
+| Query operations                                         | Partially supported         |
 
 ### When will this package support realtime update?
 
