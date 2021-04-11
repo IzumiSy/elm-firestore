@@ -2,8 +2,8 @@ module Firestore exposing
     ( Firestore
     , init, withConfig
     , Path, path
-    , Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
-    , runQuery
+    , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
+    , Query, runQuery
     , Error(..), FirestoreError
     , Transaction, TransactionId, CommitTime, begin, update, commit
     )
@@ -25,7 +25,7 @@ module Firestore exposing
 
 # CRUDs
 
-@docs Document, Documents, get, list, create, insert, upsert, patch, delete, deleteExisting
+@docs Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
 
 
 # Query
@@ -195,16 +195,16 @@ create :
     -> { id : String, document : FSEncode.Encoder }
     -> Path
     -> Task.Task Error (Document a)
-create fieldDecoder { id, document } (Path path_ (Firestore config)) =
+create fieldDecoder params (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
         , url =
             Config.endpoint
-                [ UrlBuilder.string "documentId" id ]
+                [ UrlBuilder.string "documentId" params.id ]
                 path_
                 config
-        , body = Http.jsonBody <| FSEncode.encode document
+        , body = Http.jsonBody <| FSEncode.encode params.document
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -331,21 +331,17 @@ runQuery fieldDecoder query (Path path_ (Firestore config)) =
 -- Name
 
 
+{-| Name field of Firestore document
+-}
 type Name
-    = Name String
+    = Name String String
 
 
-nameDecoder : Decode.Decoder Name
-nameDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\value ->
-                value
-                    |> String.split "/"
-                    |> ExList.last
-                    |> Maybe.map (Name >> Decode.succeed)
-                    |> Maybe.withDefault (Decode.fail "error")
-            )
+{-| Extracts ID from Name field
+-}
+id : Name -> String
+id (Name value _) =
+    value
 
 
 
@@ -377,8 +373,8 @@ type Transaction
 
 -}
 update : FSEncode.Encoder -> Transaction -> Transaction
-update encoder (Transaction id encoders) =
-    Transaction id (encoder :: encoders)
+update encoder (Transaction tId encoders) =
+    Transaction tId (encoder :: encoders)
 
 
 {-| Starts a new transaction.
@@ -446,6 +442,25 @@ type alias FirestoreError =
 -- Decoders
 
 
+{-| Decoder for response of fetching operations
+
+The response coming from Firestore has `name` field which is a path including parent name.
+This decoder does splitting slashes in order to extract the ID part from it.
+
+-}
+nameDecoder : Decode.Decoder Name
+nameDecoder =
+    Decode.string
+        |> Decode.andThen
+            (\value ->
+                value
+                    |> String.split "/"
+                    |> ExList.last
+                    |> Maybe.map (\id_ -> Decode.succeed (Name id_ value))
+                    |> Maybe.withDefault (Decode.fail "Failed decoding name")
+            )
+
+
 transactionDecoder : Decode.Decoder TransactionId
 transactionDecoder =
     Decode.field "transaction" (Decode.map TransactionId Decode.string)
@@ -476,9 +491,9 @@ errorInfoDecoder =
 
 
 commitEncoder : Transaction -> Encode.Value
-commitEncoder (Transaction (TransactionId id) drafts) =
+commitEncoder (Transaction (TransactionId tId) drafts) =
     Encode.object
-        [ ( "transaction", Encode.string id )
+        [ ( "transaction", Encode.string tId )
         , ( "writes", Encode.list FSEncode.encode drafts )
         ]
 

@@ -1,0 +1,7 @@
+{
+  "seeds": [
+    { "name": "user0", "age": 0 },
+    { "name": "user1", "age": 10 },
+    { "name": "user2", "age": 20 }
+  ]
+}

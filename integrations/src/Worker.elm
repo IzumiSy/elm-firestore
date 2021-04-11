@@ -3,13 +3,15 @@ port module Worker exposing (main)
 import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
+import Json.Encode as Encode
+import Task
 
 
 type alias Model =
     ()
 
 
-init : () -> ( Model, Cmd msg )
+init : () -> ( Model, Cmd Msg )
 init _ =
     let
         firestore =
@@ -17,7 +19,7 @@ init _ =
             , project = "test-project-id"
             }
                 |> Config.new
-                |> Config.withHost "localhost" 8080
+                |> Config.withHost "http://localhost" 8080
                 |> Firestore.init
     in
     ( ()
@@ -33,13 +35,52 @@ init _ =
     )
 
 
-main : Program () Model ()
+type Msg
+    = NoOp
+    | RanTestInsert (Result Firestore.Error Firestore.Name)
+
+
+update : Msg -> Model -> ( Model, Cmd msg )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        RanTestInsert result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testInsertResult
+            )
+
+
+main : Program () Model Msg
 main =
     Platform.worker
         { init = init
-        , update = \_ _ -> ( (), Cmd.none )
+        , update = update
         , subscriptions = \_ -> Sub.none
         }
+
+
+
+-- encoder
+
+
+okValue : Encode.Value -> Encode.Value
+okValue values =
+    Encode.object
+        [ ( "success", Encode.bool True )
+        , ( "values", values )
+        ]
+
+
+ngValue : Encode.Value
+ngValue =
+    Encode.object
+        [ ( "success", Encode.bool False )
+        ]
 
 
 
@@ -68,7 +109,7 @@ type alias User =
     }
 
 
-runTestInsert : Firestore.Firestore -> Cmd msg
+runTestInsert : Firestore.Firestore -> Cmd Msg
 runTestInsert firestore =
     let
         codec =
@@ -76,16 +117,20 @@ runTestInsert firestore =
                 |> Codec.required "name" .name Codec.string
                 |> Codec.required "age" .age Codec.int
                 |> Codec.build
-
-        op =
-            firestore
-                |> Firestore.path "users"
-                |> Firestore.insert (Codec.asDecoder codec) (Codec.asEncoder codec)
     in
-    testInsertResult ()
+    firestore
+        |> Firestore.path "users"
+        |> Firestore.insert
+            (Codec.asDecoder codec)
+            (Codec.asEncoder codec { name = "thomas", age = 26 })
+        |> Task.map
+            (\insertedDoc ->
+                insertedDoc.name
+            )
+        |> Task.attempt RanTestInsert
 
 
-port testInsertResult : () -> Cmd msg
+port testInsertResult : Encode.Value -> Cmd msg
 
 
 runTestCreate : Firestore.Firestore -> Cmd msg
