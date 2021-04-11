@@ -4,46 +4,49 @@ const assert = require('assert');
 const { loadSeeds, clearAll } = require('./seed')
 global.XMLHttpRequest = require('xhr2');
 
-describe("tests", () => {
+describe("tests", function() {
   const w = worker.Elm.Worker;
-  const onComplete = (name, cb) => {
+  const onComplete = function(name, cb) {
     const a = w.init()
     a.ports[name].subscribe(cb)
   }
 
-  beforeEach(async () => {
-    await loadSeeds()
+  beforeEach(function() {
+    this.timeout(10000)
+    return loadSeeds()
   })
 
-  afterEach(async () => {
-    await clearAll()
+  afterEach(function() {
+    this.timeout(10000)
+    return clearAll()
   })
 
-  it("TestGet", done => {
-    onComplete("testGetResult", () => {
+  it("TestGet", function(done) {
+    onComplete("testGetResult", function() {
       done()
     })
   })
 
-  it("TestList", done => {
+  it("TestList", function(done) {
     onComplete("testListResult", () => {
       done()
     })
   })
 
-  it("TestInsert", () => {
+  it("TestInsert", function(done) {
     onComplete("testInsertResult", result => {
       assert.ok(result)
+      done()
     })
   })
 
-  it("TestCreate", done => {
+  it("TestCreate", function(done) {
     onComplete("testCreateResult", () => {
       done()
     })
   })
 
-  it("TestUpsert", done => {
+  it("TestUpsert", function(done) {
     onComplete("testUpsertResult", () => {
       done()
     })
