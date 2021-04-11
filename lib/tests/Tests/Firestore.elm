@@ -50,6 +50,10 @@ type PageToken
     = PageToken String
 
 
+type Name
+    = Name Internals.Name
+
+
 writeDecoder : Decode.Decoder WriteDocument
 writeDecoder =
     Decode.succeed WriteDocument
@@ -133,7 +137,7 @@ suite =
                       """
                 in
                 src
-                    |> Decode.decodeString (Internals.decodeList PageToken documentDecoder)
+                    |> Decode.decodeString (Internals.decodeList Name PageToken documentDecoder)
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->

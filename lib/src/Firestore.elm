@@ -56,7 +56,6 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
-import List.Extra as ExList
 import Task
 import Time
 import Url.Builder as UrlBuilder
@@ -131,7 +130,7 @@ get fieldDecoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeOne nameDecoder
+                |> Internals.decodeOne Name
                 |> jsonResolver
         }
 
@@ -160,7 +159,7 @@ list fieldDecoder options (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeList (Internals.PageToken >> ListOptions.PageToken) nameDecoder
+                |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
                 |> jsonResolver
         }
 
@@ -180,7 +179,7 @@ insert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeOne nameDecoder
+                |> Internals.decodeOne Name
                 |> jsonResolver
         }
 
@@ -208,7 +207,7 @@ create fieldDecoder params (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeOne nameDecoder
+                |> Internals.decodeOne Name
                 |> jsonResolver
         }
 
@@ -228,7 +227,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeOne nameDecoder
+                |> Internals.decodeOne Name
                 |> jsonResolver
         }
 
@@ -257,7 +256,7 @@ patch fieldDecoder options (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeOne nameDecoder
+                |> Internals.decodeOne Name
                 |> jsonResolver
         }
 
@@ -322,7 +321,7 @@ runQuery fieldDecoder query (Path path_ (Firestore config)) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeQuery TransactionId nameDecoder
+                |> Internals.decodeQuery Name TransactionId
                 |> jsonResolver
         }
 
@@ -334,13 +333,13 @@ runQuery fieldDecoder query (Path path_ (Firestore config)) =
 {-| Name field of Firestore document
 -}
 type Name
-    = Name String String
+    = Name Internals.Name
 
 
 {-| Extracts ID from Name field
 -}
 id : Name -> String
-id (Name value _) =
+id (Name (Internals.Name value _)) =
     value
 
 
@@ -440,25 +439,6 @@ type alias FirestoreError =
 
 
 -- Decoders
-
-
-{-| Decoder for response of fetching operations
-
-The response coming from Firestore has `name` field which is a path including parent name.
-This decoder does splitting slashes in order to extract the ID part from it.
-
--}
-nameDecoder : Decode.Decoder Name
-nameDecoder =
-    Decode.string
-        |> Decode.andThen
-            (\value ->
-                value
-                    |> String.split "/"
-                    |> ExList.last
-                    |> Maybe.map (\id_ -> Decode.succeed (Name id_ value))
-                    |> Maybe.withDefault (Decode.fail "Failed decoding name")
-            )
 
 
 transactionDecoder : Decode.Decoder TransactionId

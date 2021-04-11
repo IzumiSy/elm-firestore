@@ -1,13 +1,16 @@
 module Firestore.Options.List exposing
     ( Options, PageToken(..), default, queryParameters
-    , pageToken, orderBy, pageSize
+    , pageToken, pageSize
+    , OrderBy(..), orderBy
     )
 
 {-| A type to define `list` operation parameters
 
 @docs Options, PageToken, default, queryParameters
 
-@docs pageToken, orderBy, pageSize
+@docs pageToken, pageSize
+
+@docs OrderBy, orderBy
 
 -}
 
@@ -18,18 +21,9 @@ import Url.Builder as UrlBuilder
 type Options
     = Options
         { pageSize : Maybe Int
-        , orderBy : Maybe String
+        , orderBy : List OrderBy
         , pageToken : Maybe PageToken
         }
-
-
-{-| The next page token.
-
-This token is required in fetching the next page offset by `pageSize` in `list` operation.
-
--}
-type PageToken
-    = PageToken Internals.PageToken
 
 
 {-| Construts options for list operation
@@ -38,14 +32,9 @@ default : Options
 default =
     Options
         { pageSize = Nothing
-        , orderBy = Nothing
+        , orderBy = []
         , pageToken = Nothing
         }
-
-
-pageToken : PageToken -> Options -> Options
-pageToken token (Options options) =
-    Options { options | pageToken = Just token }
 
 
 pageSize : Int -> Options -> Options
@@ -53,17 +42,59 @@ pageSize size (Options options) =
     Options { options | pageSize = Just size }
 
 
-orderBy : String -> Options -> Options
-orderBy column (Options options) =
-    Options { options | orderBy = Just column }
-
-
 queryParameters : Options -> List UrlBuilder.QueryParameter
 queryParameters (Options options) =
+    let
+        orderBy_ =
+            options.orderBy
+                |> List.foldl
+                    (\c acc ->
+                        case ( c, acc ) of
+                            ( Desc value, Nothing ) ->
+                                Just (value ++ " desc")
+
+                            ( Desc value, Just s ) ->
+                                Just (s ++ ", " ++ value ++ " desc")
+
+                            ( Asc value, Nothing ) ->
+                                Just (value ++ " asc")
+
+                            ( Asc value, Just s ) ->
+                                Just (s ++ ", " ++ value ++ " asc")
+                    )
+                    Nothing
+    in
     List.filterMap identity <|
         [ Maybe.map (UrlBuilder.int "pageSize") options.pageSize
-        , Maybe.map (UrlBuilder.string "orderBy") options.orderBy
+        , Maybe.map (UrlBuilder.string "orderBy") orderBy_
         , options.pageToken
             |> Maybe.map (\(PageToken (Internals.PageToken value)) -> value)
             |> Maybe.map (UrlBuilder.string "pageToken")
         ]
+
+
+{-| The next page token.
+
+This token is required in fetching the next result offset by `pageSize` in `list` operation.
+The internal implementation is intetentionally encapsulated. It can be obtained from `Documents` record.
+
+-}
+type PageToken
+    = PageToken Internals.PageToken
+
+
+pageToken : PageToken -> Options -> Options
+pageToken token (Options options) =
+    Options { options | pageToken = Just token }
+
+
+{-| OrderBy direction and column
+-}
+type OrderBy
+    = Desc String
+    | Asc String
+
+
+orderBy : OrderBy -> Options -> Options
+orderBy value (Options options) =
+    Options { options | orderBy = value :: options.orderBy }
