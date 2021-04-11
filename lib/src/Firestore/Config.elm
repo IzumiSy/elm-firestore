@@ -84,7 +84,11 @@ endpoint params path (Config { apiKey, project, database, baseUrl }) =
 
 -- Host
 
+{-| Specifies host and port to connect to.
 
+This function is useful when you write integration tests using mock servers such as Firestore Emulator.
+
+-}
 withHost : String -> Int -> Config -> Config
 withHost host port_ (Config config) =
     Config { config | baseUrl = Typed.new (host ++ ":" ++ String.fromInt port_) }
