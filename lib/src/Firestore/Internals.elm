@@ -15,49 +15,49 @@ import Json.Decode.Pipeline as Pipeline
 import Time
 
 
-type alias Document a =
-    { name : String
+type alias Document a b =
+    { name : b
     , fields : a
     , createTime : Time.Posix
     , updateTime : Time.Posix
     }
 
 
-decodeOne : FSDecode.Decoder a -> Decode.Decoder (Document a)
-decodeOne fieldDecoder =
+decodeOne : Decode.Decoder b -> FSDecode.Decoder a -> Decode.Decoder (Document a b)
+decodeOne nameDecoder fieldDecoder =
     Decode.succeed Document
-        |> Pipeline.required "name" Decode.string
+        |> Pipeline.required "name" nameDecoder
         |> Pipeline.required "fields" (FSDecode.decode fieldDecoder)
         |> Pipeline.required "createTime" Iso8601.decoder
         |> Pipeline.required "updateTime" Iso8601.decoder
 
 
-type alias Documents a b =
-    { documents : List (Document a)
-    , nextPageToken : Maybe b
+type alias Documents a b t =
+    { documents : List (Document a b)
+    , nextPageToken : Maybe t
     }
 
 
-decodeList : (String -> b) -> FSDecode.Decoder a -> Decode.Decoder (Documents a b)
-decodeList pageTokener fieldDecoder =
+decodeList : (String -> t) -> Decode.Decoder b -> FSDecode.Decoder a -> Decode.Decoder (Documents a b t)
+decodeList pageTokener nameDecoder fieldDecoder =
     Decode.succeed Documents
-        |> Pipeline.required "documents" (fieldDecoder |> decodeOne |> Decode.list)
+        |> Pipeline.required "documents" (fieldDecoder |> decodeOne nameDecoder |> Decode.list)
         |> Pipeline.optional "nextPageToken" (Decode.map (Just << pageTokener) Decode.string) Nothing
 
 
-type alias Query a b =
-    { transaction : b
-    , document : Document a
+type alias Query a b t =
+    { transaction : t
+    , document : Document a b
     , readTime : Time.Posix
     , skippedResults : Int
     }
 
 
-decodeQuery : (String -> b) -> FSDecode.Decoder a -> Decode.Decoder (Query a b)
-decodeQuery transactioner fieldDecoder =
+decodeQuery : (String -> t) -> Decode.Decoder b -> FSDecode.Decoder a -> Decode.Decoder (Query a b t)
+decodeQuery transactioner nameDecoder fieldDecoder =
     Decode.succeed Query
         |> Pipeline.required "transaction" (Decode.map transactioner Decode.string)
-        |> Pipeline.required "document" (decodeOne fieldDecoder)
+        |> Pipeline.required "document" (decodeOne nameDecoder fieldDecoder)
         |> Pipeline.required "readTime" Iso8601.decoder
         |> Pipeline.required "skippedResults" Decode.int
 
