@@ -5,48 +5,58 @@ const { loadSeeds, clearAll } = require('./seed')
 global.XMLHttpRequest = require('xhr2');
 
 describe("tests", function() {
+  // Top-level callback must be `function` syntax.
+  // This is because callng this#timeout method requires it to be bounded to Mocha context internally.
+  this.timeout(10000)
+
   const w = worker.Elm.Worker;
-  const onComplete = function(name, cb) {
+  const onComplete = (name, cb) => {
     const a = w.init()
     a.ports[name].subscribe(cb)
   }
 
-  beforeEach(function() {
-    this.timeout(10000)
-    return loadSeeds()
+  beforeEach(done => {
+    loadSeeds().then(() => {
+      setTimeout(() => done(), 1500)
+    })
   })
 
-  afterEach(function() {
-    this.timeout(10000)
-    return clearAll()
+  afterEach(done => {
+    clearAll().then(() => {
+      setTimeout(() => done(), 1500)
+    })
   })
 
-  it("TestGet", function(done) {
-    onComplete("testGetResult", function() {
+  it("TestGet", done => {
+    onComplete("testGetResult", result => {
+      assert.ok(result.success)
+      assert.strictEqual(result.value, "user0")
       done()
     })
   })
 
-  it("TestList", function(done) {
-    onComplete("testListResult", () => {
+  it("TestList", done => {
+    onComplete("testListResult", result => {
+      assert.ok(result.success)
+      assert.strictEqual(result.value, 3)
       done()
     })
   })
 
-  it("TestInsert", function(done) {
+  it("TestInsert", done => {
     onComplete("testInsertResult", result => {
-      assert.ok(result)
+      assert.ok(result.success)
       done()
     })
   })
 
-  it("TestCreate", function(done) {
+  it("TestCreate", done => {
     onComplete("testCreateResult", () => {
       done()
     })
   })
 
-  it("TestUpsert", function(done) {
+  it("TestUpsert", done => {
     onComplete("testUpsertResult", () => {
       done()
     })

@@ -3,6 +3,7 @@ port module Worker exposing (main)
 import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
+import Firestore.Options.List as ListOptions
 import Json.Encode as Encode
 import Task
 
@@ -16,7 +17,7 @@ init _ =
     let
         firestore =
             { apiKey = "test-api-key"
-            , project = "test-project-id"
+            , project = "elm-firestore-test"
             }
                 |> Config.new
                 |> Config.withHost "http://localhost" 8080
@@ -36,15 +37,29 @@ init _ =
 
 
 type Msg
-    = NoOp
+    = RanTestGet (Result Firestore.Error (Firestore.Document User))
+    | RanTestList (Result Firestore.Error (Firestore.Documents User))
     | RanTestInsert (Result Firestore.Error Firestore.Name)
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
+        RanTestGet result ->
+            ( model
+            , result
+                |> Result.map (\value -> okValue (Encode.string value.fields.name))
+                |> Result.withDefault ngValue
+                |> testGetResult
+            )
+
+        RanTestList result ->
+            ( model
+            , result
+                |> Result.map (\value -> okValue (Encode.int <| List.length value.documents))
+                |> Result.withDefault ngValue
+                |> testListResult
+            )
 
         RanTestInsert result ->
             ( model
@@ -69,10 +84,10 @@ main =
 
 
 okValue : Encode.Value -> Encode.Value
-okValue values =
+okValue value =
     Encode.object
         [ ( "success", Encode.bool True )
-        , ( "values", values )
+        , ( "value", value )
         ]
 
 
@@ -87,20 +102,34 @@ ngValue =
 -- tests
 
 
-runTestGet : Firestore.Firestore -> Cmd msg
-runTestGet _ =
-    testGetResult ()
+codec : Codec.Codec User
+codec =
+    Codec.document User
+        |> Codec.required "name" .name Codec.string
+        |> Codec.required "age" .age Codec.int
+        |> Codec.build
 
 
-port testGetResult : () -> Cmd msg
+runTestGet : Firestore.Firestore -> Cmd Msg
+runTestGet firestore =
+    firestore
+        |> Firestore.path "users/user0"
+        |> Firestore.get (Codec.asDecoder codec)
+        |> Task.attempt RanTestGet
 
 
-runTestList : Firestore.Firestore -> Cmd msg
-runTestList _ =
-    testListResult ()
+port testGetResult : Encode.Value -> Cmd msg
 
 
-port testListResult : () -> Cmd msg
+runTestList : Firestore.Firestore -> Cmd Msg
+runTestList firestore =
+    firestore
+        |> Firestore.path "users"
+        |> Firestore.list (Codec.asDecoder codec) ListOptions.default
+        |> Task.attempt RanTestList
+
+
+port testListResult : Encode.Value -> Cmd msg
 
 
 type alias User =
@@ -111,13 +140,6 @@ type alias User =
 
 runTestInsert : Firestore.Firestore -> Cmd Msg
 runTestInsert firestore =
-    let
-        codec =
-            Codec.document User
-                |> Codec.required "name" .name Codec.string
-                |> Codec.required "age" .age Codec.int
-                |> Codec.build
-    in
     firestore
         |> Firestore.path "users"
         |> Firestore.insert
