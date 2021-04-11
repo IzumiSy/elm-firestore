@@ -76,7 +76,8 @@ queryParameters (Options options) =
 {-| The next page token.
 
 This token is required in fetching the next result offset by `pageSize` in `list` operation.
-The internal implementation is intetentionally encapsulated. It can be obtained from `Documents` record.
+The internal implementation is intetentionally encapsulated in order not to make invalid one by hand.
+It can be obtained only from `Documents` record.
 
 -}
 type PageToken
