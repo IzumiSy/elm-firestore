@@ -12,6 +12,7 @@
     "elm-format": "^0.8.3",
     "elm-test": "^0.19.1-revision2",
     "firebase-tools": "^9.9.0",
-    "mocha": "^8.3.2"
+    "mocha": "^8.3.2",
+    "xhr2": "^0.2.1"
   }
 }
