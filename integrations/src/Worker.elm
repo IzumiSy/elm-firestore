@@ -1,6 +1,7 @@
 port module Worker exposing (main)
 
 import Firestore
+import Firestore.Codec as Codec
 import Firestore.Config as Config
 
 
@@ -61,8 +62,26 @@ runTestList _ =
 port testListResult : () -> Cmd msg
 
 
+type alias User =
+    { name : String
+    , age : Int
+    }
+
+
 runTestInsert : Firestore.Firestore -> Cmd msg
-runTestInsert _ =
+runTestInsert firestore =
+    let
+        codec =
+            Codec.document User
+                |> Codec.required "name" .name Codec.string
+                |> Codec.required "age" .age Codec.int
+                |> Codec.build
+
+        op =
+            firestore
+                |> Firestore.path "users"
+                |> Firestore.insert (Codec.asDecoder codec) (Codec.asEncoder codec)
+    in
     testInsertResult ()
 
 
