@@ -11,15 +11,13 @@ type alias Model =
 init : () -> ( Model, Cmd msg )
 init _ =
     let
-        config =
-            Config.withHost "localhost" 8080 <|
-                Config.new
-                    { apiKey = "test-api-key"
-                    , project = "test-project-id"
-                    }
-
         firestore =
-            Firestore.init config
+            { apiKey = "test-api-key"
+            , project = "test-project-id"
+            }
+                |> Config.new
+                |> Config.withHost "localhost" 8080
+                |> Firestore.init
     in
     ( ()
     , Cmd.batch
