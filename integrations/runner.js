@@ -10,10 +10,6 @@ describe("tests", function() {
   this.timeout(10000)
 
   const w = worker.Elm.Worker;
-  const onComplete = (name, cb) => {
-    const a = w.init()
-    a.ports[name].subscribe(cb)
-  }
 
   beforeEach(done => {
     loadSeeds().then(() => {
@@ -28,37 +24,51 @@ describe("tests", function() {
   })
 
   it("TestGet", done => {
-    onComplete("testGetResult", result => {
+    const a = w.init();
+    a.ports.testGetResult.subscribe(result => {
       assert.ok(result.success)
       assert.strictEqual(result.value, "user0")
       done()
     })
+    a.ports.runTestGet.send(null)
   })
 
-  it("TestList", done => {
-    onComplete("testListResult", result => {
+  it("TestListPageSize", done => {
+    const a = w.init();
+    a.ports.testListPageSizeResult.subscribe(result => {
       assert.ok(result.success)
       assert.strictEqual(result.value, 3)
       done()
     })
+    a.ports.runTestListPageSize.send(null)
+  })
+
+  it("TestListDesc", done => {
+    const a = w.init();
+    a.ports.testListDescResult.subscribe(result => {
+      assert.ok(result.success)
+      assert.strictEqual(result.value, "user4")
+      done()
+    })
+    a.ports.runTestListDesc.send(null)
+  })
+
+  it("TestListAsc", done => {
+    const a = w.init();
+    a.ports.testListAscResult.subscribe(result => {
+      assert.ok(result.success)
+      assert.strictEqual(result.value, "user0")
+      done()
+    })
+    a.ports.runTestListAsc.send(null)
   })
 
   it("TestInsert", done => {
-    onComplete("testInsertResult", result => {
+    const a = w.init();
+    a.ports.testInsertResult.subscribe(result => {
       assert.ok(result.success)
       done()
     })
-  })
-
-  it("TestCreate", done => {
-    onComplete("testCreateResult", () => {
-      done()
-    })
-  })
-
-  it("TestUpsert", done => {
-    onComplete("testUpsertResult", () => {
-      done()
-    })
+    a.ports.runTestInsert.send(null)
   })
 })

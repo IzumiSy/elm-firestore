@@ -1,64 +1,163 @@
 port module Worker exposing (main)
 
-import Firestore
+import Firestore exposing (Firestore)
 import Firestore.Codec as Codec
 import Firestore.Config as Config
 import Firestore.Options.List as ListOptions
+import Html exposing (fieldset)
 import Json.Encode as Encode
 import Task
 
 
 type alias Model =
-    ()
+    Firestore.Firestore
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    let
-        firestore =
-            { apiKey = "test-api-key"
-            , project = "elm-firestore-test"
-            }
-                |> Config.new
-                |> Config.withHost "http://localhost" 8080
-                |> Firestore.init
-    in
-    ( ()
-    , Cmd.batch
-        (List.map (\runner -> runner firestore)
-            [ runTestGet
-            , runTestList
-            , runTestInsert
-            , runTestCreate
-            , runTestUpsert
-            ]
-        )
+    ( { apiKey = "test-api-key"
+      , project = "elm-firestore-test"
+      }
+        |> Config.new
+        |> Config.withHost "http://localhost" 8080
+        |> Firestore.init
+    , Cmd.none
     )
 
 
 type Msg
-    = RanTestGet (Result Firestore.Error (Firestore.Document User))
-    | RanTestList (Result Firestore.Error (Firestore.Documents User))
+    = RunTestGet ()
+    | RanTestGet (Result Firestore.Error (Firestore.Document User))
+    | RunTestListPageSize ()
+    | RanTestListPageSize (Result Firestore.Error (Firestore.Documents User))
+    | RunTestListDesc ()
+    | RanTestListDesc (Result Firestore.Error (Firestore.Documents User))
+    | RunTestListAsc ()
+    | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
+    | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        -- TestGet
+        RunTestGet _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.get (Codec.asDecoder codec)
+                |> Task.attempt RanTestGet
+            )
+
         RanTestGet result ->
             ( model
             , result
-                |> Result.map (\value -> okValue (Encode.string value.fields.name))
+                |> Result.map
+                    (.fields
+                        >> .name
+                        >> Encode.string
+                        >> okValue
+                    )
                 |> Result.withDefault ngValue
                 |> testGetResult
             )
 
-        RanTestList result ->
+        -- TestListPageSize
+        RunTestListPageSize _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.list
+                    (Codec.asDecoder codec)
+                    (ListOptions.pageSize 3 ListOptions.default)
+                |> Task.attempt RanTestListPageSize
+            )
+
+        RanTestListPageSize result ->
             ( model
             , result
-                |> Result.map (\value -> okValue (Encode.int <| List.length value.documents))
+                |> Result.map
+                    (.documents
+                        >> List.length
+                        >> Encode.int
+                        >> okValue
+                    )
                 |> Result.withDefault ngValue
-                |> testListResult
+                |> testListPageSizeResult
+            )
+
+        -- TestListDesc
+        RunTestListDesc _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.list
+                    (Codec.asDecoder codec)
+                    (ListOptions.orderBy
+                        (ListOptions.Desc "age")
+                        ListOptions.default
+                    )
+                |> Task.attempt RanTestListDesc
+            )
+
+        RanTestListDesc result ->
+            ( model
+            , result
+                |> Result.map
+                    (.documents
+                        >> List.head
+                        >> Maybe.map (.fields >> .name)
+                        >> Maybe.withDefault "unknown"
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testListDescResult
+            )
+
+        -- TestListAsc
+        RunTestListAsc _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.list
+                    (Codec.asDecoder codec)
+                    (ListOptions.orderBy
+                        (ListOptions.Asc "age")
+                        ListOptions.default
+                    )
+                |> Task.attempt RanTestListAsc
+            )
+
+        RanTestListAsc result ->
+            ( model
+            , result
+                |> Result.map
+                    (.documents
+                        >> List.head
+                        >> Maybe.map (.fields >> .name)
+                        >> Maybe.withDefault "unknown"
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testListAscResult
+            )
+
+        -- TestInsert
+        RunTestInsert _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.insert
+                    (Codec.asDecoder codec)
+                    (Codec.asEncoder codec { name = "thomas", age = 26 })
+                |> Task.map
+                    (\insertedDoc ->
+                        insertedDoc.name
+                    )
+                |> Task.attempt RanTestInsert
             )
 
         RanTestInsert result ->
@@ -75,7 +174,7 @@ main =
     Platform.worker
         { init = init
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -102,6 +201,12 @@ ngValue =
 -- tests
 
 
+type alias User =
+    { name : String
+    , age : Int
+    }
+
+
 codec : Codec.Codec User
 codec =
     Codec.document User
@@ -110,62 +215,50 @@ codec =
         |> Codec.build
 
 
-runTestGet : Firestore.Firestore -> Cmd Msg
-runTestGet firestore =
-    firestore
-        |> Firestore.path "users/user0"
-        |> Firestore.get (Codec.asDecoder codec)
-        |> Task.attempt RanTestGet
+
+-- subscriptions
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch
+        [ runTestGet RunTestGet
+        , runTestListPageSize RunTestListPageSize
+        , runTestListDesc RunTestListDesc
+        , runTestListAsc RunTestListAsc
+        , runTestInsert RunTestInsert
+        ]
+
+
+
+-- ports
+
+
+port runTestGet : (() -> msg) -> Sub msg
 
 
 port testGetResult : Encode.Value -> Cmd msg
 
 
-runTestList : Firestore.Firestore -> Cmd Msg
-runTestList firestore =
-    firestore
-        |> Firestore.path "users"
-        |> Firestore.list (Codec.asDecoder codec) ListOptions.default
-        |> Task.attempt RanTestList
+port runTestListPageSize : (() -> msg) -> Sub msg
 
 
-port testListResult : Encode.Value -> Cmd msg
+port testListPageSizeResult : Encode.Value -> Cmd msg
 
 
-type alias User =
-    { name : String
-    , age : Int
-    }
+port runTestListDesc : (() -> msg) -> Sub msg
 
 
-runTestInsert : Firestore.Firestore -> Cmd Msg
-runTestInsert firestore =
-    firestore
-        |> Firestore.path "users"
-        |> Firestore.insert
-            (Codec.asDecoder codec)
-            (Codec.asEncoder codec { name = "thomas", age = 26 })
-        |> Task.map
-            (\insertedDoc ->
-                insertedDoc.name
-            )
-        |> Task.attempt RanTestInsert
+port testListDescResult : Encode.Value -> Cmd msg
+
+
+port runTestListAsc : (() -> msg) -> Sub msg
+
+
+port testListAscResult : Encode.Value -> Cmd msg
+
+
+port runTestInsert : (() -> msg) -> Sub msg
 
 
 port testInsertResult : Encode.Value -> Cmd msg
-
-
-runTestCreate : Firestore.Firestore -> Cmd msg
-runTestCreate _ =
-    testCreateResult ()
-
-
-port testCreateResult : () -> Cmd msg
-
-
-runTestUpsert : Firestore.Firestore -> Cmd msg
-runTestUpsert _ =
-    testUpsertResult ()
-
-
-port testUpsertResult : () -> Cmd msg
