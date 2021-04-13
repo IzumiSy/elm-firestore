@@ -7,6 +7,11 @@ module Firestore.Codec exposing
 
 {-| Codec for Firestore
 
+    type alias User =
+        { name : String
+        , age : Int
+        }
+
     codec : Codec.Codec User
     codec =
         Codec.document User
