@@ -4,7 +4,8 @@ import Firestore exposing (Firestore)
 import Firestore.Codec as Codec
 import Firestore.Config as Config
 import Firestore.Options.List as ListOptions
-import Html exposing (fieldset)
+import Html
+import Http
 import Json.Encode as Encode
 import Task
 
@@ -30,6 +31,9 @@ type Msg
     | RanTestGet (Result Firestore.Error (Firestore.Document User))
     | RunTestListPageSize ()
     | RanTestListPageSize (Result Firestore.Error (Firestore.Documents User))
+    | RunTestListPageToken ()
+    | RunTestListPageTokenStep (Result Firestore.Error (Maybe ListOptions.PageToken))
+    | RanTestListPageToken (Result Firestore.Error (Firestore.Documents User))
     | RunTestListDesc ()
     | RanTestListDesc (Result Firestore.Error (Firestore.Documents User))
     | RunTestListAsc ()
@@ -85,6 +89,55 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testListPageSizeResult
+            )
+
+        -- TestListPageToken
+        RunTestListPageToken _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.list
+                    (Codec.asDecoder codec)
+                    (ListOptions.pageSize 2 ListOptions.default)
+                |> Task.map .nextPageToken
+                |> Task.attempt RunTestListPageTokenStep
+            )
+
+        RunTestListPageTokenStep result ->
+            ( model
+            , result
+                |> Result.toMaybe
+                |> Maybe.andThen
+                    (Maybe.map
+                        (\pageToken ->
+                            model
+                                |> Firestore.path "users"
+                                |> Firestore.list
+                                    (Codec.asDecoder codec)
+                                    (ListOptions.default
+                                        |> ListOptions.pageToken pageToken
+                                        |> ListOptions.pageSize 3
+                                        |> ListOptions.orderBy (ListOptions.Desc "age")
+                                    )
+                        )
+                    )
+                |> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus 404)
+                |> Task.attempt RanTestListPageToken
+            )
+
+        RanTestListPageToken result ->
+            ( model
+            , result
+                |> Result.map
+                    (.documents
+                        >> List.head
+                        >> Maybe.map (.fields >> .name)
+                        >> Maybe.withDefault "unknown"
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testListPageTokenResult
             )
 
         -- TestListDesc
@@ -223,6 +276,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ runTestGet RunTestGet
+        , runTestListPageToken RunTestListPageToken
         , runTestListPageSize RunTestListPageSize
         , runTestListDesc RunTestListDesc
         , runTestListAsc RunTestListAsc
@@ -238,6 +292,12 @@ port runTestGet : (() -> msg) -> Sub msg
 
 
 port testGetResult : Encode.Value -> Cmd msg
+
+
+port runTestListPageToken : (() -> msg) -> Sub msg
+
+
+port testListPageTokenResult : Encode.Value -> Cmd msg
 
 
 port runTestListPageSize : (() -> msg) -> Sub msg

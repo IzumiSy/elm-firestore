@@ -20,6 +20,12 @@ const runner = (triggerName, resultName) => {
   })
 }
 
+// Resets Firestore contents to the initial
+const reset = async () => {
+  await clearAll()
+  return loadSeeds()
+}
+
 test.before("Seeds Firestore", () => {
   return loadSeeds()
 })
@@ -28,10 +34,25 @@ test.after("Cleanup Firestore", () => {
   return clearAll()
 })
 
+// In order not to break idempotency by updating operation here uses `serial`. 
+test.serial("TestInsert", async t => {
+  await runner("runTestInsert", "testInsertResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
 test("TestGet", t => {
   return runner("runTestGet", "testGetResult").then(result => {
     t.true(result.success)
     t.is(result.value, "user0")
+  })
+})
+
+test("TestListPageToken", t => {
+  return runner("runTestListPageToken", "testListPageTokenResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user3")
   })
 })
 
@@ -54,11 +75,4 @@ test("TestListAsc", t => {
     t.true(result.success)
     t.is(result.value, "user0")  
  })
-})
-
-test.serial("TestInsert", t => {
-  // In order not to break idempotency here uses `serial`. 
-  return runner("runTestInsert", "testInsertResult").then(result => {
-    t.true(result.success)
-  })
 })
