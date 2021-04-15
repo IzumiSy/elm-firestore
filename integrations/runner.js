@@ -52,6 +52,22 @@ test.serial("TestCreate", async t => {
 })
 
 // In order not to break idempotency by updating operation here uses `serial`.
+test.serial("TestUpsert", async t => {
+  await runner("runTestUpsert", "testUpsertResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
+test.serial("TestUpsertExisting", async t => {
+  await runner("runTestUpsertExisting", "testUpsertExistingResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user0updated")
+  })
+  return reset()
+})
+
+// In order not to break idempotency by updating operation here uses `serial`.
 test.serial("TestDelete", async t => {
   await runner("runTestDelete", "testDeleteResult").then(result => {
     t.true(result.success)

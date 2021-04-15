@@ -5,8 +5,10 @@ import Firestore.Codec as Codec
 import Firestore.Config as Config
 import Firestore.Options.List as ListOptions
 import Html
+import Html.Attributes exposing (name)
 import Http
 import Json.Encode as Encode
+import List exposing (map)
 import Task
 
 
@@ -41,6 +43,10 @@ type Msg
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
     | RanTestCreate (Result Firestore.Error Firestore.Name)
+    | RunTestUpsert ()
+    | RanTestUpsert (Result Firestore.Error Firestore.Name)
+    | RunTestUpsertExisting ()
+    | RanTestUpsertExisting (Result Firestore.Error (Firestore.Document User))
     | RunTestDelete ()
     | RanTestDelete (Result Firestore.Error (Firestore.Document User))
 
@@ -238,6 +244,56 @@ update msg model =
                 |> testCreateResult
             )
 
+        -- TestUpsert
+        RunTestUpsert _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user10"
+                |> Firestore.upsert
+                    (Codec.asDecoder codec)
+                    (Codec.asEncoder codec { name = "jonathan", age = 21 })
+                |> Task.map .name
+                |> Task.attempt RanTestUpsert
+            )
+
+        RanTestUpsert result ->
+            ( model
+            , result
+                |> Result.map (okValue << Encode.string << Firestore.id)
+                |> Result.withDefault ngValue
+                |> testUpsertResult
+            )
+
+        -- TestUpsertExisting
+        RunTestUpsertExisting _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.upsert
+                    (Codec.asDecoder codec)
+                    (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                |> Task.andThen
+                    (\_ ->
+                        model
+                            |> Firestore.path "users/user0"
+                            |> Firestore.get (Codec.asDecoder codec)
+                    )
+                |> Task.attempt RanTestUpsertExisting
+            )
+
+        RanTestUpsertExisting result ->
+            ( model
+            , result
+                |> Result.map
+                    (.fields
+                        >> .name
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testUpsertExistingResult
+            )
+
         -- TestDelete
         RunTestDelete _ ->
             ( model
@@ -331,6 +387,8 @@ subscriptions _ =
         , runTestListAsc RunTestListAsc
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
+        , runTestUpsert RunTestUpsert
+        , runTestUpsertExisting RunTestUpsertExisting
         , runTestDelete RunTestDelete
         ]
 
@@ -379,6 +437,18 @@ port runTestCreate : (() -> msg) -> Sub msg
 
 
 port testCreateResult : Encode.Value -> Cmd msg
+
+
+port runTestUpsert : (() -> msg) -> Sub msg
+
+
+port testUpsertResult : Encode.Value -> Cmd msg
+
+
+port runTestUpsertExisting : (() -> msg) -> Sub msg
+
+
+port testUpsertExistingResult : Encode.Value -> Cmd msg
 
 
 port runTestDelete : (() -> msg) -> Sub msg
