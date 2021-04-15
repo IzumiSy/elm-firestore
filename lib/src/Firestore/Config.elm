@@ -1,7 +1,7 @@
 module Firestore.Config exposing
     ( Config
     , new, withAuthorization, withDatabase, withHost
-    , endpoint, httpHeader
+    , endpoint, httpHeader, basePath
     )
 
 {-| Configuration types for Firestore
@@ -16,7 +16,7 @@ module Firestore.Config exposing
 
 # Extractors
 
-@docs endpoint, httpHeader
+@docs endpoint, httpHeader, basePath
 
 -}
 
@@ -68,21 +68,33 @@ new config =
 {-| Builds an endpoint string without path
 -}
 endpoint : List UrlBuilder.QueryParameter -> String -> Config -> String
-endpoint params path (Config { apiKey, project, database, baseUrl }) =
+endpoint params path ((Config { apiKey, baseUrl }) as config) =
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
-        [ "v1beta1/projects"
-        , Typed.value project
-        , "databases"
-        , Typed.value database
-        , "documents"
+        [ "v1beta1"
+        , basePath config
         , path
         ]
         (List.append params [ UrlBuilder.string "key" (Typed.value apiKey) ])
 
 
+{-| Builds a path that can be used in a document name
+-}
+basePath : Config -> String
+basePath (Config { project, database }) =
+    UrlBuilder.relative
+        [ "projects"
+        , Typed.value project
+        , "databases"
+        , Typed.value database
+        , "documents"
+        ]
+        []
+
+
 
 -- Host
+
 
 {-| Specifies host and port to connect to.
 
