@@ -103,22 +103,23 @@ update msg model =
                     (Codec.asDecoder codec)
                     (ListOptions.pageSize 2 ListOptions.default)
                 |> Task.map .nextPageToken
-                |> Task.andThen (\nextPageToken ->
-                    nextPageToken
-                        |> Maybe.map
-                            (\pageToken ->
-                                model
-                                    |> Firestore.path "users"
-                                    |> Firestore.list
-                                        (Codec.asDecoder codec)
-                                        (ListOptions.default
-                                            |> ListOptions.pageToken pageToken
-                                            |> ListOptions.pageSize 2
-                                            |> ListOptions.orderBy (ListOptions.Desc "age")
-                                        )
-                            )
-                        |> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus -1)
-                )
+                |> Task.andThen
+                    (\nextPageToken ->
+                        nextPageToken
+                            |> Maybe.map
+                                (\pageToken ->
+                                    model
+                                        |> Firestore.path "users"
+                                        |> Firestore.list
+                                            (Codec.asDecoder codec)
+                                            (ListOptions.default
+                                                |> ListOptions.pageToken pageToken
+                                                |> ListOptions.pageSize 2
+                                                |> ListOptions.orderBy (ListOptions.Desc "age")
+                                            )
+                                )
+                            |> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus -1)
+                    )
                 |> Task.attempt RanTestListPageToken
             )
 
@@ -243,11 +244,12 @@ update msg model =
             , model
                 |> Firestore.path "users/user0"
                 |> Firestore.delete
-                |> Task.andThen (\_ ->
-                    model
-                        |> Firestore.path "users/user0"
-                        |> Firestore.get (Codec.asDecoder codec)
-                )
+                |> Task.andThen
+                    (\_ ->
+                        model
+                            |> Firestore.path "users/user0"
+                            |> Firestore.get (Codec.asDecoder codec)
+                    )
                 |> Task.attempt RanTestDelete
             )
 
