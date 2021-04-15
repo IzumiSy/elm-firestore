@@ -34,10 +34,19 @@ test.after("Cleanup Firestore", () => {
   return clearAll()
 })
 
-// In order not to break idempotency by updating operation here uses `serial`. 
+// In order not to break idempotency by updating operation here uses `serial`.
 test.serial("TestInsert", async t => {
   await runner("runTestInsert", "testInsertResult").then(result => {
     t.true(result.success)
+  })
+  return reset()
+})
+
+// In order not to break idempotency by updating operation here uses `serial`.
+test.serial("TestCreate", async t => {
+  await runner("runTestCreate", "testCreateResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "jessy")
   })
   return reset()
 })
@@ -65,15 +74,15 @@ test("TestListPageSize", t => {
 })
 
 test("TestListDesc", t => {
- return runner("runTestListDesc", "testListDescResult").then(result => {
+  return runner("runTestListDesc", "testListDescResult").then(result => {
     t.true(result.success)
     t.is(result.value, "user4")
- })
+  })
 })
 
 test("TestListAsc", t => {
- return runner("runTestListAsc", "testListAscResult").then(result => {
+  return runner("runTestListAsc", "testListAscResult").then(result => {
     t.true(result.success)
-    t.is(result.value, "user0")  
- })
+    t.is(result.value, "user0")
+  })
 })

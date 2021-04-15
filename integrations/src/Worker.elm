@@ -40,6 +40,8 @@ type Msg
     | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
+    | RunTestCreate ()
+    | RanTestCreate (Result Firestore.Error Firestore.Name)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -206,10 +208,7 @@ update msg model =
                 |> Firestore.insert
                     (Codec.asDecoder codec)
                     (Codec.asEncoder codec { name = "thomas", age = 26 })
-                |> Task.map
-                    (\insertedDoc ->
-                        insertedDoc.name
-                    )
+                |> Task.map .name
                 |> Task.attempt RanTestInsert
             )
 
@@ -219,6 +218,28 @@ update msg model =
                 |> Result.map (\_ -> okValue Encode.null)
                 |> Result.withDefault ngValue
                 |> testInsertResult
+            )
+
+        -- TestCreate
+        RunTestCreate _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.create
+                    (Codec.asDecoder codec)
+                    { id = "jessy"
+                    , document = Codec.asEncoder codec { name = "jessy", age = 27 }
+                    }
+                |> Task.map .name
+                |> Task.attempt RanTestCreate
+            )
+
+        RanTestCreate result ->
+            ( model
+            , result
+                |> Result.map (okValue << Encode.string << Firestore.id)
+                |> Result.withDefault ngValue
+                |> testCreateResult
             )
 
 
@@ -281,6 +302,7 @@ subscriptions _ =
         , runTestListDesc RunTestListDesc
         , runTestListAsc RunTestListAsc
         , runTestInsert RunTestInsert
+        , runTestCreate RunTestCreate
         ]
 
 
@@ -322,3 +344,9 @@ port runTestInsert : (() -> msg) -> Sub msg
 
 
 port testInsertResult : Encode.Value -> Cmd msg
+
+
+port runTestCreate : (() -> msg) -> Sub msg
+
+
+port testCreateResult : Encode.Value -> Cmd msg
