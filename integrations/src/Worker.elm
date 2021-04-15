@@ -42,6 +42,9 @@ type Msg
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
     | RanTestCreate (Result Firestore.Error Firestore.Name)
+    | RunTestDelete ()
+    | RunTestDeleteStep (Result Firestore.Error ())
+    | RanTestDelete (Result Firestore.Error (Firestore.Document User))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -242,6 +245,31 @@ update msg model =
                 |> testCreateResult
             )
 
+        -- TestDelete
+        RunTestDelete _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.delete
+                |> Task.attempt RunTestDeleteStep
+            )
+
+        RunTestDeleteStep _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.get (Codec.asDecoder codec)
+                |> Task.attempt RanTestDelete
+            )
+
+        RanTestDelete result ->
+            ( model
+            , result
+                |> Result.map (\_ -> ngValue)
+                |> Result.withDefault (okValue Encode.null)
+                |> testDeleteResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -303,6 +331,7 @@ subscriptions _ =
         , runTestListAsc RunTestListAsc
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
+        , runTestDelete RunTestDelete
         ]
 
 
@@ -350,3 +379,9 @@ port runTestCreate : (() -> msg) -> Sub msg
 
 
 port testCreateResult : Encode.Value -> Cmd msg
+
+
+port runTestDelete : (() -> msg) -> Sub msg
+
+
+port testDeleteResult : Encode.Value -> Cmd msg

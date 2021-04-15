@@ -51,6 +51,14 @@ test.serial("TestCreate", async t => {
   return reset()
 })
 
+// In order not to break idempotency by updating operation here uses `serial`.
+test.serial("TestDelete", async t => {
+  await runner("runTestDelete", "testDeleteResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
 test("TestGet", t => {
   return runner("runTestGet", "testGetResult").then(result => {
     t.true(result.success)
