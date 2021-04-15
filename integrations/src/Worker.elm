@@ -32,7 +32,6 @@ type Msg
     | RunTestListPageSize ()
     | RanTestListPageSize (Result Firestore.Error (Firestore.Documents User))
     | RunTestListPageToken ()
-    | RunTestListPageTokenStep (Result Firestore.Error (Maybe ListOptions.PageToken))
     | RanTestListPageToken (Result Firestore.Error (Firestore.Documents User))
     | RunTestListDesc ()
     | RanTestListDesc (Result Firestore.Error (Firestore.Documents User))
@@ -43,7 +42,6 @@ type Msg
     | RunTestCreate ()
     | RanTestCreate (Result Firestore.Error Firestore.Name)
     | RunTestDelete ()
-    | RunTestDeleteStep (Result Firestore.Error ())
     | RanTestDelete (Result Firestore.Error (Firestore.Document User))
 
 
@@ -105,28 +103,22 @@ update msg model =
                     (Codec.asDecoder codec)
                     (ListOptions.pageSize 2 ListOptions.default)
                 |> Task.map .nextPageToken
-                |> Task.attempt RunTestListPageTokenStep
-            )
-
-        RunTestListPageTokenStep result ->
-            ( model
-            , result
-                |> Result.toMaybe
-                |> Maybe.andThen
-                    (Maybe.map
-                        (\pageToken ->
-                            model
-                                |> Firestore.path "users"
-                                |> Firestore.list
-                                    (Codec.asDecoder codec)
-                                    (ListOptions.default
-                                        |> ListOptions.pageToken pageToken
-                                        |> ListOptions.pageSize 3
-                                        |> ListOptions.orderBy (ListOptions.Desc "age")
-                                    )
-                        )
-                    )
-                |> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus 404)
+                |> Task.andThen (\nextPageToken ->
+                    nextPageToken
+                        |> Maybe.map
+                            (\pageToken ->
+                                model
+                                    |> Firestore.path "users"
+                                    |> Firestore.list
+                                        (Codec.asDecoder codec)
+                                        (ListOptions.default
+                                            |> ListOptions.pageToken pageToken
+                                            |> ListOptions.pageSize 2
+                                            |> ListOptions.orderBy (ListOptions.Desc "age")
+                                        )
+                            )
+                        |> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus -1)
+                )
                 |> Task.attempt RanTestListPageToken
             )
 
@@ -251,23 +243,29 @@ update msg model =
             , model
                 |> Firestore.path "users/user0"
                 |> Firestore.delete
-                |> Task.attempt RunTestDeleteStep
-            )
-
-        RunTestDeleteStep _ ->
-            ( model
-            , model
-                |> Firestore.path "users/user0"
-                |> Firestore.get (Codec.asDecoder codec)
+                |> Task.andThen (\_ ->
+                    model
+                        |> Firestore.path "users/user0"
+                        |> Firestore.get (Codec.asDecoder codec)
+                )
                 |> Task.attempt RanTestDelete
             )
 
         RanTestDelete result ->
             ( model
-            , result
-                |> Result.map (\_ -> ngValue)
-                |> Result.withDefault (okValue Encode.null)
-                |> testDeleteResult
+            , testDeleteResult <|
+                case result of
+                    Err (Firestore.Response { status }) ->
+                        case status of
+                            -- resource expected to be deleted successfully
+                            "NOT_FOUND" ->
+                                okValue Encode.null
+
+                            _ ->
+                                ngValue
+
+                    _ ->
+                        ngValue
             )
 
 
