@@ -1,6 +1,9 @@
 const worker = require('./worker');
 const test = require("ava")
 const { loadSeeds, clearAll } = require('./seed')
+
+// Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
+// Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
 global.XMLHttpRequest = require('xhr2');
 
 //
@@ -34,7 +37,11 @@ test.after("Cleanup Firestore", () => {
   return clearAll()
 })
 
-// In order not to break idempotency by updating operation here uses `serial`.
+//
+// In order not to break idempotency by updating operation,
+// Tests that does updating/creating/deleting data on Firestore are marked as `serial`.
+//
+
 test.serial("TestInsert", async t => {
   await runner("runTestInsert", "testInsertResult").then(result => {
     t.true(result.success)
@@ -42,7 +49,6 @@ test.serial("TestInsert", async t => {
   return reset()
 })
 
-// In order not to break idempotency by updating operation here uses `serial`.
 test.serial("TestCreate", async t => {
   await runner("runTestCreate", "testCreateResult").then(result => {
     t.true(result.success)
@@ -51,7 +57,6 @@ test.serial("TestCreate", async t => {
   return reset()
 })
 
-// In order not to break idempotency by updating operation here uses `serial`.
 test.serial("TestUpsert", async t => {
   await runner("runTestUpsert", "testUpsertResult").then(result => {
     t.true(result.success)
@@ -67,9 +72,22 @@ test.serial("TestUpsertExisting", async t => {
   return reset()
 })
 
-// In order not to break idempotency by updating operation here uses `serial`.
 test.serial("TestDelete", async t => {
   await runner("runTestDelete", "testDeleteResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
+test.serial("TestDeleteExisting", async t => {
+  await runner("runTestDeleteExisting", "testDeleteExistingResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
+test.serial("TestDeleteExistingFail", async t => {
+  await runner("runTestDeleteExistingFail", "testDeleteExistingFailResult").then(result => {
     t.true(result.success)
   })
   return reset()

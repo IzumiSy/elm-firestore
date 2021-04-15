@@ -46,6 +46,10 @@ type Msg
     | RanTestUpsertExisting (Result Firestore.Error (Firestore.Document User))
     | RunTestDelete ()
     | RanTestDelete (Result Firestore.Error (Firestore.Document User))
+    | RunTestDeleteExisting ()
+    | RanTestDeleteExisting (Result Firestore.Error ())
+    | RunTestDeleteExistingFail ()
+    | RanTestDeleteExistingFail (Result Firestore.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -323,6 +327,43 @@ update msg model =
                         ngValue
             )
 
+        -- TestDeleteExisting
+        RunTestDeleteExisting _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.deleteExisting
+                |> Task.attempt RanTestDeleteExisting
+            )
+
+        RanTestDeleteExisting result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testDeleteExistingResult
+            )
+
+        -- TestDeleteExistingFail
+        RunTestDeleteExistingFail _ ->
+            ( model
+            , model
+                |> Firestore.path "users/no_user"
+                |> Firestore.deleteExisting
+                |> Task.attempt RanTestDeleteExistingFail
+            )
+
+        RanTestDeleteExistingFail result ->
+            ( model
+            , testDeleteExistingFailResult <|
+                case result of
+                    Err (Firestore.Http_ (Http.BadStatus 404)) ->
+                        okValue Encode.null
+
+                    _ ->
+                        ngValue
+            )
+
 
 main : Program () Model Msg
 main =
@@ -387,6 +428,8 @@ subscriptions _ =
         , runTestUpsert RunTestUpsert
         , runTestUpsertExisting RunTestUpsertExisting
         , runTestDelete RunTestDelete
+        , runTestDeleteExisting RunTestDeleteExisting
+        , runTestDeleteExistingFail RunTestDeleteExistingFail
         ]
 
 
@@ -452,3 +495,15 @@ port runTestDelete : (() -> msg) -> Sub msg
 
 
 port testDeleteResult : Encode.Value -> Cmd msg
+
+
+port runTestDeleteExisting : (() -> msg) -> Sub msg
+
+
+port testDeleteExistingResult : Encode.Value -> Cmd msg
+
+
+port runTestDeleteExistingFail : (() -> msg) -> Sub msg
+
+
+port testDeleteExistingFailResult : Encode.Value -> Cmd msg
