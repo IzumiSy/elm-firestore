@@ -1,14 +1,11 @@
 port module Worker exposing (main)
 
-import Firestore exposing (Firestore)
+import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
 import Firestore.Options.List as ListOptions
-import Html
-import Html.Attributes exposing (name)
 import Http
 import Json.Encode as Encode
-import List exposing (map)
 import Task
 
 
