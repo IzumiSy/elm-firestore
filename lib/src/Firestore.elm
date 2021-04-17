@@ -311,7 +311,7 @@ runQuery fieldDecoder query (Firestore config) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Debug.log "url" <| Config.endpoint [] (Config.Op "runQuery") config
+        , url = Config.endpoint [] (Config.Op "runQuery") config
         , body =
             Http.jsonBody <|
                 Encode.object
