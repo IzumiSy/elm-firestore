@@ -45,11 +45,11 @@ decodeList : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decode
 decodeList namer pageTokener fieldDecoder =
     Decode.succeed Documents
         |> Pipeline.required "documents" (fieldDecoder |> decodeOne namer |> Decode.list)
-        |> Pipeline.optional "nextPageToken" (Decode.map (Just << pageTokener) Decode.string) Nothing
+        |> Pipeline.optional "nextPageToken" (Decode.map (pageTokener >> Just) Decode.string) Nothing
 
 
 type alias Query a b t =
-    { transaction : t
+    { transaction : Maybe t
     , document : Document a b
     , readTime : Time.Posix
     , skippedResults : Int
@@ -59,10 +59,10 @@ type alias Query a b t =
 decodeQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (Query a b t))
 decodeQuery namer transactioner fieldDecoder =
     Decode.succeed Query
-        |> Pipeline.required "transaction" (Decode.map transactioner Decode.string)
+        |> Pipeline.optional "transaction" (Decode.map (transactioner >> Just) Decode.string) Nothing
         |> Pipeline.required "document" (decodeOne namer fieldDecoder)
         |> Pipeline.required "readTime" Iso8601.decoder
-        |> Pipeline.required "skippedResults" Decode.int
+        |> Pipeline.optional "skippedResults" Decode.int 0
         |> Decode.list
 
 

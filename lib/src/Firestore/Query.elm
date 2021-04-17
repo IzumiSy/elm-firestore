@@ -307,7 +307,7 @@ fromValue =
 
 directionValue : Direction -> JsonEncode.Value
 directionValue value =
-    Encode.string <|
+    JsonEncode.string <|
         case value of
             Unspecified ->
                 "DIRECTION_UNSPECIFIED"
@@ -321,7 +321,7 @@ directionValue value =
 
 compositeOpValue : CompositeOp -> JsonEncode.Value
 compositeOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             And ->
                 "AND"
@@ -329,7 +329,7 @@ compositeOpValue op =
 
 fieldOpValue : FieldOp -> JsonEncode.Value
 fieldOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             LessThan ->
                 "LESS_THAN"
@@ -352,7 +352,7 @@ fieldOpValue op =
 
 unaryOpValue : UnaryOp -> JsonEncode.Value
 unaryOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             IsNaN ->
                 "IS_NAN"

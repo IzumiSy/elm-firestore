@@ -293,7 +293,7 @@ deleteExisting (Path path_ (Firestore config)) =
 {-| A record structure for query operation result
 -}
 type alias Query a =
-    { transaction : TransactionId
+    { transaction : Maybe TransactionId
     , document : Document a
     , readTime : Time.Posix
     , skippedResults : Int
