@@ -72,6 +72,14 @@ test.serial("TestUpsertExisting", async t => {
   return reset()
 })
 
+test.serial("TestPatch", async t => {
+  await runner("runTestPatch", "testPatchResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user0patched")
+  })
+  return reset()
+})
+
 test.serial("TestDelete", async t => {
   await runner("runTestDelete", "testDeleteResult").then(result => {
     t.true(result.success)

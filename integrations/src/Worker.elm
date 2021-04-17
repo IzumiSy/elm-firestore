@@ -3,9 +3,12 @@ port module Worker exposing (main)
 import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
+import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
+import Firestore.Options.Patch as PatchOptions
 import Http
 import Json.Encode as Encode
+import List exposing (map)
 import Task
 
 
@@ -42,6 +45,8 @@ type Msg
     | RanTestCreate (Result Firestore.Error Firestore.Name)
     | RunTestUpsert ()
     | RanTestUpsert (Result Firestore.Error Firestore.Name)
+    | RunTestPatch ()
+    | RanTestPatch (Result Firestore.Error (Firestore.Document PatchedUser))
     | RunTestUpsertExisting ()
     | RanTestUpsertExisting (Result Firestore.Error (Firestore.Document User))
     | RunTestDelete ()
@@ -295,6 +300,33 @@ update msg model =
                 |> testUpsertExistingResult
             )
 
+        -- TestPatch
+        RunTestPatch _ ->
+            ( model
+            , model
+                |> Firestore.path "users/user0"
+                |> Firestore.patch
+                    (Codec.asDecoder patchedCodec)
+                    (PatchOptions.empty
+                        |> PatchOptions.addDelete "age"
+                        |> PatchOptions.addUpdate "name" (FSEncode.string "user0patched")
+                    )
+                |> Task.attempt RanTestPatch
+            )
+
+        RanTestPatch result ->
+            ( model
+            , result
+                |> Result.map
+                    (.fields
+                        >> .name
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testPatchResult
+            )
+
         -- TestDelete
         RunTestDelete _ ->
             ( model
@@ -411,6 +443,17 @@ codec =
         |> Codec.build
 
 
+type alias PatchedUser =
+    { name : String }
+
+
+patchedCodec : Codec.Codec PatchedUser
+patchedCodec =
+    Codec.document PatchedUser
+        |> Codec.required "name" .name Codec.string
+        |> Codec.build
+
+
 
 -- subscriptions
 
@@ -427,6 +470,7 @@ subscriptions _ =
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
         , runTestUpsertExisting RunTestUpsertExisting
+        , runTestPatch RunTestPatch
         , runTestDelete RunTestDelete
         , runTestDeleteExisting RunTestDeleteExisting
         , runTestDeleteExistingFail RunTestDeleteExistingFail
@@ -489,6 +533,12 @@ port runTestUpsertExisting : (() -> msg) -> Sub msg
 
 
 port testUpsertExistingResult : Encode.Value -> Cmd msg
+
+
+port runTestPatch : (() -> msg) -> Sub msg
+
+
+port testPatchResult : Encode.Value -> Cmd msg
 
 
 port runTestDelete : (() -> msg) -> Sub msg
