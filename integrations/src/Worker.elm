@@ -41,7 +41,7 @@ type Msg
     | RunTestListAsc ()
     | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
     | RunTestQueryFieldOp ()
-    | RanTestQueryFieldOp (Result Firestore.Error (Firestore.Query User))
+    | RanTestQueryFieldOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -215,12 +215,12 @@ update msg model =
         RunTestQueryFieldOp _ ->
             ( model
             , model
-                |> Firestore.path "users"
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
+                        |> Query.from "users"
                         |> Query.where_
-                            (Query.fieldFilter "name" Query.Equal (Query.string "user0"))
+                            (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                     )
                 |> Task.attempt RanTestQueryFieldOp
             )
@@ -229,10 +229,8 @@ update msg model =
             ( model
             , result
                 |> Result.map
-                    (.document
-                        >> .fields
-                        >> .name
-                        >> Encode.string
+                    (List.length
+                        >> Encode.int
                         >> okValue
                     )
                 |> Result.withDefault ngValue
