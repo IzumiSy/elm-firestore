@@ -1,7 +1,7 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , offset, limit
-    , OrderBy, Direction(..), orderBy
+    , offset, limit, from
+    , Direction(..), orderBy
     , Where, FieldOp(..), UnaryOp(..), CompositeOp(..), compositeFilter, fieldFilter, unaryFilter, where_
     , Value, bool, int, string, timestamp
     )
@@ -10,7 +10,7 @@ module Firestore.Query exposing
 
 @docs Query, new, encode
 
-@docs offset, limit
+@docs offset, limit, from
 
 @docs OrderBy, Direction, orderBy
 
@@ -23,6 +23,7 @@ module Firestore.Query exposing
 import Dict
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
+import Set
 import Time
 import Typed exposing (Typed)
 
@@ -35,6 +36,7 @@ type Query
         , orderBy : OrderBy
         , offset : Maybe Int
         , limit : Maybe Int
+        , from : From
         }
 
 
@@ -47,6 +49,7 @@ new =
         , orderBy = Dict.empty
         , offset = Nothing
         , limit = Nothing
+        , from = Set.empty
         }
 
 
@@ -63,6 +66,7 @@ encode (Query query) =
                     |> Maybe.withDefault (JsonEncode.object [])
                 )
             , Just ( "orderBy", orderByValue query.orderBy )
+            , Just ( "from", fromValue query.from )
             , Maybe.map (\value -> ( "offset", JsonEncode.int value )) query.offset
             , Maybe.map (\value -> ( "limit", JsonEncode.int value )) query.limit
             ]
@@ -82,10 +86,21 @@ limit value (Query query) =
     Query { query | limit = Just value }
 
 
+type alias From =
+    Set.Set String
+
+
+from : String -> Query -> Query
+from collection (Query query) =
+    Query { query | from = Set.insert collection query.from }
+
+
 
 -- OrderBy
 
 
+{-| Currently elm-firestore does not support multiple field paths
+-}
 type alias OrderBy =
     Dict.Dict String Direction
 
@@ -269,15 +284,24 @@ whereValue where__ =
 
 
 orderByValue : OrderBy -> JsonEncode.Value
-orderByValue orderBy_ =
-    orderBy_
-        |> Dict.toList
-        |> JsonEncode.list
+orderByValue =
+    Dict.toList
+        >> JsonEncode.list
             (\( field, direction ) ->
                 JsonEncode.object
                     [ ( "field", JsonEncode.object [ ( "fieldPath", JsonEncode.string field ) ] )
                     , ( "direction", directionValue direction )
                     ]
+            )
+
+
+fromValue : From -> JsonEncode.Value
+fromValue =
+    Set.toList
+        >> JsonEncode.list
+            (\value ->
+                JsonEncode.object
+                    [ ( "collectionId", JsonEncode.string value ) ]
             )
 
 

@@ -1,7 +1,7 @@
 module Firestore.Config exposing
     ( Config
     , new, withAuthorization, withDatabase, withHost
-    , endpoint, httpHeader, basePath
+    , endpoint, Appender(..), httpHeader, basePath
     )
 
 {-| Configuration types for Firestore
@@ -16,7 +16,7 @@ module Firestore.Config exposing
 
 # Extractors
 
-@docs endpoint, httpHeader, basePath
+@docs endpoint, Appender, httpHeader, basePath
 
 -}
 
@@ -65,16 +65,29 @@ new config =
         }
 
 
-{-| Builds an endpoint string without path
+{-| Encpoint appender
 -}
-endpoint : List UrlBuilder.QueryParameter -> String -> Config -> String
-endpoint params path ((Config { apiKey, baseUrl }) as config) =
+type Appender
+    = Path String
+    | Op String
+
+
+{-| Builds an endpoint string
+-}
+endpoint : List UrlBuilder.QueryParameter -> Appender -> Config -> String
+endpoint params appender ((Config { apiKey, baseUrl }) as config) =
+    let
+        path =
+            case appender of
+                Path value ->
+                    [ basePath config, value ]
+
+                Op value ->
+                    [ basePath config ++ ":" ++ value ]
+    in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
-        [ "v1beta1"
-        , basePath config
-        , path
-        ]
+        ("v1beta1" :: path)
         (List.append params [ UrlBuilder.string "key" (Typed.value apiKey) ])
 
 

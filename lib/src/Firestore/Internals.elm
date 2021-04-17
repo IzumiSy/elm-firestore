@@ -56,13 +56,14 @@ type alias Query a b t =
     }
 
 
-decodeQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (Query a b t)
+decodeQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (Query a b t))
 decodeQuery namer transactioner fieldDecoder =
     Decode.succeed Query
         |> Pipeline.required "transaction" (Decode.map transactioner Decode.string)
         |> Pipeline.required "document" (decodeOne namer fieldDecoder)
         |> Pipeline.required "readTime" Iso8601.decoder
         |> Pipeline.required "skippedResults" Decode.int
+        |> Decode.list
 
 
 {-| Internal implementation of Name field of Document
