@@ -136,3 +136,10 @@ test("TestListAsc", t => {
     t.is(result.value, "user0")
   })
 })
+
+test("TestQueryFieldOp", t => {
+  return runner("runTestQueryFieldOp", "testQueryFieldOpResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user0")
+  })
+})

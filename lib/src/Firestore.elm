@@ -317,7 +317,11 @@ runQuery fieldDecoder query (Path path_ (Firestore config)) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (path_ ++ ":runQuery") config
-        , body = Http.jsonBody <| Query.encode query
+        , body =
+            Http.jsonBody <|
+                Encode.object
+                    [ ( "structuredQuery", Query.encode query )
+                    ]
         , timeout = Nothing
         , resolver =
             fieldDecoder

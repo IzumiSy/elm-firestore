@@ -6,6 +6,7 @@ import Firestore.Config as Config
 import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
+import Firestore.Query as Query
 import Http
 import Json.Encode as Encode
 import List exposing (map)
@@ -39,6 +40,8 @@ type Msg
     | RanTestListDesc (Result Firestore.Error (Firestore.Documents User))
     | RunTestListAsc ()
     | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
+    | RunTestQueryFieldOp ()
+    | RanTestQueryFieldOp (Result Firestore.Error (Firestore.Query User))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -206,6 +209,34 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testListAscResult
+            )
+
+        -- TestQueryFieldOp
+        RunTestQueryFieldOp _ ->
+            ( model
+            , model
+                |> Firestore.path "users"
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.where_
+                            (Query.fieldFilter "name" Query.Equal (Query.string "user0"))
+                    )
+                |> Task.attempt RanTestQueryFieldOp
+            )
+
+        RanTestQueryFieldOp result ->
+            ( model
+            , result
+                |> Result.map
+                    (.document
+                        >> .fields
+                        >> .name
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryFieldOpResult
             )
 
         -- TestInsert
@@ -466,6 +497,7 @@ subscriptions _ =
         , runTestListPageSize RunTestListPageSize
         , runTestListDesc RunTestListDesc
         , runTestListAsc RunTestListAsc
+        , runTestQueryFieldOp RunTestQueryFieldOp
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
@@ -509,6 +541,12 @@ port runTestListAsc : (() -> msg) -> Sub msg
 
 
 port testListAscResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryFieldOp : (() -> msg) -> Sub msg
+
+
+port testQueryFieldOpResult : Encode.Value -> Cmd msg
 
 
 port runTestInsert : (() -> msg) -> Sub msg
