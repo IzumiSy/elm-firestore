@@ -20,6 +20,7 @@ module Firestore.Query exposing
 
 -}
 
+import Dict
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
 import Time
@@ -31,7 +32,7 @@ import Typed exposing (Typed)
 type Query
     = Query
         { where_ : Maybe Where
-        , orderBy : Maybe OrderBy
+        , orderBy : OrderBy
         , offset : Maybe Int
         , limit : Maybe Int
         }
@@ -43,7 +44,7 @@ new : Query
 new =
     Query
         { where_ = Nothing
-        , orderBy = Nothing
+        , orderBy = Dict.empty
         , offset = Nothing
         , limit = Nothing
         }
@@ -53,13 +54,18 @@ new =
 -}
 encode : Query -> JsonEncode.Value
 encode (Query query) =
-    JsonEncode.object
-        [ ( "where"
-          , query.where_
-                |> Maybe.map whereValue
-                |> Maybe.withDefault (JsonEncode.object [])
-          )
-        ]
+    JsonEncode.object <|
+        List.filterMap identity <|
+            [ Just
+                ( "where"
+                , query.where_
+                    |> Maybe.map whereValue
+                    |> Maybe.withDefault (JsonEncode.object [])
+                )
+            , Just ( "orderBy", orderByValue query.orderBy )
+            , Maybe.map (\value -> ( "offset", JsonEncode.int value )) query.offset
+            , Maybe.map (\value -> ( "limit", JsonEncode.int value )) query.limit
+            ]
 
 
 {-| Sets the number of results to skip.
@@ -80,10 +86,8 @@ limit value (Query query) =
 -- OrderBy
 
 
-{-| OrderBy type
--}
-type OrderBy
-    = OrderBy String Direction
+type alias OrderBy =
+    Dict.Dict String Direction
 
 
 {-| Ordering direction
@@ -98,7 +102,7 @@ type Direction
 -}
 orderBy : String -> Direction -> Query -> Query
 orderBy fieldPath direction (Query query) =
-    Query { query | orderBy = Just <| OrderBy fieldPath direction }
+    Query { query | orderBy = Dict.insert fieldPath direction query.orderBy }
 
 
 
@@ -262,6 +266,33 @@ whereValue where__ =
                         ]
                   )
                 ]
+
+
+orderByValue : OrderBy -> JsonEncode.Value
+orderByValue orderBy_ =
+    orderBy_
+        |> Dict.toList
+        |> JsonEncode.list
+            (\( field, direction ) ->
+                JsonEncode.object
+                    [ ( "field", JsonEncode.object [ ( "fieldPath", JsonEncode.string field ) ] )
+                    , ( "direction", directionValue direction )
+                    ]
+            )
+
+
+directionValue : Direction -> JsonEncode.Value
+directionValue value =
+    Encode.string <|
+        case value of
+            Unspecified ->
+                "DIRECTION_UNSPECIFIED"
+
+            Ascending ->
+                "ASCENDING"
+
+            Descending ->
+                "DESCENDING"
 
 
 compositeOpValue : CompositeOp -> JsonEncode.Value
