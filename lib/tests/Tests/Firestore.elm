@@ -42,22 +42,12 @@ documentDecoder =
         |> FSDecode.required "nullable" (FSDecode.maybe FSDecode.string)
 
 
-type alias WriteDocument =
-    { fields : Document }
-
-
 type PageToken
     = PageToken String
 
 
 type Name
     = Name Internals.Name
-
-
-writeDecoder : Decode.Decoder WriteDocument
-writeDecoder =
-    Decode.succeed WriteDocument
-        |> Pipeline.required "fields" (FSDecode.decode documentDecoder)
 
 
 suite : Test.Test
@@ -153,7 +143,7 @@ suite =
                 ]
                     |> FSEncode.document
                     |> FSEncode.encode
-                    |> Decode.decodeValue writeDecoder
+                    |> Decode.decodeValue (FSDecode.decode documentDecoder)
                     |> Expect.ok
         , Test.test "endpoint" <|
             \_ ->
