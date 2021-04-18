@@ -5,12 +5,11 @@ module Firestore.Internals exposing
     , PageToken(..)
     , decodeList
     , decodeOne
-    , decodeQuery
+    , decodeQueries
     , nameDecoder
     )
 
 import Firestore.Decode as FSDecode
-import Firestore.Query exposing (Query)
 import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
@@ -48,7 +47,12 @@ decodeList namer pageTokener fieldDecoder =
         |> Pipeline.optional "nextPageToken" (Decode.map (pageTokener >> Just) Decode.string) Nothing
 
 
-type alias Query a b t =
+type Query a b t
+    = Filled (FilledBody a b t)
+    | Empty EmptyBody
+
+
+type alias FilledBody a b t =
     { transaction : Maybe t
     , document : Document a b
     , readTime : Time.Posix
@@ -56,14 +60,43 @@ type alias Query a b t =
     }
 
 
-decodeQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (Query a b t))
-decodeQuery namer transactioner fieldDecoder =
-    Decode.succeed Query
+type alias EmptyBody =
+    { readTime : Time.Posix }
+
+
+decodeFilledQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (FilledBody a b t)
+decodeFilledQuery namer transactioner fieldDecoder =
+    Decode.succeed FilledBody
         |> Pipeline.optional "transaction" (Decode.map (transactioner >> Just) Decode.string) Nothing
         |> Pipeline.required "document" (decodeOne namer fieldDecoder)
         |> Pipeline.required "readTime" Iso8601.decoder
         |> Pipeline.optional "skippedResults" Decode.int 0
+
+
+decodeEmptyQuery : Decode.Decoder EmptyBody
+decodeEmptyQuery =
+    Decode.succeed EmptyBody
+        |> Pipeline.required "readTime" Iso8601.decoder
+
+
+decodeQueries : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (FilledBody a b t))
+decodeQueries namer transactioner fieldDecoder =
+    [ Decode.map Filled <| decodeFilledQuery namer transactioner fieldDecoder
+    , Decode.map Empty <| decodeEmptyQuery
+    ]
+        |> Decode.oneOf
         |> Decode.list
+        |> Decode.map
+            (List.filterMap
+                (\result ->
+                    case result of
+                        Filled body ->
+                            Just body
+
+                        _ ->
+                            Nothing
+                )
+            )
 
 
 {-| Internal implementation of Name field of Document

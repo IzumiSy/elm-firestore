@@ -320,7 +320,7 @@ runQuery fieldDecoder query (Firestore config) =
         , timeout = Nothing
         , resolver =
             fieldDecoder
-                |> Internals.decodeQuery Name TransactionId
+                |> Internals.decodeQueries Name TransactionId
                 |> jsonResolver
         }
 
