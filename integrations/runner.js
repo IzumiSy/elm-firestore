@@ -158,9 +158,24 @@ test("TestQueryUnaryOp", t => {
   })
 })
 
+
+test("TestQueryOrderBy", t => {
+  return runner("runTestQueryOrderBy", "testQueryOrderByResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user4")
+  })
+})
+
 test("TestQueryEmpty", t => {
   return runner("runTestQueryEmpty", "testQueryEmptyResult").then(result => {
     t.true(result.success)
     t.is(result.value, 0)
+  })
+})
+
+test("TestQueryComplex", t => {
+  return runner("runTestQueryComplex", "testQueryComplexResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, "user2")
   })
 })

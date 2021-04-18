@@ -47,6 +47,10 @@ type Msg
     | RanTestQueryCompositeOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryUnaryOp ()
     | RanTestQueryUnaryOp (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryOrderBy ()
+    | RanTestQueryOrderBy (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryComplex ()
+    | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryEmpty ()
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
@@ -297,6 +301,35 @@ update msg model =
                 |> testQueryUnaryOpResult
             )
 
+        -- TestQueryOrderBy
+        RunTestQueryOrderBy _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.from "users"
+                        |> Query.orderBy "age" Query.Descending
+                        |> Query.where_
+                            (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
+                    )
+                |> Task.attempt RanTestQueryOrderBy
+            )
+
+        RanTestQueryOrderBy result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.head
+                        >> Maybe.map (.document >> .fields >> .name)
+                        >> Maybe.withDefault "unknown"
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryOrderByResult
+            )
+
         -- TestQueryEmpty
         RunTestQueryEmpty _ ->
             ( model
@@ -321,6 +354,40 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testQueryEmptyResult
+            )
+
+        -- TestQueryComplex
+        RunTestQueryComplex _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.from "users"
+                        |> Query.limit 2
+                        |> Query.offset 2
+                        |> Query.orderBy "age" Query.Descending
+                        |> Query.where_
+                            (Query.compositeFilter Query.And
+                                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+                            )
+                    )
+                |> Task.attempt RanTestQueryComplex
+            )
+
+        RanTestQueryComplex result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.head
+                        >> Maybe.map (.document >> .fields >> .name)
+                        >> Maybe.withDefault "unknown"
+                        >> Encode.string
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryComplexResult
             )
 
         -- TestInsert
@@ -584,7 +651,9 @@ subscriptions _ =
         , runTestQueryFieldOp RunTestQueryFieldOp
         , runTestQueryCompositeOp RunTestQueryCompositeOp
         , runTestQueryUnaryOp RunTestQueryUnaryOp
+        , runTestQueryOrderBy RunTestQueryOrderBy
         , runTestQueryEmpty RunTestQueryEmpty
+        , runTestQueryComplex RunTestQueryComplex
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
@@ -648,10 +717,22 @@ port runTestQueryUnaryOp : (() -> msg) -> Sub msg
 port testQueryUnaryOpResult : Encode.Value -> Cmd msg
 
 
+port runTestQueryOrderBy : (() -> msg) -> Sub msg
+
+
+port testQueryOrderByResult : Encode.Value -> Cmd msg
+
+
 port runTestQueryEmpty : (() -> msg) -> Sub msg
 
 
 port testQueryEmptyResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryComplex : (() -> msg) -> Sub msg
+
+
+port testQueryComplexResult : Encode.Value -> Cmd msg
 
 
 port runTestInsert : (() -> msg) -> Sub msg
