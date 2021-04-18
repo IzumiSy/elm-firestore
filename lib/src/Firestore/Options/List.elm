@@ -18,6 +18,8 @@ import Firestore.Internals as Internals
 import Url.Builder as UrlBuilder
 
 
+{-| An option type for List operation
+-}
 type Options
     = Options
         { pageSize : Maybe Int
@@ -26,7 +28,7 @@ type Options
         }
 
 
-{-| Construts options for list operation
+{-| Constructs options for list operation
 -}
 default : Options
 default =
@@ -37,11 +39,15 @@ default =
         }
 
 
+{-| Sets the maximum number of documents to return
+-}
 pageSize : Int -> Options -> Options
 pageSize size (Options options) =
     Options { options | pageSize = Just size }
 
 
+{-| Converts options into query parameters
+-}
 queryParameters : Options -> List UrlBuilder.QueryParameter
 queryParameters (Options options) =
     let
@@ -84,6 +90,8 @@ type PageToken
     = PageToken Internals.PageToken
 
 
+{-| Sets the page token obtained the previous List operation, if any.
+-}
 pageToken : PageToken -> Options -> Options
 pageToken token (Options options) =
     Options { options | pageToken = Just token }
@@ -96,6 +104,8 @@ type OrderBy
     | Asc String
 
 
+{-| Sets order to sort results by
+-}
 orderBy : OrderBy -> Options -> Options
 orderBy value (Options options) =
     Options { options | orderBy = value :: options.orderBy }

@@ -10,7 +10,7 @@ module Firestore exposing
 
 {-| A library to have your app interact with Firestore in Elm
 
-@docs Firestore, Collection
+@docs Firestore
 
 
 # Constructors
