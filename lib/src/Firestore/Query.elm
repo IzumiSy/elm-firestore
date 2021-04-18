@@ -29,6 +29,18 @@ import Typed exposing (Typed)
 
 
 {-| A data structure for query operation
+
+    Query.new
+        |> Query.from "users"
+        |> Query.limit 2
+        |> Query.offset 2
+        |> Query.orderBy "age" Query.Descending
+        |> Query.where_
+            (Query.compositeFilter Query.And
+                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+            )
+
 -}
 type Query
     = Query
@@ -129,9 +141,6 @@ type alias FieldPath =
 
 
 {-| Where type.
-
-    CompositeFilter requires at least one filter, so it has non-empty list like structure.
-
 -}
 type Where
     = CompositeFilter CompositeOp Where (List Where)
@@ -140,6 +149,13 @@ type Where
 
 
 {-| Constructs CompositeFilter
+
+CompositeFilter requires at least one filter, so it has a constructor like non-empty list interface.
+
+    Query.compositeFilter Query.And
+        (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+        [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+
 -}
 compositeFilter : CompositeOp -> Where -> List Where -> Where
 compositeFilter =
@@ -147,6 +163,9 @@ compositeFilter =
 
 
 {-| Constructs FieldFilter
+
+    Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20)
+
 -}
 fieldFilter : String -> FieldOp -> Value -> Where
 fieldFilter fieldPath =
@@ -154,6 +173,9 @@ fieldFilter fieldPath =
 
 
 {-| Constructs UnaryFilter
+
+    Query.unaryFilter "name" Query.IsNull
+
 -}
 unaryFilter : String -> UnaryOp -> Where
 unaryFilter fieldPath =
@@ -162,7 +184,7 @@ unaryFilter fieldPath =
 
 {-| Operations for FieldFilter.
 
-    TODO: Support of array-related operations (eg, NotIn, In, etc...)
+Array-related operations (eg, NotIn, In, etc...) are currently not supported.
 
 -}
 type FieldOp
