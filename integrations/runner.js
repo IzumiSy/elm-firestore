@@ -144,6 +144,13 @@ test("TestQueryFieldOp", t => {
   })
 })
 
+test("TestQueryCompositeOp", t => {
+  return runner("runTestQueryCompositeOp", "testQueryCompositeOpResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 2)
+  })
+})
+
 test("TestQueryEmpty", t => {
   return runner("runTestQueryEmpty", "testQueryEmptyResult").then(result => {
     t.true(result.success)

@@ -42,6 +42,8 @@ type Msg
     | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
     | RunTestQueryFieldOp ()
     | RanTestQueryFieldOp (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryCompositeOp ()
+    | RanTestQueryCompositeOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryEmpty ()
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
@@ -235,6 +237,35 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testQueryFieldOpResult
+            )
+
+        -- TestQueryCompsiteOp
+        RunTestQueryCompositeOp _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.from "users"
+                        |> Query.where_
+                            (Query.compositeFilter Query.And
+                                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                                [ Query.fieldFilter "age" Query.LessThan (Query.int 30) ]
+                            )
+                    )
+                |> Task.attempt RanTestQueryCompositeOp
+            )
+
+        RanTestQueryCompositeOp result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryCompositeOpResult
             )
 
         -- TestQueryEmpty
@@ -522,6 +553,7 @@ subscriptions _ =
         , runTestListDesc RunTestListDesc
         , runTestListAsc RunTestListAsc
         , runTestQueryFieldOp RunTestQueryFieldOp
+        , runTestQueryCompositeOp RunTestQueryCompositeOp
         , runTestQueryEmpty RunTestQueryEmpty
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
@@ -572,6 +604,12 @@ port runTestQueryFieldOp : (() -> msg) -> Sub msg
 
 
 port testQueryFieldOpResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryCompositeOp : (() -> msg) -> Sub msg
+
+
+port testQueryCompositeOpResult : Encode.Value -> Cmd msg
 
 
 port runTestQueryEmpty : (() -> msg) -> Sub msg
