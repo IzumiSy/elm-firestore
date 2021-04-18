@@ -5,7 +5,7 @@ module Firestore exposing
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
-    , Transaction, TransactionId, CommitTime, begin, update, commit
+    , Transaction, TransactionId, CommitTime, begin, updateTx, deleteTx, commit
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -40,7 +40,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, TransactionId, CommitTime, begin, update, commit
+@docs Transaction, TransactionId, CommitTime, begin, updateTx, deleteTx, commit
 
 -}
 
@@ -56,6 +56,7 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import Set
 import Task
 import Time
 import Url.Builder as UrlBuilder
@@ -355,31 +356,28 @@ type TransactionId
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction TransactionId (List FSEncode.Encoder)
+    = Transaction TransactionId (List FSEncode.Encoder) (Set.Set String)
 
 
-{-| Adds a new update into the transaction
-
-    model.firestore
-        |> Firestore.commit
-            (transaction
-                |> Firestore.update draft1
-                |> Firestore.update draft2
-                |> Firestore.update draft3
-            )
-        |> Task.attempt Commited
-
+{-| Adds update into the transaction
 -}
-update : FSEncode.Encoder -> Transaction -> Transaction
-update encoder (Transaction tId encoders) =
-    Transaction tId (encoder :: encoders)
+updateTx : FSEncode.Encoder -> Transaction -> Transaction
+updateTx encoder (Transaction tId encoders deletes) =
+    Transaction tId (encoder :: encoders) deletes
+
+
+{-| Adds deletion into the transaction
+-}
+deleteTx : String -> Transaction -> Transaction
+deleteTx path_ (Transaction tId encoders deletes) =
+    Transaction tId encoders (Set.insert path_ deletes)
 
 
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Error Transaction
 begin (Firestore config) =
-    Task.map (\transaction -> Transaction transaction []) <|
+    Task.map (\transaction -> Transaction transaction [] Set.empty) <|
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
@@ -399,6 +397,15 @@ type alias CommitTime =
 {-| Commits a transaction, while optionally updating documents.
 
 Only `readWrite` transaction is currently supported which requires authorization that can be set via `Config.withAuthorization` function.
+
+    model.firestore
+        |> Firestore.commit
+            (transaction
+                |> Firestore.updateTx draft1
+                |> Firestore.updateTx draft2
+                |> Firestore.updateTx draft3
+            )
+        |> Task.attempt Commited
 
 -}
 commit : Transaction -> Firestore -> Task.Task Error CommitTime
@@ -470,7 +477,7 @@ errorInfoDecoder =
 
 
 commitEncoder : Transaction -> Encode.Value
-commitEncoder (Transaction (TransactionId tId) drafts) =
+commitEncoder (Transaction (TransactionId tId) drafts deletes) =
     Encode.object
         [ ( "transaction", Encode.string tId )
         , ( "writes", Encode.list FSEncode.encode drafts )
