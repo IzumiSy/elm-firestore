@@ -3,9 +3,12 @@ module Firestore.Options.Patch exposing
     , addUpdate, addDelete
     )
 
-{-| A type to define `patch` operation parameters
+{-| An option type for `patch` operation.
 
 @docs Options, empty, queryParameters
+
+
+# Operations
 
 @docs addUpdate, addDelete
 
@@ -17,6 +20,8 @@ import Set
 import Url.Builder as UrlBuilder
 
 
+{-| An option type for Patch operation
+-}
 type Options
     = Options
         { updates : Set.Set String
@@ -36,6 +41,8 @@ empty =
         }
 
 
+{-| Adds a field to update
+-}
 addUpdate : String -> FSEncode.Field -> Options -> Options
 addUpdate path field (Options options) =
     Options
@@ -45,11 +52,15 @@ addUpdate path field (Options options) =
         }
 
 
+{-| Adds a field to delete
+-}
 addDelete : String -> Options -> Options
 addDelete path (Options options) =
     Options { options | deletes = Set.insert path options.deletes }
 
 
+{-| Converts options into query parameters
+-}
 queryParameters : Options -> ( List UrlBuilder.QueryParameter, List ( String, FSEncode.Field ) )
 queryParameters (Options options) =
     ( List.concat

@@ -7,6 +7,37 @@ module Firestore.Codec exposing
 
 {-| Codec for Firestore
 
+    type alias User =
+        { name : String
+        , age : Int
+        }
+
+    codec : Codec.Codec User
+    codec =
+        Codec.document User
+            |> Codec.required "name" .name Codec.string
+            |> Codec.required "age" .age Codec.int
+            |> Codec.build
+
+    getDocument : Firestore.Firestore -> Cmd Msg
+    getDocument firestore =
+        firestore
+            |> Firestore.path "users/user0"
+            |> Firestore.get (Codec.asDecoder codec)
+            |> Task.attempt GotDocument
+
+    insertDocument : Firestore.Firestore -> Cmd Msg
+    insertDocument firestore =
+        firestore
+            |> Firestore.path "users"
+            |> Firestore.insert
+                (Codec.asDecoder codec)
+                (Codec.asEncoder codec { name = "thomas", age = 26 })
+            |> Task.attempt InsertedDocument
+
+
+# Definitions
+
 @docs Codec, asEncoder, encode, asDecoder, decode
 
 

@@ -1,39 +1,68 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , offset, limit
-    , OrderBy, Direction(..), orderBy
+    , offset, limit, from
+    , Direction(..), orderBy
     , Where, FieldOp(..), UnaryOp(..), CompositeOp(..), compositeFilter, fieldFilter, unaryFilter, where_
     , Value, bool, int, string, timestamp
     )
 
-{-|
+{-| An option type for `runQuery` operaion
+
+    Query.new
+        |> Query.from "users"
+        |> Query.limit 2
+        |> Query.offset 2
+        |> Query.orderBy "age" Query.Descending
+        |> Query.where_
+            (Query.compositeFilter Query.And
+                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+            )
+
+
+# Definitions
 
 @docs Query, new, encode
 
-@docs offset, limit
 
-@docs OrderBy, Direction, orderBy
+# Basics
+
+@docs offset, limit, from
+
+
+# OrderBy
+
+@docs Direction, orderBy
+
+
+# Where
 
 @docs Where, FieldOp, UnaryOp, CompositeOp, compositeFilter, fieldFilter, unaryFilter, where_
+
+
+# Values
 
 @docs Value, bool, int, string, timestamp
 
 -}
 
+import Dict
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
+import Set
 import Time
 import Typed exposing (Typed)
 
 
-{-| A data structure for query operation
+{-| Data type for query operation
 -}
 type Query
     = Query
         { where_ : Maybe Where
-        , orderBy : Maybe OrderBy
+        , orderBy : OrderBy
         , offset : Maybe Int
         , limit : Maybe Int
+        , from : From
         }
 
 
@@ -43,9 +72,10 @@ new : Query
 new =
     Query
         { where_ = Nothing
-        , orderBy = Nothing
+        , orderBy = Dict.empty
         , offset = Nothing
         , limit = Nothing
+        , from = Set.empty
         }
 
 
@@ -53,13 +83,19 @@ new =
 -}
 encode : Query -> JsonEncode.Value
 encode (Query query) =
-    JsonEncode.object
-        [ ( "where"
-          , query.where_
-                |> Maybe.map whereValue
-                |> Maybe.withDefault (JsonEncode.object [])
-          )
-        ]
+    JsonEncode.object <|
+        List.filterMap identity <|
+            [ Just
+                ( "where"
+                , query.where_
+                    |> Maybe.map whereValue
+                    |> Maybe.withDefault (JsonEncode.object [])
+                )
+            , Just ( "orderBy", orderByValue query.orderBy )
+            , Just ( "from", fromValue query.from )
+            , Maybe.map (\value -> ( "offset", JsonEncode.int value )) query.offset
+            , Maybe.map (\value -> ( "limit", JsonEncode.int value )) query.limit
+            ]
 
 
 {-| Sets the number of results to skip.
@@ -76,14 +112,28 @@ limit value (Query query) =
     Query { query | limit = Just value }
 
 
+type alias From =
+    Set.Set String
+
+
+{-| Sets a collection to query
+-}
+from : String -> Query -> Query
+from collection (Query query) =
+    Query { query | from = Set.insert collection query.from }
+
+
 
 -- OrderBy
 
 
 {-| OrderBy type
+
+Currently elm-firestore does not support multiple field paths
+
 -}
-type OrderBy
-    = OrderBy String Direction
+type alias OrderBy =
+    Dict.Dict String Direction
 
 
 {-| Ordering direction
@@ -98,7 +148,7 @@ type Direction
 -}
 orderBy : String -> Direction -> Query -> Query
 orderBy fieldPath direction (Query query) =
-    Query { query | orderBy = Just <| OrderBy fieldPath direction }
+    Query { query | orderBy = Dict.insert fieldPath direction query.orderBy }
 
 
 
@@ -110,9 +160,6 @@ type alias FieldPath =
 
 
 {-| Where type.
-
-    CompositeFilter requires at least one filter, so it has non-empty list like structure.
-
 -}
 type Where
     = CompositeFilter CompositeOp Where (List Where)
@@ -121,6 +168,13 @@ type Where
 
 
 {-| Constructs CompositeFilter
+
+CompositeFilter requires at least one filter, so it has a constructor like non-empty list interface.
+
+    Query.compositeFilter Query.And
+        (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+        [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+
 -}
 compositeFilter : CompositeOp -> Where -> List Where -> Where
 compositeFilter =
@@ -128,6 +182,9 @@ compositeFilter =
 
 
 {-| Constructs FieldFilter
+
+    Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20)
+
 -}
 fieldFilter : String -> FieldOp -> Value -> Where
 fieldFilter fieldPath =
@@ -135,6 +192,9 @@ fieldFilter fieldPath =
 
 
 {-| Constructs UnaryFilter
+
+    Query.unaryFilter "name" Query.IsNull
+
 -}
 unaryFilter : String -> UnaryOp -> Where
 unaryFilter fieldPath =
@@ -143,7 +203,7 @@ unaryFilter fieldPath =
 
 {-| Operations for FieldFilter.
 
-    TODO: Support of array-related operations (eg, NotIn, In, etc...)
+Array-related operations (eg, NotIn, In, etc...) are currently not supported.
 
 -}
 type FieldOp
@@ -264,9 +324,45 @@ whereValue where__ =
                 ]
 
 
+orderByValue : OrderBy -> JsonEncode.Value
+orderByValue =
+    Dict.toList
+        >> JsonEncode.list
+            (\( field, direction ) ->
+                JsonEncode.object
+                    [ ( "field", JsonEncode.object [ ( "fieldPath", JsonEncode.string field ) ] )
+                    , ( "direction", directionValue direction )
+                    ]
+            )
+
+
+fromValue : From -> JsonEncode.Value
+fromValue =
+    Set.toList
+        >> JsonEncode.list
+            (\value ->
+                JsonEncode.object
+                    [ ( "collectionId", JsonEncode.string value ) ]
+            )
+
+
+directionValue : Direction -> JsonEncode.Value
+directionValue value =
+    JsonEncode.string <|
+        case value of
+            Unspecified ->
+                "DIRECTION_UNSPECIFIED"
+
+            Ascending ->
+                "ASCENDING"
+
+            Descending ->
+                "DESCENDING"
+
+
 compositeOpValue : CompositeOp -> JsonEncode.Value
 compositeOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             And ->
                 "AND"
@@ -274,7 +370,7 @@ compositeOpValue op =
 
 fieldOpValue : FieldOp -> JsonEncode.Value
 fieldOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             LessThan ->
                 "LESS_THAN"
@@ -297,7 +393,7 @@ fieldOpValue op =
 
 unaryOpValue : UnaryOp -> JsonEncode.Value
 unaryOpValue op =
-    Encode.string <|
+    JsonEncode.string <|
         case op of
             IsNaN ->
                 "IS_NAN"

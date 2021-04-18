@@ -50,7 +50,7 @@ encode (Encoder fields) =
         ]
 
 
-{-| An identifier type for Firestore encoder
+{-| An field identifier type for Firestore encoder
 -}
 type Field
     = Field JsonEncode.Value

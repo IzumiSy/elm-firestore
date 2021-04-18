@@ -50,6 +50,10 @@ type PageToken
     = PageToken String
 
 
+type Name
+    = Name Internals.Name
+
+
 writeDecoder : Decode.Decoder WriteDocument
 writeDecoder =
     Decode.succeed WriteDocument
@@ -133,7 +137,7 @@ suite =
                       """
                 in
                 src
-                    |> Decode.decodeString (Internals.decodeList PageToken documentDecoder)
+                    |> Decode.decodeString (Internals.decodeList Name PageToken documentDecoder)
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
@@ -161,6 +165,6 @@ suite =
                         [ UrlBuilder.int "pageSize" 10
                         , UrlBuilder.string "orderBy" "name"
                         ]
-                        "users/bookmarks"
+                        (Config.Path "users/bookmarks")
                     |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/bookmarks?pageSize=10&orderBy=name&key=test-apiKey"
         ]
