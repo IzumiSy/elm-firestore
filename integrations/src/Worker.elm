@@ -10,6 +10,7 @@ import Firestore.Query as Query
 import Http
 import Json.Encode as Encode
 import List exposing (map)
+import Maybe exposing (withDefault)
 import Task
 
 
@@ -44,6 +45,8 @@ type Msg
     | RanTestQueryFieldOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryCompositeOp ()
     | RanTestQueryCompositeOp (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryUnaryOp ()
+    | RanTestQueryUnaryOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryEmpty ()
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
@@ -266,6 +269,32 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testQueryCompositeOpResult
+            )
+
+        -- TestQueryUnaryOp
+        RunTestQueryUnaryOp _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.from "users"
+                        |> Query.where_
+                            (Query.unaryFilter "name" Query.IsNull)
+                    )
+                |> Task.attempt RanTestQueryUnaryOp
+            )
+
+        RanTestQueryUnaryOp result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryUnaryOpResult
             )
 
         -- TestQueryEmpty
@@ -554,6 +583,7 @@ subscriptions _ =
         , runTestListAsc RunTestListAsc
         , runTestQueryFieldOp RunTestQueryFieldOp
         , runTestQueryCompositeOp RunTestQueryCompositeOp
+        , runTestQueryUnaryOp RunTestQueryUnaryOp
         , runTestQueryEmpty RunTestQueryEmpty
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
@@ -610,6 +640,12 @@ port runTestQueryCompositeOp : (() -> msg) -> Sub msg
 
 
 port testQueryCompositeOpResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryUnaryOp : (() -> msg) -> Sub msg
+
+
+port testQueryUnaryOpResult : Encode.Value -> Cmd msg
 
 
 port runTestQueryEmpty : (() -> msg) -> Sub msg
