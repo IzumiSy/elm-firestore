@@ -42,6 +42,8 @@ type Msg
     | RanTestListAsc (Result Firestore.Error (Firestore.Documents User))
     | RunTestQueryFieldOp ()
     | RanTestQueryFieldOp (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryEmpty ()
+    | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -235,6 +237,32 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testQueryFieldOpResult
+            )
+
+        -- TestQueryEmpty
+        RunTestQueryEmpty _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.from "users"
+                        |> Query.where_
+                            (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
+                    )
+                |> Task.attempt RanTestQueryEmpty
+            )
+
+        RanTestQueryEmpty result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryEmptyResult
             )
 
         -- TestInsert
@@ -496,6 +524,7 @@ subscriptions _ =
         , runTestListDesc RunTestListDesc
         , runTestListAsc RunTestListAsc
         , runTestQueryFieldOp RunTestQueryFieldOp
+        , runTestQueryEmpty RunTestQueryEmpty
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
@@ -545,6 +574,12 @@ port runTestQueryFieldOp : (() -> msg) -> Sub msg
 
 
 port testQueryFieldOpResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryEmpty : (() -> msg) -> Sub msg
+
+
+port testQueryEmptyResult : Encode.Value -> Cmd msg
 
 
 port runTestInsert : (() -> msg) -> Sub msg

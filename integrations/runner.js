@@ -143,3 +143,10 @@ test("TestQueryFieldOp", t => {
     t.is(result.value, 3)
   })
 })
+
+test("TestQueryEmpty", t => {
+  return runner("runTestQueryEmpty", "testQueryEmptyResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 0)
+  })
+})
