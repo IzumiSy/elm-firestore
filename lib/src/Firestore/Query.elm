@@ -6,7 +6,21 @@ module Firestore.Query exposing
     , Value, bool, int, string, timestamp
     )
 
-{-|
+{-| An option type for `runQuery` operaion
+
+    Query.new
+        |> Query.from "users"
+        |> Query.limit 2
+        |> Query.offset 2
+        |> Query.orderBy "age" Query.Descending
+        |> Query.where_
+            (Query.compositeFilter Query.And
+                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+            )
+
+
+# Definitions
 
 @docs Query, new, encode
 
@@ -40,19 +54,7 @@ import Time
 import Typed exposing (Typed)
 
 
-{-| A data structure for query operation
-
-    Query.new
-        |> Query.from "users"
-        |> Query.limit 2
-        |> Query.offset 2
-        |> Query.orderBy "age" Query.Descending
-        |> Query.where_
-            (Query.compositeFilter Query.And
-                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
-                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
-            )
-
+{-| Data type for query operation
 -}
 type Query
     = Query

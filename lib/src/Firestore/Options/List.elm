@@ -4,7 +4,7 @@ module Firestore.Options.List exposing
     , OrderBy(..), orderBy
     )
 
-{-| A type to define `list` operation parameters
+{-| An option type for `list` operation.
 
 @docs Options, default, queryParameters
 

@@ -3,7 +3,7 @@ module Firestore.Options.Patch exposing
     , addUpdate, addDelete
     )
 
-{-| A type to define `patch` operation parameters
+{-| An option type for `patch` operation.
 
 @docs Options, empty, queryParameters
 

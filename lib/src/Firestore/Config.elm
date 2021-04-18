@@ -4,7 +4,7 @@ module Firestore.Config exposing
     , endpoint, Appender(..), httpHeader, basePath
     )
 
-{-| Configuration types for Firestore
+{-| A configuration type for Firestore
 
 @docs Config
 
