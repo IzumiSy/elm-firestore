@@ -496,12 +496,17 @@ commitDocumentEncoder name encoder =
 commitEncoder : Config.Config -> Transaction -> Encode.Value
 commitEncoder config (Transaction (TransactionId tId) updates deletes) =
     let
+        withBasePath name =
+            UrlBuilder.relative [ Config.basePath config, name ] []
+
         deletes_ =
             deletes
                 |> Set.toList
                 |> List.map
-                    (\value ->
-                        ( "delete", Encode.string value )
+                    (\name ->
+                        ( "delete"
+                        , Encode.string <| withBasePath name
+                        )
                     )
 
         updates_ =
@@ -510,18 +515,17 @@ commitEncoder config (Transaction (TransactionId tId) updates deletes) =
                 |> List.map
                     (\( name, document ) ->
                         ( "update"
-                        , commitDocumentEncoder (Config.basePath config ++ name) document
+                        , commitDocumentEncoder (withBasePath name) document
                         )
                     )
-
-        writes =
-            Encode.list
-                (Encode.object << List.singleton)
-                (deletes_ ++ updates_)
     in
     Encode.object
         [ ( "transaction", Encode.string tId )
-        , ( "writes", writes )
+        , ( "writes"
+          , Encode.list
+                (Encode.object << List.singleton)
+                (deletes_ ++ updates_)
+          )
         ]
 
 
