@@ -5,7 +5,7 @@ module Firestore exposing
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
-    , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, updateTx, deleteTx
+    , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -40,7 +40,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, updateTx, deleteTx
+@docs Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
 
 -}
 
@@ -280,27 +280,9 @@ type alias Query a =
 
 {-| Runs a query operation
 -}
-runQuery :
-    FSDecode.Decoder a
-    -> Query.Query
-    -> Firestore
-    -> Task.Task Error (List (Query a))
-runQuery fieldDecoder query (Firestore config) =
-    Http.task
-        { method = "POST"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Config.Op "runQuery") config
-        , body =
-            Http.jsonBody <|
-                Encode.object
-                    [ ( "structuredQuery", Query.encode query )
-                    ]
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeQueries Name TransactionId
-                |> jsonResolver
-        }
+runQuery : FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQuery =
+    runQueryInternal Nothing
 
 
 
@@ -348,6 +330,13 @@ getTx (Transaction (TransactionId tId) _ _) =
 listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
 listTx (Transaction (TransactionId tId) _ _) =
     listInternal [ UrlBuilder.string "transaction" tId ]
+
+
+{-| Runs a query operation in transaction
+-}
+runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQueryTx =
+    runQueryInternal << Just
 
 
 {-| Adds update into the transaction
@@ -562,6 +551,29 @@ listInternal params fieldDecoder options (Path path_ (Firestore config)) =
         , resolver =
             fieldDecoder
                 |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
+                |> jsonResolver
+        }
+
+
+runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQueryInternal maybeTransaction fieldDecoder query (Firestore config) =
+    Http.task
+        { method = "POST"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [] (Config.Op "runQuery") config
+        , body =
+            Http.jsonBody <|
+                Encode.object <|
+                    List.filterMap identity <|
+                        [ Just ( "structuredQuery", Query.encode query )
+                        , Maybe.map
+                            (\(Transaction (TransactionId tId) _ _) -> ( "transaction", Encode.string tId ))
+                            maybeTransaction
+                        ]
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeQueries Name TransactionId
                 |> jsonResolver
         }
 
