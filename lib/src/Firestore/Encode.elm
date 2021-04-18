@@ -41,13 +41,9 @@ type Encoder
 -}
 encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
-    JsonEncode.object
-        [ ( "fields"
-          , fields
-                |> List.map (\( key, Field field ) -> ( key, field ))
-                |> JsonEncode.object
-          )
-        ]
+    fields
+        |> List.map (\( key, Field field ) -> ( key, field ))
+        |> JsonEncode.object
 
 
 {-| An field identifier type for Firestore encoder

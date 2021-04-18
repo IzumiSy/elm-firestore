@@ -44,6 +44,7 @@ module Firestore exposing
 
 -}
 
+import Dict
 import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
@@ -176,7 +177,7 @@ insert fieldDecoder encoder (Path path_ (Firestore config)) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode encoder
+        , body = Http.jsonBody <| documentEncoder encoder
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -200,7 +201,7 @@ create fieldDecoder params (Path path_ (Firestore config)) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [ UrlBuilder.string "documentId" params.id ] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode params.document
+        , body = Http.jsonBody <| documentEncoder params.document
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -220,7 +221,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode encoder
+        , body = Http.jsonBody <| documentEncoder encoder
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -248,7 +249,7 @@ patch fieldDecoder options (Path path_ (Firestore config)) =
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint params (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document fields
+        , body = Http.jsonBody <| documentEncoder <| FSEncode.document fields
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -356,14 +357,14 @@ type TransactionId
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction TransactionId (List FSEncode.Encoder) (Set.Set String)
+    = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
 
 
 {-| Adds update into the transaction
 -}
-updateTx : FSEncode.Encoder -> Transaction -> Transaction
-updateTx encoder (Transaction tId encoders deletes) =
-    Transaction tId (encoder :: encoders) deletes
+updateTx : String -> FSEncode.Encoder -> Transaction -> Transaction
+updateTx name encoder (Transaction tId encoders deletes) =
+    Transaction tId (Dict.insert name encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
@@ -377,7 +378,7 @@ deleteTx path_ (Transaction tId encoders deletes) =
 -}
 begin : Firestore -> Task.Task Error Transaction
 begin (Firestore config) =
-    Task.map (\transaction -> Transaction transaction [] Set.empty) <|
+    Task.map (\transaction -> Transaction transaction Dict.empty Set.empty) <|
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
@@ -401,9 +402,10 @@ Only `readWrite` transaction is currently supported which requires authorization
     model.firestore
         |> Firestore.commit
             (transaction
-                |> Firestore.updateTx draft1
-                |> Firestore.updateTx draft2
-                |> Firestore.updateTx draft3
+                |> Firestore.updateTx "users/user1" newUser1
+                |> Firestore.updateTx "users/user2" newUser2
+                |> Firestore.deleteTx "users/user3"
+                |> Firestore.deleteTx "users/user4"
             )
         |> Task.attempt Commited
 
@@ -414,7 +416,7 @@ commit transaction (Firestore config) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Op "commit") config
-        , body = Http.jsonBody <| commitEncoder transaction
+        , body = Http.jsonBody <| commitEncoder config transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
         }
@@ -476,11 +478,50 @@ errorInfoDecoder =
 -- Encoders
 
 
-commitEncoder : Transaction -> Encode.Value
-commitEncoder (Transaction (TransactionId tId) drafts deletes) =
+documentEncoder : FSEncode.Encoder -> Encode.Value
+documentEncoder encoder =
+    Encode.object
+        [ ( "fields", FSEncode.encode encoder )
+        ]
+
+
+commitDocumentEncoder : String -> FSEncode.Encoder -> Encode.Value
+commitDocumentEncoder name encoder =
+    Encode.object
+        [ ( "name", Encode.string name )
+        , ( "fields", FSEncode.encode encoder )
+        ]
+
+
+commitEncoder : Config.Config -> Transaction -> Encode.Value
+commitEncoder config (Transaction (TransactionId tId) updates deletes) =
+    let
+        deletes_ =
+            deletes
+                |> Set.toList
+                |> List.map
+                    (\value ->
+                        ( "delete", Encode.string value )
+                    )
+
+        updates_ =
+            updates
+                |> Dict.toList
+                |> List.map
+                    (\( name, document ) ->
+                        ( "update"
+                        , commitDocumentEncoder (Config.basePath config ++ name) document
+                        )
+                    )
+
+        writes =
+            Encode.list
+                (Encode.object << List.singleton)
+                (deletes_ ++ updates_)
+    in
     Encode.object
         [ ( "transaction", Encode.string tId )
-        , ( "writes", Encode.list FSEncode.encode drafts )
+        , ( "writes", writes )
         ]
 
 
