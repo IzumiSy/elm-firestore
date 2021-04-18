@@ -1,14 +1,20 @@
 module Firestore.Options.List exposing
-    ( Options, PageToken(..), default, queryParameters
-    , pageToken, pageSize
+    ( Options, default, queryParameters
+    , PageToken(..), pageToken, pageSize
     , OrderBy(..), orderBy
     )
 
 {-| A type to define `list` operation parameters
 
-@docs Options, PageToken, default, queryParameters
+@docs Options, default, queryParameters
 
-@docs pageToken, pageSize
+
+# Pagination
+
+@docs PageToken, pageToken, pageSize
+
+
+# OrderBy
 
 @docs OrderBy, orderBy
 

@@ -7,6 +7,9 @@ module Firestore.Options.Patch exposing
 
 @docs Options, empty, queryParameters
 
+
+# Operations
+
 @docs addUpdate, addDelete
 
 -}

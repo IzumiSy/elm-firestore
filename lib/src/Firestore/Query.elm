@@ -10,11 +10,23 @@ module Firestore.Query exposing
 
 @docs Query, new, encode
 
+
+# Basics
+
 @docs offset, limit, from
 
-@docs OrderBy, Direction, orderBy
+
+# OrderBy
+
+@docs Direction, orderBy
+
+
+# Where
 
 @docs Where, FieldOp, UnaryOp, CompositeOp, compositeFilter, fieldFilter, unaryFilter, where_
+
+
+# Values
 
 @docs Value, bool, int, string, timestamp
 
@@ -102,6 +114,8 @@ type alias From =
     Set.Set String
 
 
+{-| Sets a collection to query
+-}
 from : String -> Query -> Query
 from collection (Query query) =
     Query { query | from = Set.insert collection query.from }
