@@ -336,11 +336,15 @@ type Transaction
     = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
 
 
+{-| Gets a single document in transaction
+-}
 getTx : Transaction -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
 getTx (Transaction (TransactionId tId) _ _) =
     getInternal [ UrlBuilder.string "transaction" tId ]
 
 
+{-| Lists documents in transaction
+-}
 listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
 listTx (Transaction (TransactionId tId) _ _) =
     listInternal [ UrlBuilder.string "transaction" tId ]
