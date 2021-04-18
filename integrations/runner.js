@@ -101,6 +101,13 @@ test.serial("TestDeleteExistingFail", async t => {
   return reset()
 })
 
+test.serial("TestTransaction", async t => {
+  await runner("runTestTransaction", "testTransactionResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
 test("TestGet", t => {
   return runner("runTestGet", "testGetResult").then(result => {
     t.true(result.success)

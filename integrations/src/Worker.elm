@@ -69,6 +69,8 @@ type Msg
     | RanTestDeleteExisting (Result Firestore.Error ())
     | RunTestDeleteExistingFail ()
     | RanTestDeleteExistingFail (Result Firestore.Error ())
+    | RunTestTransaction ()
+    | RanTestTransaction (Result Firestore.Error Firestore.CommitTime)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -578,6 +580,35 @@ update msg model =
                         ngValue
             )
 
+        -- TestTransaction
+        RunTestTransaction _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        Firestore.commit
+                            (transaction
+                                |> Firestore.updateTx "users/user0"
+                                    (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                                |> Firestore.updateTx "users/user1"
+                                    (Codec.asEncoder codec { name = "user1updated", age = 10 })
+                                |> Firestore.deleteTx "users/user2"
+                                |> Firestore.deleteTx "users/user3"
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestTransaction
+            )
+
+        RanTestTransaction result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testTransactionResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -662,6 +693,7 @@ subscriptions _ =
         , runTestDelete RunTestDelete
         , runTestDeleteExisting RunTestDeleteExisting
         , runTestDeleteExistingFail RunTestDeleteExistingFail
+        , runTestTransaction RunTestTransaction
         ]
 
 
@@ -781,3 +813,9 @@ port runTestDeleteExistingFail : (() -> msg) -> Sub msg
 
 
 port testDeleteExistingFailResult : Encode.Value -> Cmd msg
+
+
+port runTestTransaction : (() -> msg) -> Sub msg
+
+
+port testTransactionResult : Encode.Value -> Cmd msg
