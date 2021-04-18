@@ -5,7 +5,7 @@ module Firestore exposing
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
-    , Transaction, TransactionId, CommitTime, begin, updateTx, deleteTx, commit
+    , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, updateTx, deleteTx
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -40,7 +40,7 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, TransactionId, CommitTime, begin, updateTx, deleteTx, commit
+@docs Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, updateTx, deleteTx
 
 -}
 
@@ -123,18 +123,8 @@ type alias Document a =
 {-| Gets a single document.
 -}
 get : FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
-get fieldDecoder (Path path_ (Firestore config)) =
-    Http.task
-        { method = "GET"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeOne Name
-                |> jsonResolver
-        }
+get =
+    getInternal []
 
 
 {-| A record structure composed of multiple documents fetched from Firestore.
@@ -147,23 +137,9 @@ type alias Documents a =
 
 {-| Lists documents.
 -}
-list :
-    FSDecode.Decoder a
-    -> ListOptions.Options
-    -> Path
-    -> Task.Task Error (Documents a)
-list fieldDecoder options (Path path_ (Firestore config)) =
-    Http.task
-        { method = "GET"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint (ListOptions.queryParameters options) (Config.Path path_) config
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
-                |> jsonResolver
-        }
+list : FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+list =
+    listInternal []
 
 
 {-| Insert a document into a collection.
@@ -235,11 +211,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
 If the fields do not exists, they will be created.
 
 -}
-patch :
-    FSDecode.Decoder a
-    -> PatchOptions.Options
-    -> Path
-    -> Task.Task Error (Document a)
+patch : FSDecode.Decoder a -> PatchOptions.Options -> Path -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
         ( params, fields ) =
@@ -285,7 +257,11 @@ deleteExisting (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] (Config.Path path_) config
+        , url =
+            Config.endpoint
+                [ UrlBuilder.string "currentDocument.exists" "true" ]
+                (Config.Path path_)
+                config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -358,6 +334,16 @@ type TransactionId
 -}
 type Transaction
     = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
+
+
+getTx : Transaction -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getTx (Transaction (TransactionId tId) _ _) =
+    getInternal [ UrlBuilder.string "transaction" tId ]
+
+
+listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listTx (Transaction (TransactionId tId) _ _) =
+    listInternal [ UrlBuilder.string "transaction" tId ]
 
 
 {-| Adds update into the transaction
@@ -544,6 +530,36 @@ beginEncoder =
 
 
 -- Internals
+
+
+getInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getInternal params fieldDecoder (Path path_ (Firestore config)) =
+    Http.task
+        { method = "GET"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint params (Config.Path path_) config
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeOne Name
+                |> jsonResolver
+        }
+
+
+listInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listInternal params fieldDecoder options (Path path_ (Firestore config)) =
+    Http.task
+        { method = "GET"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (ListOptions.queryParameters options ++ params) (Config.Path path_) config
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
+                |> jsonResolver
+        }
 
 
 jsonResolver : Decode.Decoder a -> Http.Resolver Error a
