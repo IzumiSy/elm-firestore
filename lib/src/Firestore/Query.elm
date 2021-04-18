@@ -111,7 +111,10 @@ from collection (Query query) =
 -- OrderBy
 
 
-{-| Currently elm-firestore does not support multiple field paths
+{-| OrderBy type
+
+Currently elm-firestore does not support multiple field paths
+
 -}
 type alias OrderBy =
     Dict.Dict String Direction

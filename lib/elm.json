@@ -10,6 +10,7 @@
         "Firestore.Encode",
         "Firestore.Decode",
         "Firestore.Codec",
+        "Firestore.Query",
         "Firestore.Options.List",
         "Firestore.Options.Patch",
         "Firestore.Types.Reference",
