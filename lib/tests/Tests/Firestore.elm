@@ -165,6 +165,6 @@ suite =
                         [ UrlBuilder.int "pageSize" 10
                         , UrlBuilder.string "orderBy" "name"
                         ]
-                        "users/bookmarks"
+                        (Config.Path "users/bookmarks")
                     |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/bookmarks?pageSize=10&orderBy=name&key=test-apiKey"
         ]
