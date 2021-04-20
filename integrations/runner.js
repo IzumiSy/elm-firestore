@@ -108,7 +108,7 @@ test.serial("TestTransaction", async t => {
   return reset()
 })
 
-test.serial("TestGetTx", async t => {
+test.skip("TestGetTx", async t => {
   await runner("runTestGetTx", "testGetTxResult").then(result => {
     t.true(result.success)
   })
