@@ -7,6 +7,7 @@ import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
+import Html exposing (a)
 import Http
 import Json.Encode as Encode
 import List exposing (map)
@@ -71,6 +72,8 @@ type Msg
     | RanTestDeleteExistingFail (Result Firestore.Error ())
     | RunTestTransaction ()
     | RanTestTransaction (Result Firestore.Error Firestore.CommitTime)
+    | RunTestGetTx ()
+    | RanTestGetTx (Result Firestore.Error Firestore.CommitTime)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -609,6 +612,39 @@ update msg model =
                 |> testTransactionResult
             )
 
+        -- TestGetTx
+        RunTestGetTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.path "users/user0"
+                            |> Firestore.getTx transaction (Codec.asDecoder codec)
+                            |> Task.map (\result -> ( transaction, result ))
+                    )
+                |> Task.andThen
+                    (\( transaction, { fields } ) ->
+                        Firestore.commit
+                            (Firestore.updateTx
+                                "users/user0"
+                                (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
+                                transaction
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestGetTx
+            )
+
+        RanTestGetTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testGetTxResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -694,6 +730,7 @@ subscriptions _ =
         , runTestDeleteExisting RunTestDeleteExisting
         , runTestDeleteExistingFail RunTestDeleteExistingFail
         , runTestTransaction RunTestTransaction
+        , runTestGetTx RunTestGetTx
         ]
 
 
@@ -819,3 +856,9 @@ port runTestTransaction : (() -> msg) -> Sub msg
 
 
 port testTransactionResult : Encode.Value -> Cmd msg
+
+
+port runTestGetTx : (() -> msg) -> Sub msg
+
+
+port testGetTxResult : Encode.Value -> Cmd msg
