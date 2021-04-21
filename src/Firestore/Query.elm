@@ -6,7 +6,7 @@ module Firestore.Query exposing
     , Value, bool, int, string, timestamp
     )
 
-{-| An option type for `runQuery` operaion
+{-| An option type for `runQuery` operation
 
     Query.new
         |> Query.from "users"

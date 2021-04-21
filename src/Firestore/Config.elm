@@ -65,7 +65,7 @@ new config =
         }
 
 
-{-| Encpoint appender
+{-| Endpoint appender
 -}
 type Appender
     = Path String
