@@ -75,6 +75,8 @@ type Msg
     | RanTestGetTx (Result Firestore.Error Firestore.CommitTime)
     | RunTestListTx ()
     | RanTestListTx (Result Firestore.Error Firestore.CommitTime)
+    | RunTestQueryTx ()
+    | RanTestQueryTx (Result Firestore.Error Firestore.CommitTime)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -683,6 +685,53 @@ update msg model =
                 |> testListTxResult
             )
 
+        -- TestQueryTx
+        RunTestQueryTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.runQueryTx
+                                transaction
+                                (Codec.asDecoder codec)
+                                (Query.new
+                                    |> Query.from "users"
+                                    |> Query.where_
+                                        (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
+                                )
+                            |> Task.map (\results -> ( transaction, results ))
+                    )
+                |> Task.andThen
+                    (\( transaction, results ) ->
+                        Firestore.commit
+                            (List.foldr
+                                (\{ document } ->
+                                    Firestore.updateTx
+                                        ("users/" ++ Firestore.id document.name)
+                                        (Codec.asEncoder codec
+                                            { name = document.fields.name ++ "txUpdated"
+                                            , age = document.fields.age
+                                            }
+                                        )
+                                )
+                                transaction
+                                results
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestQueryTx
+            )
+
+        RanTestQueryTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testQueryTxResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -770,6 +819,7 @@ subscriptions _ =
         , runTestTransaction RunTestTransaction
         , runTestGetTx RunTestGetTx
         , runTestListTx RunTestListTx
+        , runTestQueryTx RunTestQueryTx
         ]
 
 
@@ -907,3 +957,9 @@ port runTestListTx : (() -> msg) -> Sub msg
 
 
 port testListTxResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryTx : (() -> msg) -> Sub msg
+
+
+port testQueryTxResult : Encode.Value -> Cmd msg

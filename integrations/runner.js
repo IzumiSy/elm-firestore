@@ -122,6 +122,13 @@ test.skip("TestListTx", async t => {
   return reset()
 })
 
+test.serial("TestQueryTx", async t => {
+  await runner("runTestQueryTx", "testQueryTxResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
 test("TestGet", t => {
   return runner("runTestGet", "testGetResult").then(result => {
     t.true(result.success)
