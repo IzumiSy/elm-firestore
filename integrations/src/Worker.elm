@@ -9,8 +9,8 @@ import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
 import Http
 import Json.Encode as Encode
-import List exposing (map)
-import Maybe exposing (withDefault)
+import List
+import Maybe
 import Task
 
 
@@ -69,6 +69,14 @@ type Msg
     | RanTestDeleteExisting (Result Firestore.Error ())
     | RunTestDeleteExistingFail ()
     | RanTestDeleteExistingFail (Result Firestore.Error ())
+    | RunTestTransaction ()
+    | RanTestTransaction (Result Firestore.Error Firestore.CommitTime)
+    | RunTestGetTx ()
+    | RanTestGetTx (Result Firestore.Error Firestore.CommitTime)
+    | RunTestListTx ()
+    | RanTestListTx (Result Firestore.Error Firestore.CommitTime)
+    | RunTestQueryTx ()
+    | RanTestQueryTx (Result Firestore.Error Firestore.CommitTime)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -578,6 +586,152 @@ update msg model =
                         ngValue
             )
 
+        -- TestTransaction
+        RunTestTransaction _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        Firestore.commit
+                            (transaction
+                                |> Firestore.updateTx "users/user0"
+                                    (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                                |> Firestore.updateTx "users/user1"
+                                    (Codec.asEncoder codec { name = "user1updated", age = 10 })
+                                |> Firestore.deleteTx "users/user2"
+                                |> Firestore.deleteTx "users/user3"
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestTransaction
+            )
+
+        RanTestTransaction result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testTransactionResult
+            )
+
+        -- TestGetTx
+        RunTestGetTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.path "users/user0"
+                            |> Firestore.getTx transaction (Codec.asDecoder codec)
+                            |> Task.map (\result -> ( transaction, result ))
+                    )
+                |> Task.andThen
+                    (\( transaction, { fields } ) ->
+                        Firestore.commit
+                            (Firestore.updateTx
+                                "users/user0"
+                                (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
+                                transaction
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestGetTx
+            )
+
+        RanTestGetTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testGetTxResult
+            )
+
+        -- TestListTx
+        RunTestListTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.path "users"
+                            |> Firestore.listTx transaction (Codec.asDecoder codec) ListOptions.default
+                            |> Task.map (\{ documents } -> ( transaction, documents ))
+                    )
+                |> Task.andThen
+                    (\( transaction, documents ) ->
+                        Firestore.commit
+                            (List.foldr
+                                (\{ name, fields } ->
+                                    Firestore.updateTx
+                                        ("users/" ++ Firestore.id name)
+                                        (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
+                                )
+                                transaction
+                                documents
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestListTx
+            )
+
+        RanTestListTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testListTxResult
+            )
+
+        -- TestQueryTx
+        RunTestQueryTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.runQueryTx
+                                transaction
+                                (Codec.asDecoder codec)
+                                (Query.new
+                                    |> Query.from "users"
+                                    |> Query.where_
+                                        (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
+                                )
+                            |> Task.map (\results -> ( transaction, results ))
+                    )
+                |> Task.andThen
+                    (\( transaction, results ) ->
+                        Firestore.commit
+                            (List.foldr
+                                (\{ document } ->
+                                    Firestore.updateTx
+                                        ("users/" ++ Firestore.id document.name)
+                                        (Codec.asEncoder codec
+                                            { name = document.fields.name ++ "txUpdated"
+                                            , age = document.fields.age
+                                            }
+                                        )
+                                )
+                                transaction
+                                results
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestQueryTx
+            )
+
+        RanTestQueryTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testQueryTxResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -662,6 +816,10 @@ subscriptions _ =
         , runTestDelete RunTestDelete
         , runTestDeleteExisting RunTestDeleteExisting
         , runTestDeleteExistingFail RunTestDeleteExistingFail
+        , runTestTransaction RunTestTransaction
+        , runTestGetTx RunTestGetTx
+        , runTestListTx RunTestListTx
+        , runTestQueryTx RunTestQueryTx
         ]
 
 
@@ -781,3 +939,27 @@ port runTestDeleteExistingFail : (() -> msg) -> Sub msg
 
 
 port testDeleteExistingFailResult : Encode.Value -> Cmd msg
+
+
+port runTestTransaction : (() -> msg) -> Sub msg
+
+
+port testTransactionResult : Encode.Value -> Cmd msg
+
+
+port runTestGetTx : (() -> msg) -> Sub msg
+
+
+port testGetTxResult : Encode.Value -> Cmd msg
+
+
+port runTestListTx : (() -> msg) -> Sub msg
+
+
+port testListTxResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryTx : (() -> msg) -> Sub msg
+
+
+port testQueryTxResult : Encode.Value -> Cmd msg

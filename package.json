@@ -13,7 +13,7 @@
     "elm-format": "^0.8.3",
     "elm-test": "^0.19.1-revision2",
     "firebase": "^8.3.3",
-    "firebase-tools": "^9.9.0",
+    "firebase-tools": "^9.10.0",
     "xhr2": "^0.2.1"
   },
   "ava": {

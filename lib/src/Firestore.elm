@@ -5,7 +5,7 @@ module Firestore exposing
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
-    , Transaction, TransactionId, CommitTime, begin, update, commit
+    , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -40,10 +40,11 @@ module Firestore exposing
 
 # Transaction
 
-@docs Transaction, TransactionId, CommitTime, begin, update, commit
+@docs Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
 
 -}
 
+import Dict
 import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
@@ -56,6 +57,7 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import Set
 import Task
 import Time
 import Url.Builder as UrlBuilder
@@ -121,18 +123,8 @@ type alias Document a =
 {-| Gets a single document.
 -}
 get : FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
-get fieldDecoder (Path path_ (Firestore config)) =
-    Http.task
-        { method = "GET"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeOne Name
-                |> jsonResolver
-        }
+get =
+    getInternal []
 
 
 {-| A record structure composed of multiple documents fetched from Firestore.
@@ -145,23 +137,9 @@ type alias Documents a =
 
 {-| Lists documents.
 -}
-list :
-    FSDecode.Decoder a
-    -> ListOptions.Options
-    -> Path
-    -> Task.Task Error (Documents a)
-list fieldDecoder options (Path path_ (Firestore config)) =
-    Http.task
-        { method = "GET"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint (ListOptions.queryParameters options) (Config.Path path_) config
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
-                |> jsonResolver
-        }
+list : FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+list =
+    listInternal []
 
 
 {-| Insert a document into a collection.
@@ -175,7 +153,7 @@ insert fieldDecoder encoder (Path path_ (Firestore config)) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode encoder
+        , body = Http.jsonBody <| documentEncoder encoder
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -199,7 +177,7 @@ create fieldDecoder params (Path path_ (Firestore config)) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [ UrlBuilder.string "documentId" params.id ] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode params.document
+        , body = Http.jsonBody <| documentEncoder params.document
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -219,7 +197,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode encoder
+        , body = Http.jsonBody <| documentEncoder encoder
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -233,11 +211,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
 If the fields do not exists, they will be created.
 
 -}
-patch :
-    FSDecode.Decoder a
-    -> PatchOptions.Options
-    -> Path
-    -> Task.Task Error (Document a)
+patch : FSDecode.Decoder a -> PatchOptions.Options -> Path -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
         ( params, fields ) =
@@ -247,7 +221,7 @@ patch fieldDecoder options (Path path_ (Firestore config)) =
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint params (Config.Path path_) config
-        , body = Http.jsonBody <| FSEncode.encode <| FSEncode.document fields
+        , body = Http.jsonBody <| documentEncoder <| FSEncode.document fields
         , timeout = Nothing
         , resolver =
             fieldDecoder
@@ -283,7 +257,11 @@ deleteExisting (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [ UrlBuilder.string "currentDocument.exists" "true" ] (Config.Path path_) config
+        , url =
+            Config.endpoint
+                [ UrlBuilder.string "currentDocument.exists" "true" ]
+                (Config.Path path_)
+                config
         , body = Http.emptyBody
         , timeout = Nothing
         , resolver = emptyResolver
@@ -302,27 +280,9 @@ type alias Query a =
 
 {-| Runs a query operation
 -}
-runQuery :
-    FSDecode.Decoder a
-    -> Query.Query
-    -> Firestore
-    -> Task.Task Error (List (Query a))
-runQuery fieldDecoder query (Firestore config) =
-    Http.task
-        { method = "POST"
-        , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Config.Op "runQuery") config
-        , body =
-            Http.jsonBody <|
-                Encode.object
-                    [ ( "structuredQuery", Query.encode query )
-                    ]
-        , timeout = Nothing
-        , resolver =
-            fieldDecoder
-                |> Internals.decodeQueries Name TransactionId
-                |> jsonResolver
-        }
+runQuery : FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQuery =
+    runQueryInternal Nothing
 
 
 
@@ -355,31 +315,49 @@ type TransactionId
 {-| Data type for Transaction
 -}
 type Transaction
-    = Transaction TransactionId (List FSEncode.Encoder)
+    = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
 
 
-{-| Adds a new update into the transaction
-
-    model.firestore
-        |> Firestore.commit
-            (transaction
-                |> Firestore.update draft1
-                |> Firestore.update draft2
-                |> Firestore.update draft3
-            )
-        |> Task.attempt Commited
-
+{-| Gets a single document in transaction
 -}
-update : FSEncode.Encoder -> Transaction -> Transaction
-update encoder (Transaction tId encoders) =
-    Transaction tId (encoder :: encoders)
+getTx : Transaction -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getTx (Transaction (TransactionId tId) _ _) =
+    getInternal [ UrlBuilder.string "transaction" tId ]
+
+
+{-| Lists documents in transaction
+-}
+listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listTx (Transaction (TransactionId tId) _ _) =
+    listInternal [ UrlBuilder.string "transaction" tId ]
+
+
+{-| Runs a query operation in transaction
+-}
+runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQueryTx =
+    runQueryInternal << Just
+
+
+{-| Adds update into the transaction
+-}
+updateTx : String -> FSEncode.Encoder -> Transaction -> Transaction
+updateTx name encoder (Transaction tId encoders deletes) =
+    Transaction tId (Dict.insert name encoder encoders) deletes
+
+
+{-| Adds deletion into the transaction
+-}
+deleteTx : String -> Transaction -> Transaction
+deleteTx path_ (Transaction tId encoders deletes) =
+    Transaction tId encoders (Set.insert path_ deletes)
 
 
 {-| Starts a new transaction.
 -}
 begin : Firestore -> Task.Task Error Transaction
 begin (Firestore config) =
-    Task.map (\transaction -> Transaction transaction []) <|
+    Task.map (\transaction -> Transaction transaction Dict.empty Set.empty) <|
         Http.task
             { method = "POST"
             , headers = Config.httpHeader config
@@ -400,6 +378,16 @@ type alias CommitTime =
 
 Only `readWrite` transaction is currently supported which requires authorization that can be set via `Config.withAuthorization` function.
 
+    model.firestore
+        |> Firestore.commit
+            (transaction
+                |> Firestore.updateTx "users/user1" newUser1
+                |> Firestore.updateTx "users/user2" newUser2
+                |> Firestore.deleteTx "users/user3"
+                |> Firestore.deleteTx "users/user4"
+            )
+        |> Task.attempt Commited
+
 -}
 commit : Transaction -> Firestore -> Task.Task Error CommitTime
 commit transaction (Firestore config) =
@@ -407,7 +395,7 @@ commit transaction (Firestore config) =
         { method = "POST"
         , headers = Config.httpHeader config
         , url = Config.endpoint [] (Config.Op "commit") config
-        , body = Http.jsonBody <| commitEncoder transaction
+        , body = Http.jsonBody <| commitEncoder config transaction
         , timeout = Nothing
         , resolver = jsonResolver commitDecoder
         }
@@ -469,11 +457,54 @@ errorInfoDecoder =
 -- Encoders
 
 
-commitEncoder : Transaction -> Encode.Value
-commitEncoder (Transaction (TransactionId tId) drafts) =
+documentEncoder : FSEncode.Encoder -> Encode.Value
+documentEncoder encoder =
+    Encode.object
+        [ ( "fields", FSEncode.encode encoder )
+        ]
+
+
+commitDocumentEncoder : String -> FSEncode.Encoder -> Encode.Value
+commitDocumentEncoder name encoder =
+    Encode.object
+        [ ( "name", Encode.string name )
+        , ( "fields", FSEncode.encode encoder )
+        ]
+
+
+commitEncoder : Config.Config -> Transaction -> Encode.Value
+commitEncoder config (Transaction (TransactionId tId) updates deletes) =
+    let
+        withBasePath name =
+            UrlBuilder.relative [ Config.basePath config, name ] []
+
+        deletes_ =
+            deletes
+                |> Set.toList
+                |> List.map
+                    (\name ->
+                        ( "delete"
+                        , Encode.string <| withBasePath name
+                        )
+                    )
+
+        updates_ =
+            updates
+                |> Dict.toList
+                |> List.map
+                    (\( name, document ) ->
+                        ( "update"
+                        , commitDocumentEncoder (withBasePath name) document
+                        )
+                    )
+    in
     Encode.object
         [ ( "transaction", Encode.string tId )
-        , ( "writes", Encode.list FSEncode.encode drafts )
+        , ( "writes"
+          , Encode.list
+                (Encode.object << List.singleton)
+                (deletes_ ++ updates_)
+          )
         ]
 
 
@@ -492,6 +523,59 @@ beginEncoder =
 
 
 -- Internals
+
+
+getInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getInternal params fieldDecoder (Path path_ (Firestore config)) =
+    Http.task
+        { method = "GET"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint params (Config.Path path_) config
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeOne Name
+                |> jsonResolver
+        }
+
+
+listInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listInternal params fieldDecoder options (Path path_ (Firestore config)) =
+    Http.task
+        { method = "GET"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint (ListOptions.queryParameters options ++ params) (Config.Path path_) config
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeList Name (Internals.PageToken >> ListOptions.PageToken)
+                |> jsonResolver
+        }
+
+
+runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQueryInternal maybeTransaction fieldDecoder query (Firestore config) =
+    Http.task
+        { method = "POST"
+        , headers = Config.httpHeader config
+        , url = Config.endpoint [] (Config.Op "runQuery") config
+        , body =
+            Http.jsonBody <|
+                Encode.object <|
+                    List.filterMap identity <|
+                        [ Just ( "structuredQuery", Query.encode query )
+                        , Maybe.map
+                            (\(Transaction (TransactionId tId) _ _) -> ( "transaction", Encode.string tId ))
+                            maybeTransaction
+                        ]
+        , timeout = Nothing
+        , resolver =
+            fieldDecoder
+                |> Internals.decodeQueries Name TransactionId
+                |> jsonResolver
+        }
 
 
 jsonResolver : Decode.Decoder a -> Http.Resolver Error a
