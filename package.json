@@ -1,11 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "build": "cd lib && elm make",
-    "publish": "cd lib && elm publish",
-    "test": "cd lib && elm-test",
+    "build": "elm make",
+    "publish": "elm publish",
+    "test": "elm-test",
     "test:integration:setup": "firebase setup:emulators:firestore",
-    "test:integration": "./integrations/test.sh"
+    "test:integration": "./integration_tests/test.sh"
   },
   "devDependencies": {
     "ava": "^3.15.0",
@@ -18,7 +18,7 @@
   },
   "ava": {
     "files": [
-      "integrations/runner.js"
+      "integration_tests/runner.js"
     ]
   }
 }
