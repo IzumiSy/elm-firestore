@@ -101,7 +101,7 @@ test.serial("TestDeleteExistingFail", async t => {
   return reset()
 })
 
-test.serial("TestTransaction", async t => {
+test.skip("TestTransaction", async t => {
   await runner("runTestTransaction", "testTransactionResult").then(result => {
     t.true(result.success)
   })
@@ -110,6 +110,13 @@ test.serial("TestTransaction", async t => {
 
 test.skip("TestGetTx", async t => {
   await runner("runTestGetTx", "testGetTxResult").then(result => {
+    t.true(result.success)
+  })
+  return reset()
+})
+
+test.skip("TestListTx", async t => {
+  await runner("runTestListTx", "testListTxResult").then(result => {
     t.true(result.success)
   })
   return reset()

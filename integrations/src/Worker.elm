@@ -7,11 +7,10 @@ import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
-import Html exposing (a)
 import Http
 import Json.Encode as Encode
-import List exposing (map)
-import Maybe exposing (withDefault)
+import List
+import Maybe
 import Task
 
 
@@ -74,6 +73,8 @@ type Msg
     | RanTestTransaction (Result Firestore.Error Firestore.CommitTime)
     | RunTestGetTx ()
     | RanTestGetTx (Result Firestore.Error Firestore.CommitTime)
+    | RunTestListTx ()
+    | RanTestListTx (Result Firestore.Error Firestore.CommitTime)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -645,6 +646,43 @@ update msg model =
                 |> testGetTxResult
             )
 
+        -- TestListTx
+        RunTestListTx _ ->
+            ( model
+            , model
+                |> Firestore.begin
+                |> Task.andThen
+                    (\transaction ->
+                        model
+                            |> Firestore.path "users"
+                            |> Firestore.listTx transaction (Codec.asDecoder codec) ListOptions.default
+                            |> Task.map (\{ documents } -> ( transaction, documents ))
+                    )
+                |> Task.andThen
+                    (\( transaction, documents ) ->
+                        Firestore.commit
+                            (List.foldr
+                                (\{ name, fields } ->
+                                    Firestore.updateTx
+                                        ("users/" ++ Firestore.id name)
+                                        (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
+                                )
+                                transaction
+                                documents
+                            )
+                            model
+                    )
+                |> Task.attempt RanTestListTx
+            )
+
+        RanTestListTx result ->
+            ( model
+            , result
+                |> Result.map (\_ -> okValue Encode.null)
+                |> Result.withDefault ngValue
+                |> testListTxResult
+            )
+
 
 main : Program () Model Msg
 main =
@@ -731,6 +769,7 @@ subscriptions _ =
         , runTestDeleteExistingFail RunTestDeleteExistingFail
         , runTestTransaction RunTestTransaction
         , runTestGetTx RunTestGetTx
+        , runTestListTx RunTestListTx
         ]
 
 
@@ -862,3 +901,9 @@ port runTestGetTx : (() -> msg) -> Sub msg
 
 
 port testGetTxResult : Encode.Value -> Cmd msg
+
+
+port runTestListTx : (() -> msg) -> Sub msg
+
+
+port testListTxResult : Encode.Value -> Cmd msg
