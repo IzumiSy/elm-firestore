@@ -101,6 +101,7 @@ test.serial("TestDeleteExistingFail", async t => {
   return reset()
 })
 
+// Skips this test due to issue firebase-tools#3293
 test.skip("TestTransaction", async t => {
   await runner("runTestTransaction", "testTransactionResult").then(result => {
     t.true(result.success)
@@ -108,6 +109,7 @@ test.skip("TestTransaction", async t => {
   return reset()
 })
 
+// Skips this test due to issue firebase-tools#3293
 test.skip("TestGetTx", async t => {
   await runner("runTestGetTx", "testGetTxResult").then(result => {
     t.true(result.success)
@@ -115,6 +117,7 @@ test.skip("TestGetTx", async t => {
   return reset()
 })
 
+// Skips this test due to issue firebase-tools#3293
 test.skip("TestListTx", async t => {
   await runner("runTestListTx", "testListTxResult").then(result => {
     t.true(result.success)
