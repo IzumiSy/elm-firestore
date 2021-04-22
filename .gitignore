@@ -3,4 +3,4 @@ elm-stuff/
 firestore-debug.log
 firebase-debug.log
 ui-debug.log
-integrations/worker.js
+integration_tests/worker.js
