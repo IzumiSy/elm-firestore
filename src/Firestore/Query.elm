@@ -342,7 +342,9 @@ fromValue =
         >> JsonEncode.list
             (\value ->
                 JsonEncode.object
-                    [ ( "collectionId", JsonEncode.string value ) ]
+                    [ ( "collectionId", JsonEncode.string value )
+                    , ( "allDescendants", JsonEncode.bool False )
+                    ]
             )
 
 
