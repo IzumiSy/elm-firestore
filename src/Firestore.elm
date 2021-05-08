@@ -1,7 +1,7 @@
 module Firestore exposing
     ( Firestore
     , init, withConfig
-    , Path, path
+    , Path, root, collection, subCollection, document
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
@@ -20,7 +20,7 @@ module Firestore exposing
 
 # Path
 
-@docs Path, path
+@docs Path, root, collection, subCollection, document
 
 
 # CRUDs
@@ -89,22 +89,78 @@ A `Path` value is always required in calling CRUD operations.
 This interface design enforces users to call `path` function to build `Path` value beforehand
 in order to prevent forgetting specifiying path to operate.
 
--}
-type Path
-    = Path String Firestore
-
-
-{-| Specifies document path.
-
     firestore
-        |> Firestore.path "users/items/tags"
-        |> Firestore.get tagsDecoder
+        |> Firestore.root
+        |> Firestore.collection "users"
+        |> Firestore.document "user0"
+        |> Firestore.subCollection "tags"
+        |> Firestore.list tagDecoder ListOptions.default
         |> Task.attempt GotUserItemTags
 
 -}
-path : String -> Firestore -> Path
-path value (Firestore config) =
-    Path value (Firestore config)
+type Path a
+    = Path (List String) Firestore
+
+
+type Specified
+    = Specified
+
+
+{-| A root path
+-}
+root : Firestore -> Path RootType
+root (Firestore config) =
+    Path [] (Firestore config)
+
+
+type alias RootType =
+    { root : Specified
+    , collection : Specified
+    }
+
+
+{-| A collection path
+-}
+collection : String -> Path RootType -> Path CollectionType
+collection value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
+
+
+type alias CollectionType =
+    { collection : Specified }
+
+
+{-| A document path
+-}
+document : String -> Path CollectionType -> Path DocumentType
+document value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
+
+
+type alias DocumentType =
+    { document : Specified }
+
+
+{-| A sub-collection path
+-}
+subCollection : String -> Path DocumentType -> Path CollectionType
+subCollection value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
+
+
+type alias DocumentPath a =
+    { a | document : Specified }
+
+
+type alias CollectionPath a =
+    { a | collection : Specified }
+
+
+type alias QueryPath a =
+    { a
+        | root : Specified
+        , document : Specified
+    }
 
 
 
@@ -123,7 +179,7 @@ type alias Document a =
 
 {-| Gets a single document.
 -}
-get : FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+get : FSDecode.Decoder a -> Path (DocumentPath b) -> Task.Task Error (Document a)
 get =
     getInternal []
 
@@ -138,7 +194,7 @@ type alias Documents a =
 
 {-| Lists documents.
 -}
-list : FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+list : FSDecode.Decoder a -> ListOptions.Options -> Path (CollectionPath b) -> Task.Task Error (Documents a)
 list =
     listInternal []
 
@@ -148,7 +204,7 @@ list =
 The document will get a fresh document id.
 
 -}
-insert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
+insert : FSDecode.Decoder a -> FSEncode.Encoder -> Path (CollectionPath b) -> Task.Task Error (Document a)
 insert fieldDecoder encoder (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"
@@ -171,7 +227,7 @@ Takes the document id as the first argument.
 create :
     FSDecode.Decoder a
     -> { id : String, document : FSEncode.Encoder }
-    -> Path
+    -> Path (CollectionPath b)
     -> Task.Task Error (Document a)
 create fieldDecoder params (Path path_ (Firestore config)) =
     Http.task
@@ -192,7 +248,7 @@ create fieldDecoder params (Path path_ (Firestore config)) =
 Creates one if not present.
 
 -}
-upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Path -> Task.Task Error (Document a)
+upsert : FSDecode.Decoder a -> FSEncode.Encoder -> Path (DocumentPath b) -> Task.Task Error (Document a)
 upsert fieldDecoder encoder (Path path_ (Firestore config)) =
     Http.task
         { method = "PATCH"
@@ -212,7 +268,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
 If the fields do not exists, they will be created.
 
 -}
-patch : FSDecode.Decoder a -> PatchOptions.Options -> Path -> Task.Task Error (Document a)
+patch : FSDecode.Decoder a -> PatchOptions.Options -> Path (DocumentPath b) -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
         ( params, fields ) =
@@ -236,7 +292,7 @@ patch fieldDecoder options (Path path_ (Firestore config)) =
 Will succeed if document does not exist.
 
 -}
-delete : Path -> Task.Task Error ()
+delete : Path (DocumentPath a) -> Task.Task Error ()
 delete (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
@@ -253,7 +309,7 @@ delete (Path path_ (Firestore config)) =
 Will fail if document does not exist.
 
 -}
-deleteExisting : Path -> Task.Task Error ()
+deleteExisting : Path (DocumentPath a) -> Task.Task Error ()
 deleteExisting (Path path_ (Firestore config)) =
     Http.task
         { method = "DELETE"
@@ -281,7 +337,7 @@ type alias Query a =
 
 {-| Runs a query operation
 -}
-runQuery : FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQuery : FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
 runQuery =
     runQueryInternal Nothing
 
@@ -321,21 +377,21 @@ type Transaction
 
 {-| Gets a single document in transaction
 -}
-getTx : Transaction -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getTx : Transaction -> FSDecode.Decoder a -> Path (DocumentPath b) -> Task.Task Error (Document a)
 getTx (Transaction (TransactionId tId) _ _) =
     getInternal [ UrlBuilder.string "transaction" tId ]
 
 
 {-| Lists documents in transaction
 -}
-listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listTx : Transaction -> FSDecode.Decoder a -> ListOptions.Options -> Path (CollectionPath b) -> Task.Task Error (Documents a)
 listTx (Transaction (TransactionId tId) _ _) =
     listInternal [ UrlBuilder.string "transaction" tId ]
 
 
 {-| Runs a query operation in transaction
 -}
-runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
+runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
 runQueryTx =
     runQueryInternal << Just
 
@@ -495,9 +551,9 @@ commitEncoder config (Transaction (TransactionId tId) updates deletes) =
             updates
                 |> Dict.toList
                 |> List.map
-                    (\( name, document ) ->
+                    (\( name, document_ ) ->
                         ( "update"
-                        , commitDocumentEncoder (withBasePath name) document
+                        , commitDocumentEncoder (withBasePath name) document_
                         )
                     )
     in
@@ -528,7 +584,7 @@ beginEncoder =
 -- Internals
 
 
-getInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> Path -> Task.Task Error (Document a)
+getInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> Path (DocumentPath b) -> Task.Task Error (Document a)
 getInternal params fieldDecoder (Path path_ (Firestore config)) =
     Http.task
         { method = "GET"
@@ -543,7 +599,7 @@ getInternal params fieldDecoder (Path path_ (Firestore config)) =
         }
 
 
-listInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> ListOptions.Options -> Path -> Task.Task Error (Documents a)
+listInternal : List UrlBuilder.QueryParameter -> FSDecode.Decoder a -> ListOptions.Options -> Path (CollectionPath b) -> Task.Task Error (Documents a)
 listInternal params fieldDecoder options (Path path_ (Firestore config)) =
     Http.task
         { method = "GET"
@@ -558,12 +614,12 @@ listInternal params fieldDecoder options (Path path_ (Firestore config)) =
         }
 
 
-runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Firestore -> Task.Task Error (List (Query a))
-runQueryInternal maybeTransaction fieldDecoder query (Firestore config) =
+runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
+runQueryInternal maybeTransaction fieldDecoder query (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
-        , url = Config.endpoint [] (Config.Op "runQuery") config
+        , url = Config.endpoint [] (Config.PathOp path_ "runQuery") config
         , body =
             Http.jsonBody <|
                 Encode.object <|
