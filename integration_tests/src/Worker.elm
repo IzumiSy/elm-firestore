@@ -21,7 +21,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { apiKey = "test-api-key"
-      , project = "elm-firestore-test"
+      , project = "firestore-integration-test"
       }
         |> Config.new
         |> Config.withHost "http://localhost" 8080
