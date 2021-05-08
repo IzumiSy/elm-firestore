@@ -106,46 +106,18 @@ type Specified
     = Specified
 
 
-{-| A root path
--}
-root : Firestore -> Path RootType
-root (Firestore config) =
-    Path [] (Firestore config)
-
-
 type alias RootType =
     { root : Specified
     , collection : Specified
     }
 
 
-{-| A collection path
--}
-collection : String -> Path RootType -> Path CollectionType
-collection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
-
-
 type alias CollectionType =
     { collection : Specified }
 
 
-{-| A document path
--}
-document : String -> Path CollectionType -> Path DocumentType
-document value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
-
-
 type alias DocumentType =
     { document : Specified }
-
-
-{-| A sub-collection path
--}
-subCollection : String -> Path DocumentType -> Path CollectionType
-subCollection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
 
 
 type alias DocumentPath a =
@@ -161,6 +133,34 @@ type alias QueryPath a =
         | root : Specified
         , document : Specified
     }
+
+
+{-| A root path
+-}
+root : Firestore -> Path RootType
+root (Firestore config) =
+    Path [] (Firestore config)
+
+
+{-| A collection path
+-}
+collection : String -> Path RootType -> Path CollectionType
+collection value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
+
+
+{-| A document path
+-}
+document : String -> Path CollectionType -> Path DocumentType
+document value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
+
+
+{-| A sub-collection path
+-}
+subCollection : String -> Path DocumentType -> Path CollectionType
+subCollection value (Path current firestore) =
+    Path (current ++ List.singleton value) firestore
 
 
 
