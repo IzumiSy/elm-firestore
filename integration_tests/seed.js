@@ -9,9 +9,9 @@ exports.loadSeeds = () => {
   const db = firebase.firestore()
   return Promise.all(seeds.users.map(async (value, index) => {
     await db.collection("users").doc(`user${index}`).set(value)
-    return Promise.all(seeds.extras[`user${index}`].map(value =>
-      db.collection("users").doc(`user${index}`).collection("extras").add(value)
-    ))
+    return Promise.all(seeds.extras[`user${index}`].map(value => {
+      return db.collection("users").doc(`user${index}`).collection("extras").add(value)
+    }))
   }))
 }
 
