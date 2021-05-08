@@ -235,7 +235,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                     )
@@ -261,7 +261,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.compositeFilter Query.And
                                 (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
@@ -290,7 +290,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.unaryFilter "name" Query.IsNull)
                     )
@@ -316,7 +316,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.orderBy "age" Query.Descending
                         |> Query.where_
                             (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
@@ -345,7 +345,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
                     )
@@ -371,7 +371,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.limit 2
                         |> Query.offset 2
                         |> Query.orderBy "age" Query.Descending
@@ -697,7 +697,7 @@ update msg model =
                                 transaction
                                 (Codec.asDecoder codec)
                                 (Query.new
-                                    |> Query.from "users"
+                                    |> Query.collection "users"
                                     |> Query.where_
                                         (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                                 )
