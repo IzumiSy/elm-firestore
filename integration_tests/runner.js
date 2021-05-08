@@ -210,3 +210,10 @@ test("TestQueryComplex", t => {
     t.is(result.value, "user2")
   })
 })
+
+test("TestQueryCollectionGroup", t => {
+  return runner("runTestQueryCollectionGroup", "testQueryCollectionGroupResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 3)
+  })
+})

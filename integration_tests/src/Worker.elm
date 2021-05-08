@@ -49,10 +49,12 @@ type Msg
     | RanTestQueryUnaryOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryOrderBy ()
     | RanTestQueryOrderBy (Result Firestore.Error (List (Firestore.Query User)))
-    | RunTestQueryComplex ()
-    | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryEmpty ()
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryComplex ()
+    | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryCollectionGroup ()
+    | RanTestQueryCollectionGroup (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -396,6 +398,32 @@ update msg model =
                     )
                 |> Result.withDefault ngValue
                 |> testQueryComplexResult
+            )
+
+        -- TestQueryCollectionGroup
+        RunTestQueryCollectionGroup _ ->
+            ( model
+            , model
+                |> Firestore.runQuery
+                    (Codec.asDecoder codec)
+                    (Query.new
+                        |> Query.collectionGroup "extras"
+                        |> Query.where_
+                            (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
+                    )
+                |> Task.attempt RanTestQueryCollectionGroup
+            )
+
+        RanTestQueryCollectionGroup result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryCollectionGroupResult
             )
 
         -- TestInsert
@@ -808,6 +836,7 @@ subscriptions _ =
         , runTestQueryOrderBy RunTestQueryOrderBy
         , runTestQueryEmpty RunTestQueryEmpty
         , runTestQueryComplex RunTestQueryComplex
+        , runTestQueryCollectionGroup RunTestQueryCollectionGroup
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
@@ -891,6 +920,12 @@ port runTestQueryComplex : (() -> msg) -> Sub msg
 
 
 port testQueryComplexResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryCollectionGroup : (() -> msg) -> Sub msg
+
+
+port testQueryCollectionGroupResult : Encode.Value -> Cmd msg
 
 
 port runTestInsert : (() -> msg) -> Sub msg

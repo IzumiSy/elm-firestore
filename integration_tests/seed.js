@@ -1,5 +1,5 @@
 const firebase = require("firebase")
-const data = require("./users.json")
+const seeds = require("./seeds.json")
 require("firebase/firestore")
 
 firebase.initializeApp({ projectId: "elm-firestore-test" })
@@ -7,8 +7,12 @@ firebase.firestore().useEmulator("localhost", 8080)
 
 exports.loadSeeds = () => {
   const db = firebase.firestore()
-  const loaders = data.seeds.map((value, index) => db.collection("users").doc(`user${index}`).set(value))
-  return Promise.all(loaders)
+  return Promise.all(seeds.users.map(async (value, index) => {
+    await db.collection("users").doc(`user${index}`).set(value)
+    return Promise.all(seeds.extras[`user${index}`].map(value =>
+      db.collection("users").doc(`user${index}`).collection("extras").add(value)
+    ))
+  }))
 }
 
 exports.clearAll = async () => {
