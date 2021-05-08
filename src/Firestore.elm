@@ -98,7 +98,7 @@ in order to prevent forgetting specifiying path to operate.
         |> Task.attempt GotUserItemTags
 
 -}
-type Path a
+type Path pathType
     = Path (List String) Firestore
 
 
@@ -107,31 +107,31 @@ type Specified
 
 
 type alias RootType =
-    { collection : Specified
-    , queriable : Specified
+    { collectionPath : Specified
+    , queriablePath : Specified
     }
 
 
 type alias CollectionType =
-    { collection : Specified }
+    { collectionPath : Specified }
 
 
 type alias DocumentType =
-    { document : Specified
-    , queriable : Specified
+    { documentPath : Specified
+    , queriablePath : Specified
     }
 
 
 type alias DocumentPath a =
-    { a | document : Specified }
+    { a | documentPath : Specified }
 
 
 type alias CollectionPath a =
-    { a | collection : Specified }
+    { a | collectionPath : Specified }
 
 
-type alias QueryPath a =
-    { a | queriable : Specified }
+type alias QueriablePath a =
+    { a | queriablePath : Specified }
 
 
 {-| A root path
@@ -335,8 +335,11 @@ type alias Query a =
 
 
 {-| Runs a query operation
+
+This opeartion only accepts a path built with `root` or `document`.
+
 -}
-runQuery : FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
+runQuery : FSDecode.Decoder a -> Query.Query -> Path (QueriablePath b) -> Task.Task Error (List (Query a))
 runQuery =
     runQueryInternal Nothing
 
@@ -390,7 +393,7 @@ listTx (Transaction (TransactionId tId) _ _) =
 
 {-| Runs a query operation in transaction
 -}
-runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
+runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueriablePath b) -> Task.Task Error (List (Query a))
 runQueryTx =
     runQueryInternal << Just
 
@@ -613,7 +616,7 @@ listInternal params fieldDecoder options (Path path_ (Firestore config)) =
         }
 
 
-runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueryPath b) -> Task.Task Error (List (Query a))
+runQueryInternal : Maybe Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueriablePath b) -> Task.Task Error (List (Query a))
 runQueryInternal maybeTransaction fieldDecoder query (Path path_ (Firestore config)) =
     Http.task
         { method = "POST"

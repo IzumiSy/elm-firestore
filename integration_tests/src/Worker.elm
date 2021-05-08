@@ -423,7 +423,7 @@ update msg model =
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.collectionGroup "extras"
+                        |> Query.collection "extras"
                         |> Query.where_
                             (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
                     )
