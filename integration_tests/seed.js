@@ -2,7 +2,7 @@ const firebase = require("firebase")
 const seeds = require("./seeds.json")
 require("firebase/firestore")
 
-firebase.initializeApp({ projectId: "elm-firestore-test" })
+firebase.initializeApp({ projectId: "firestore-integration-test" })
 firebase.firestore().useEmulator("localhost", 8080)
 
 exports.loadSeeds = () => {
