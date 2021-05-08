@@ -86,6 +86,9 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
                 Op op ->
                     [ basePath config ++ ":" ++ op ]
 
+                PathOp [] op ->
+                    [ basePath config ++ ":" ++ op ]
+
                 PathOp path_ op ->
                     [ basePath config, String.join "/" path_ ++ ":" ++ op ]
     in
