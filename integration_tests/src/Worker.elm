@@ -418,6 +418,8 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new

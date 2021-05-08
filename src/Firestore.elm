@@ -107,8 +107,8 @@ type Specified
 
 
 type alias RootType =
-    { root : Specified
-    , collection : Specified
+    { collection : Specified
+    , queriable : Specified
     }
 
 
@@ -117,7 +117,9 @@ type alias CollectionType =
 
 
 type alias DocumentType =
-    { document : Specified }
+    { document : Specified
+    , queriable : Specified
+    }
 
 
 type alias DocumentPath a =
@@ -129,10 +131,7 @@ type alias CollectionPath a =
 
 
 type alias QueryPath a =
-    { a
-        | root : Specified
-        , document : Specified
-    }
+    { a | queriable : Specified }
 
 
 {-| A root path
