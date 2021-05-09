@@ -83,11 +83,7 @@ withConfig config (Firestore _) =
     Firestore config
 
 
-{-| Type to point document path to operate.
-
-A `Path` value is always required in calling CRUD operations.
-This interface design enforces users to call `path` function to build `Path` value beforehand
-in order to prevent forgetting specifiying path to operate.
+{-| A path type
 
     firestore
         |> Firestore.root
@@ -439,7 +435,6 @@ type alias CommitTime =
 {-| Commits a transaction, while optionally updating and deleting documents.
 
 Only `readWrite` transaction is currently supported which requires authorization that can be set via `Config.withAuthorization` function.
-
 Transaction in Firetore works in a pattern of "unit of work". It requires sets of updates and deletes to be commited.
 
     model.firestore
