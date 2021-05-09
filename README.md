@@ -10,10 +10,9 @@ The features elm-firestore library supports are as follows:
 | :------------------------------------------------------- | :-------------------------- |
 | Simple CRUD operation (get, list, create, patch, delete) | :white_check_mark: Yes      |
 | Transactions                                             | :white_check_mark: Yes      |
-| Realtime update listening                                | :heavy_exclamation_mark: No |
-| Collection group                                         | :heavy_exclamation_mark: No |
-| Indexing                                                 | :heavy_exclamation_mark: No |
+| Collection group                                         | :white_check_mark: Yes      |
 | Query                                                    | Partially supported         |
+| Realtime update listening                                | :heavy_exclamation_mark: No |
 
 ### When will this package support realtime update?
 
