@@ -230,9 +230,16 @@ test("TestQueryComplex", t => {
   })
 })
 
+test("TestQuerySubCollection", t => {
+  return runner("runTestQuerySubCollection", "testQuerySubCollectionResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 3)
+  })
+})
+
 test("TestQueryCollectionGroup", t => {
   return runner("runTestQueryCollectionGroup", "testQueryCollectionGroupResult").then(result => {
     t.true(result.success)
-    t.is(result.value, 3)
+    t.is(result.value, 4)
   })
 })

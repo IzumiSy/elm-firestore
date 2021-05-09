@@ -8,10 +8,15 @@
   ],
   "extras": {
     "user0": [
-      { "type": "tel", "value": "202-555-0113" }
+      { "type": "occupation", "value": "teacher" },
+      { "type": "tel", "value": "202-555-0113" },
+      { "type": "tel", "value": "202-555-0147" },
+      { "type": "tel", "value": "202-555-0123" }
     ],
     "user1": [
-      { "type": "tel", "value": "202-555-0132" }
+      { "type": "occupation", "value": "programmer" },
+      { "type": "tel", "value": "202-555-0132" },
+      { "type": "tel", "value": "202-555-0123" }
     ],
     "user2": [
       { "type": "tel", "value": "202-555-0152" }

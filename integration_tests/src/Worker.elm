@@ -60,6 +60,8 @@ type Msg
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryComplex ()
     | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQuerySubCollection ()
+    | RanTestQuerySubCollection (Result Firestore.Error (List (Firestore.Query Extra)))
     | RunTestQueryCollectionGroup ()
     | RanTestQueryCollectionGroup (Result Firestore.Error (List (Firestore.Query Extra)))
     | RunTestInsert ()
@@ -420,8 +422,8 @@ update msg model =
                 |> testQueryComplexResult
             )
 
-        -- TestQueryCollectionGroup
-        RunTestQueryCollectionGroup _ ->
+        -- TestQuerySubCollection
+        RunTestQuerySubCollection _ ->
             ( model
             , model
                 |> Firestore.root
@@ -433,6 +435,33 @@ update msg model =
                         |> Query.collection "extras"
                         |> Query.where_
                             (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
+                    )
+                |> Task.attempt RanTestQuerySubCollection
+            )
+
+        RanTestQuerySubCollection result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQuerySubCollectionResult
+            )
+
+        -- TestQueryCollectionGroup
+        RunTestQueryCollectionGroup _ ->
+            ( model
+            , model
+                |> Firestore.root
+                |> Firestore.runQuery
+                    (Codec.asDecoder extraCodec)
+                    (Query.new
+                        |> Query.collectionGroup "extras"
+                        |> Query.where_
+                           (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
                     )
                 |> Task.attempt RanTestQueryCollectionGroup
             )
@@ -892,6 +921,7 @@ subscriptions _ =
         , runTestQueryOrderBy RunTestQueryOrderBy
         , runTestQueryEmpty RunTestQueryEmpty
         , runTestQueryComplex RunTestQueryComplex
+        , runTestQuerySubCollection RunTestQuerySubCollection
         , runTestQueryCollectionGroup RunTestQueryCollectionGroup
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
@@ -976,6 +1006,12 @@ port runTestQueryComplex : (() -> msg) -> Sub msg
 
 
 port testQueryComplexResult : Encode.Value -> Cmd msg
+
+
+port runTestQuerySubCollection : (() -> msg) -> Sub msg
+
+
+port testQuerySubCollectionResult : Encode.Value -> Cmd msg
 
 
 port runTestQueryCollectionGroup : (() -> msg) -> Sub msg

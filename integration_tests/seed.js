@@ -19,8 +19,16 @@ class Seed {
   }
 
   async clear() {
+    const batch = this.db.batch()
     const users = await this.db.collection("users").get()
-    return Promise.all(users.docs.map(doc => doc.ref.delete()))
+    const extrasByUser = await Promise.all(users.docs.map(async doc =>
+      this.db.collection("users").doc(doc.id).collection("extras").get()
+    ))
+    extrasByUser.forEach(extras => {
+      extras.docs.forEach(doc => batch.delete(doc.ref))
+    })
+    await batch.commit()
+    return Promise.all(users.docs.map(async doc => doc.ref.delete()))
   }
 }
 
