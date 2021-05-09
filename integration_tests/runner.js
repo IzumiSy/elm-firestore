@@ -1,6 +1,6 @@
 const worker = require('./worker');
 const test = require("ava")
-const { loadSeeds, clearAll } = require('./seed')
+const Seed = require('./seed')
 
 // Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
 // Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
@@ -12,29 +12,48 @@ global.XMLHttpRequest = require('xhr2');
 // So cuncurrency is a key to reduce time to run integration tests.
 //
 
+const config = {
+  apiKey: 'test-api-key',
+  projectId: 'firestore-integration-test',
+  host: 'localhost',
+  port: 8080,
+}
+
+const seed = new Seed({
+  apiKey: config.apiKey,
+  projectId: config.projectId,
+  host: config.host,
+  port: config.port,
+})
+
 const w = worker.Elm.Worker;
 const runner = (triggerName, resultName) => {
-  const app = w.init();
+  const app = w.init({
+    flags: {
+      apiKey: config.apiKey,
+      project: config.projectId,
+      host: `http://${config.host}`,
+      port_: config.port,
+    }
+  });
   return new Promise((resolve) => {
-    app.ports[resultName].subscribe(result => {
-      resolve(result);
-    })
+    app.ports[resultName].subscribe(resolve);
     app.ports[triggerName].send(null);
   })
 }
 
 // Resets Firestore contents to the initial
 const reset = async () => {
-  await clearAll()
-  return loadSeeds()
+  await seed.clear()
+  return seed.populate()
 }
 
 test.before("Seeds Firestore", () => {
-  return loadSeeds()
+  return seed.populate()
 })
 
 test.after("Cleanup Firestore", () => {
-  return clearAll()
+  return seed.clear()
 })
 
 //
@@ -208,5 +227,19 @@ test("TestQueryComplex", t => {
   return runner("runTestQueryComplex", "testQueryComplexResult").then(result => {
     t.true(result.success)
     t.is(result.value, "user2")
+  })
+})
+
+test("TestQuerySubCollection", t => {
+  return runner("runTestQuerySubCollection", "testQuerySubCollectionResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 3)
+  })
+})
+
+test("TestQueryCollectionGroup", t => {
+  return runner("runTestQueryCollectionGroup", "testQueryCollectionGroupResult").then(result => {
+    t.true(result.success)
+    t.is(result.value, 4)
   })
 })

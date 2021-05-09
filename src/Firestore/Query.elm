@@ -1,6 +1,6 @@
 module Firestore.Query exposing
     ( Query, new, encode
-    , offset, limit, from
+    , offset, limit, collection, collectionGroup
     , Direction(..), orderBy
     , Where, FieldOp(..), UnaryOp(..), CompositeOp(..), compositeFilter, fieldFilter, unaryFilter, where_
     , Value, bool, int, string, timestamp
@@ -9,7 +9,7 @@ module Firestore.Query exposing
 {-| An option type for `runQuery` operation
 
     Query.new
-        |> Query.from "users"
+        |> Query.collection "users"
         |> Query.limit 2
         |> Query.offset 2
         |> Query.orderBy "age" Query.Descending
@@ -27,7 +27,7 @@ module Firestore.Query exposing
 
 # Basics
 
-@docs offset, limit, from
+@docs offset, limit, collection, collectionGroup
 
 
 # OrderBy
@@ -49,7 +49,6 @@ module Firestore.Query exposing
 import Dict
 import Firestore.Internals.Encode as Encode
 import Json.Encode as JsonEncode
-import Set
 import Time
 import Typed exposing (Typed)
 
@@ -62,7 +61,7 @@ type Query
         , orderBy : OrderBy
         , offset : Maybe Int
         , limit : Maybe Int
-        , from : From
+        , collections : Collections
         }
 
 
@@ -75,7 +74,7 @@ new =
         , orderBy = Dict.empty
         , offset = Nothing
         , limit = Nothing
-        , from = Set.empty
+        , collections = Dict.empty
         }
 
 
@@ -92,7 +91,7 @@ encode (Query query) =
                     |> Maybe.withDefault (JsonEncode.object [])
                 )
             , Just ( "orderBy", orderByValue query.orderBy )
-            , Just ( "from", fromValue query.from )
+            , Just ( "from", collectionsValue query.collections )
             , Maybe.map (\value -> ( "offset", JsonEncode.int value )) query.offset
             , Maybe.map (\value -> ( "limit", JsonEncode.int value )) query.limit
             ]
@@ -112,15 +111,27 @@ limit value (Query query) =
     Query { query | limit = Just value }
 
 
-type alias From =
-    Set.Set String
+type CollectionType
+    = Root
+    | CollectionGroup
 
 
-{-| Sets a collection to query
+type alias Collections =
+    Dict.Dict String CollectionType
+
+
+{-| Sets a root collection to query
 -}
-from : String -> Query -> Query
-from collection (Query query) =
-    Query { query | from = Set.insert collection query.from }
+collection : String -> Query -> Query
+collection id (Query query) =
+    Query { query | collections = Dict.insert id Root query.collections }
+
+
+{-| Sets a collection group to query
+-}
+collectionGroup : String -> Query -> Query
+collectionGroup id (Query query) =
+    Query { query | collections = Dict.insert id CollectionGroup query.collections }
 
 
 
@@ -336,13 +347,23 @@ orderByValue =
             )
 
 
-fromValue : From -> JsonEncode.Value
-fromValue =
-    Set.toList
+collectionsValue : Collections -> JsonEncode.Value
+collectionsValue =
+    Dict.toList
         >> JsonEncode.list
-            (\value ->
+            (\( id, type_ ) ->
                 JsonEncode.object
-                    [ ( "collectionId", JsonEncode.string value ) ]
+                    [ ( "collectionId", JsonEncode.string id )
+                    , ( "allDescendants"
+                      , JsonEncode.bool <|
+                            case type_ of
+                                Root ->
+                                    False
+
+                                CollectionGroup ->
+                                    True
+                      )
+                    ]
             )
 
 

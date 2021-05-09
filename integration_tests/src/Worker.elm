@@ -14,17 +14,24 @@ import Maybe
 import Task
 
 
+type alias Flag =
+    { apiKey : String
+    , project : String
+    , host : String
+    , port_ : Int
+    }
+
 type alias Model =
     Firestore.Firestore
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { apiKey = "test-api-key"
-      , project = "elm-firestore-test"
+init : Flag -> ( Model, Cmd Msg )
+init { apiKey, project, host, port_ } =
+    ( { apiKey = apiKey
+      , project = project
       }
         |> Config.new
-        |> Config.withHost "http://localhost" 8080
+        |> Config.withHost host port_
         |> Firestore.init
     , Cmd.none
     )
@@ -49,10 +56,14 @@ type Msg
     | RanTestQueryUnaryOp (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryOrderBy ()
     | RanTestQueryOrderBy (Result Firestore.Error (List (Firestore.Query User)))
-    | RunTestQueryComplex ()
-    | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryEmpty ()
     | RanTestQueryEmpty (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQueryComplex ()
+    | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
+    | RunTestQuerySubCollection ()
+    | RanTestQuerySubCollection (Result Firestore.Error (List (Firestore.Query Extra)))
+    | RunTestQueryCollectionGroup ()
+    | RanTestQueryCollectionGroup (Result Firestore.Error (List (Firestore.Query Extra)))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -86,7 +97,9 @@ update msg model =
         RunTestGet _ ->
             ( model
             , model
-                |> Firestore.path "users/user0"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.get (Codec.asDecoder codec)
                 |> Task.attempt RanTestGet
             )
@@ -108,7 +121,8 @@ update msg model =
         RunTestListPageSize _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.list
                     (Codec.asDecoder codec)
                     (ListOptions.pageSize 3 ListOptions.default)
@@ -132,7 +146,8 @@ update msg model =
         RunTestListPageToken _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.list
                     (Codec.asDecoder codec)
                     (ListOptions.pageSize 2 ListOptions.default)
@@ -141,7 +156,8 @@ update msg model =
                     (Maybe.map
                         (\pageToken ->
                             model
-                                |> Firestore.path "users"
+                                |> Firestore.root
+                                |> Firestore.collection "users"
                                 |> Firestore.list
                                     (Codec.asDecoder codec)
                                     (ListOptions.default
@@ -174,7 +190,8 @@ update msg model =
         RunTestListDesc _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.list
                     (Codec.asDecoder codec)
                     (ListOptions.orderBy
@@ -203,7 +220,8 @@ update msg model =
         RunTestListAsc _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.list
                     (Codec.asDecoder codec)
                     (ListOptions.orderBy
@@ -232,10 +250,11 @@ update msg model =
         RunTestQueryFieldOp _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                     )
@@ -258,10 +277,11 @@ update msg model =
         RunTestQueryCompositeOp _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.compositeFilter Query.And
                                 (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
@@ -287,10 +307,11 @@ update msg model =
         RunTestQueryUnaryOp _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.unaryFilter "name" Query.IsNull)
                     )
@@ -313,10 +334,11 @@ update msg model =
         RunTestQueryOrderBy _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.orderBy "age" Query.Descending
                         |> Query.where_
                             (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
@@ -342,10 +364,11 @@ update msg model =
         RunTestQueryEmpty _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.where_
                             (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
                     )
@@ -368,10 +391,11 @@ update msg model =
         RunTestQueryComplex _ ->
             ( model
             , model
+                |> Firestore.root
                 |> Firestore.runQuery
                     (Codec.asDecoder codec)
                     (Query.new
-                        |> Query.from "users"
+                        |> Query.collection "users"
                         |> Query.limit 2
                         |> Query.offset 2
                         |> Query.orderBy "age" Query.Descending
@@ -398,11 +422,68 @@ update msg model =
                 |> testQueryComplexResult
             )
 
+        -- TestQuerySubCollection
+        RunTestQuerySubCollection _ ->
+            ( model
+            , model
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
+                |> Firestore.runQuery
+                    (Codec.asDecoder extraCodec)
+                    (Query.new
+                        |> Query.collection "extras"
+                        |> Query.where_
+                            (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
+                    )
+                |> Task.attempt RanTestQuerySubCollection
+            )
+
+        RanTestQuerySubCollection result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQuerySubCollectionResult
+            )
+
+        -- TestQueryCollectionGroup
+        RunTestQueryCollectionGroup _ ->
+            ( model
+            , model
+                |> Firestore.root
+                |> Firestore.runQuery
+                    (Codec.asDecoder extraCodec)
+                    (Query.new
+                        |> Query.collectionGroup "extras"
+                        |> Query.where_
+                           (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
+                    )
+                |> Task.attempt RanTestQueryCollectionGroup
+            )
+
+        RanTestQueryCollectionGroup result ->
+            ( model
+            , result
+                |> Result.map
+                    (List.length
+                        >> Encode.int
+                        >> okValue
+                    )
+                |> Result.withDefault ngValue
+                |> testQueryCollectionGroupResult
+            )
+
         -- TestInsert
         RunTestInsert _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.insert
                     (Codec.asDecoder codec)
                     (Codec.asEncoder codec { name = "thomas", age = 26 })
@@ -422,7 +503,8 @@ update msg model =
         RunTestCreate _ ->
             ( model
             , model
-                |> Firestore.path "users"
+                |> Firestore.root
+                |> Firestore.collection "users"
                 |> Firestore.create
                     (Codec.asDecoder codec)
                     { id = "jessy"
@@ -444,7 +526,9 @@ update msg model =
         RunTestUpsert _ ->
             ( model
             , model
-                |> Firestore.path "users/user10"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user10"
                 |> Firestore.upsert
                     (Codec.asDecoder codec)
                     (Codec.asEncoder codec { name = "jonathan", age = 21 })
@@ -464,14 +548,18 @@ update msg model =
         RunTestUpsertExisting _ ->
             ( model
             , model
-                |> Firestore.path "users/user0"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.upsert
                     (Codec.asDecoder codec)
                     (Codec.asEncoder codec { name = "user0updated", age = 0 })
                 |> Task.andThen
                     (\_ ->
                         model
-                            |> Firestore.path "users/user0"
+                            |> Firestore.root
+                            |> Firestore.collection "users"
+                            |> Firestore.document "user0"
                             |> Firestore.get (Codec.asDecoder codec)
                     )
                 |> Task.attempt RanTestUpsertExisting
@@ -494,7 +582,9 @@ update msg model =
         RunTestPatch _ ->
             ( model
             , model
-                |> Firestore.path "users/user0"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.patch
                     (Codec.asDecoder patchedCodec)
                     (PatchOptions.empty
@@ -521,12 +611,16 @@ update msg model =
         RunTestDelete _ ->
             ( model
             , model
-                |> Firestore.path "users/user0"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.delete
                 |> Task.andThen
                     (\_ ->
                         model
-                            |> Firestore.path "users/user0"
+                            |> Firestore.root
+                            |> Firestore.collection "users"
+                            |> Firestore.document "user0"
                             |> Firestore.get (Codec.asDecoder codec)
                     )
                 |> Task.attempt RanTestDelete
@@ -553,7 +647,9 @@ update msg model =
         RunTestDeleteExisting _ ->
             ( model
             , model
-                |> Firestore.path "users/user0"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user0"
                 |> Firestore.deleteExisting
                 |> Task.attempt RanTestDeleteExisting
             )
@@ -570,7 +666,9 @@ update msg model =
         RunTestDeleteExistingFail _ ->
             ( model
             , model
-                |> Firestore.path "users/no_user"
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "no_user"
                 |> Firestore.deleteExisting
                 |> Task.attempt RanTestDeleteExistingFail
             )
@@ -623,7 +721,9 @@ update msg model =
                 |> Task.andThen
                     (\transaction ->
                         model
-                            |> Firestore.path "users/user0"
+                            |> Firestore.root
+                            |> Firestore.collection "users"
+                            |> Firestore.document "user0"
                             |> Firestore.getTx transaction (Codec.asDecoder codec)
                             |> Task.map (\result -> ( transaction, result ))
                     )
@@ -656,7 +756,8 @@ update msg model =
                 |> Task.andThen
                     (\transaction ->
                         model
-                            |> Firestore.path "users"
+                            |> Firestore.root
+                            |> Firestore.collection "users"
                             |> Firestore.listTx transaction (Codec.asDecoder codec) ListOptions.default
                             |> Task.map (\{ documents } -> ( transaction, documents ))
                     )
@@ -693,11 +794,12 @@ update msg model =
                 |> Task.andThen
                     (\transaction ->
                         model
+                            |> Firestore.root
                             |> Firestore.runQueryTx
                                 transaction
                                 (Codec.asDecoder codec)
                                 (Query.new
-                                    |> Query.from "users"
+                                    |> Query.collection "users"
                                     |> Query.where_
                                         (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                                 )
@@ -733,7 +835,7 @@ update msg model =
             )
 
 
-main : Program () Model Msg
+main : Program Flag Model Msg
 main =
     Platform.worker
         { init = init
@@ -789,6 +891,17 @@ patchedCodec =
         |> Codec.required "name" .name Codec.string
         |> Codec.build
 
+type alias Extra =
+    { type_ : String
+    , value : String
+    }
+
+extraCodec : Codec.Codec Extra
+extraCodec =
+    Codec.document Extra
+        |> Codec.required "type" .type_ Codec.string
+        |> Codec.required "value" .value Codec.string
+        |> Codec.build
 
 
 -- subscriptions
@@ -808,6 +921,8 @@ subscriptions _ =
         , runTestQueryOrderBy RunTestQueryOrderBy
         , runTestQueryEmpty RunTestQueryEmpty
         , runTestQueryComplex RunTestQueryComplex
+        , runTestQuerySubCollection RunTestQuerySubCollection
+        , runTestQueryCollectionGroup RunTestQueryCollectionGroup
         , runTestInsert RunTestInsert
         , runTestCreate RunTestCreate
         , runTestUpsert RunTestUpsert
@@ -891,6 +1006,18 @@ port runTestQueryComplex : (() -> msg) -> Sub msg
 
 
 port testQueryComplexResult : Encode.Value -> Cmd msg
+
+
+port runTestQuerySubCollection : (() -> msg) -> Sub msg
+
+
+port testQuerySubCollectionResult : Encode.Value -> Cmd msg
+
+
+port runTestQueryCollectionGroup : (() -> msg) -> Sub msg
+
+
+port testQueryCollectionGroupResult : Encode.Value -> Cmd msg
 
 
 port runTestInsert : (() -> msg) -> Sub msg

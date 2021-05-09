@@ -47,12 +47,12 @@ decodeList namer pageTokener fieldDecoder =
         |> Pipeline.optional "nextPageToken" (Decode.map (pageTokener >> Just) Decode.string) Nothing
 
 
-type Query a b t
-    = Filled (FilledBody a b t)
-    | Empty EmptyBody
+type QueryResult a b t
+    = Item (ItemBody a b t)
+    | Meta MetaBody
 
 
-type alias FilledBody a b t =
+type alias ItemBody a b t =
     { transaction : Maybe t
     , document : Document a b
     , readTime : Time.Posix
@@ -60,43 +60,81 @@ type alias FilledBody a b t =
     }
 
 
-type alias EmptyBody =
+type alias MetaBody =
     { readTime : Time.Posix }
 
 
-decodeFilledQuery : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (FilledBody a b t)
-decodeFilledQuery namer transactioner fieldDecoder =
-    Decode.succeed FilledBody
+decodeQueryResultItem : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (ItemBody a b t)
+decodeQueryResultItem namer transactioner fieldDecoder =
+    Decode.succeed ItemBody
         |> Pipeline.optional "transaction" (Decode.map (transactioner >> Just) Decode.string) Nothing
         |> Pipeline.required "document" (decodeOne namer fieldDecoder)
         |> Pipeline.required "readTime" Iso8601.decoder
         |> Pipeline.optional "skippedResults" Decode.int 0
 
 
-decodeEmptyQuery : Decode.Decoder EmptyBody
-decodeEmptyQuery =
-    Decode.succeed EmptyBody
+decodeQueryResultMeta : Decode.Decoder MetaBody
+decodeQueryResultMeta =
+    Decode.succeed MetaBody
         |> Pipeline.required "readTime" Iso8601.decoder
 
 
-decodeQueries : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (FilledBody a b t))
+decodeQueries : (Name -> b) -> (String -> t) -> FSDecode.Decoder a -> Decode.Decoder (List (ItemBody a b t))
 decodeQueries namer transactioner fieldDecoder =
-    [ Decode.map Filled <| decodeFilledQuery namer transactioner fieldDecoder
-    , Decode.map Empty <| decodeEmptyQuery
+    [ Decode.map Item <| decodeQueryResultItem namer transactioner fieldDecoder
+    , Decode.map Meta decodeQueryResultMeta
     ]
         |> Decode.oneOf
         |> Decode.list
-        |> Decode.map
-            (List.filterMap
-                (\result ->
-                    case result of
-                        Filled body ->
-                            Just body
+        |> Decode.andThen
+            (\results ->
+                {- `runQuery` results are always consisted of two types of data structure: what it calls "item" and "meta".
+                   "meta" only has `readTime` field that shows the time query operation has been triggered at.
+                   "item" has more fields such as `transaction`, `document`, `readTime`, ...
 
-                        _ ->
-                            Nothing
-                )
+                   Even though the wrong decoder for `documents` are given, this `decodeQueries` does not return any errors,
+                   because `Decode.oneOf` function will intentionally make it into `meta` structure.
+
+                   However, normal results always have only ONE or ZERO `meta` strucuture, so here uses it as a clue to know
+                   whether the wrong decoders are given or not. If results has two or more `meta` structures,
+                   they might be results decoded wrong and must be `item` structure, not `meta`, so it returns `Decode.fail`.
+                -}
+                case List.partition isQueryResultItem results of
+                    ( values, [] ) ->
+                        Decode.succeed <| filterOnlyWithItem values
+
+                    ( values, [ _ ] ) ->
+                        Decode.succeed <| filterOnlyWithItem values
+
+                    ( [], _ :: _ ) ->
+                        Decode.fail "An invalid document decoder must have been given"
+
+                    ( _, _ ) ->
+                        Decode.fail "Unexpected decoder error"
             )
+
+
+filterOnlyWithItem : List (QueryResult a b t) -> List (ItemBody a b t)
+filterOnlyWithItem =
+    List.filterMap
+        (\value ->
+            case value of
+                Item body ->
+                    Just body
+
+                Meta _ ->
+                    Nothing
+        )
+
+
+isQueryResultItem : QueryResult a b t -> Bool
+isQueryResultItem query =
+    case query of
+        Item _ ->
+            True
+
+        Meta _ ->
+            False
 
 
 {-| Internal implementation of Name field of Document

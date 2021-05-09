@@ -1,0 +1,31 @@
+{
+  "users": [
+    { "name": "user0", "age": 0 },
+    { "name": "user1", "age": 10 },
+    { "name": "user2", "age": 20 },
+    { "name": "user3", "age": 30 },
+    { "name": "user4", "age": 40 }
+  ],
+  "extras": {
+    "user0": [
+      { "type": "occupation", "value": "teacher" },
+      { "type": "tel", "value": "202-555-0113" },
+      { "type": "tel", "value": "202-555-0147" },
+      { "type": "tel", "value": "202-555-0123" }
+    ],
+    "user1": [
+      { "type": "occupation", "value": "programmer" },
+      { "type": "tel", "value": "202-555-0132" },
+      { "type": "tel", "value": "202-555-0123" }
+    ],
+    "user2": [
+      { "type": "tel", "value": "202-555-0152" }
+    ],
+    "user3": [
+      { "type": "occupation", "value": "doctor" }
+    ],
+    "user4": [
+      { "type": "occupation", "value": "painter" }
+    ]
+  }
+}

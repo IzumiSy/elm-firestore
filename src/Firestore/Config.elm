@@ -68,8 +68,9 @@ new config =
 {-| Endpoint appender
 -}
 type Appender
-    = Path String
+    = Path (List String)
     | Op String
+    | PathOp (List String) String
 
 
 {-| Builds an endpoint string
@@ -79,11 +80,17 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
     let
         path =
             case appender of
-                Path value ->
-                    [ basePath config, value ]
+                Path path_ ->
+                    [ basePath config, String.join "/" path_ ]
 
-                Op value ->
-                    [ basePath config ++ ":" ++ value ]
+                Op op ->
+                    [ basePath config ++ ":" ++ op ]
+
+                PathOp [] op ->
+                    [ basePath config ++ ":" ++ op ]
+
+                PathOp path_ op ->
+                    [ basePath config, String.join "/" path_ ++ ":" ++ op ]
     in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
