@@ -71,8 +71,10 @@ init =
                 |> Firestore.init
     in
     ( { firestore = firestore, document = Nothing }
-    , firestore
-        |> Firestore.path "users/documents"
+    , firestore 
+        |> Firestore.root
+        |> Firestore.collection "users"
+        |> Firestore.document "user1"
         |> Firestore.get decoder
         |> Task.attempt GotDocument
     )
