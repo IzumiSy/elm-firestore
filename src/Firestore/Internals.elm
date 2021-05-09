@@ -107,10 +107,10 @@ decodeQueries namer transactioner fieldDecoder =
                         Decode.succeed <| filterOnlyWithItem values
 
                     ( [], _ :: _ ) ->
-                        Decode.fail "Invalid decoders must have been given"
+                        Decode.fail "An invalid document decoder must have been given"
 
                     ( _, _ ) ->
-                        Decode.fail "Unexpected decoding error"
+                        Decode.fail "Unexpected decoder error"
             )
 
 
