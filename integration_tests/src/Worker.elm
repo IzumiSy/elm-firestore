@@ -14,17 +14,24 @@ import Maybe
 import Task
 
 
+type alias Flag =
+    { apiKey : String
+    , project : String
+    , host : String
+    , port_ : Int
+    }
+
 type alias Model =
     Firestore.Firestore
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { apiKey = "test-api-key"
-      , project = "firestore-integration-test"
+init : Flag -> ( Model, Cmd Msg )
+init { apiKey, project, host, port_ } =
+    ( { apiKey = apiKey
+      , project = project
       }
         |> Config.new
-        |> Config.withHost "http://localhost" 8080
+        |> Config.withHost host port_
         |> Firestore.init
     , Cmd.none
     )
@@ -799,7 +806,7 @@ update msg model =
             )
 
 
-main : Program () Model Msg
+main : Program Flag Model Msg
 main =
     Platform.worker
         { init = init

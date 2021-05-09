@@ -392,6 +392,9 @@ listTx (Transaction (TransactionId tId) _ _) =
 
 
 {-| Runs a query operation in transaction
+
+This works as almost the same as `runQuery` function, but the difference is that this function accepts transaction.
+
 -}
 runQueryTx : Transaction -> FSDecode.Decoder a -> Query.Query -> Path (QueriablePath b) -> Task.Task Error (List (Query a))
 runQueryTx =
