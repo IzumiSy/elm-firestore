@@ -61,7 +61,7 @@ type Msg
     | RunTestQueryComplex ()
     | RanTestQueryComplex (Result Firestore.Error (List (Firestore.Query User)))
     | RunTestQueryCollectionGroup ()
-    | RanTestQueryCollectionGroup (Result Firestore.Error (List (Firestore.Query User)))
+    | RanTestQueryCollectionGroup (Result Firestore.Error (List (Firestore.Query Extra)))
     | RunTestInsert ()
     | RanTestInsert (Result Firestore.Error Firestore.Name)
     | RunTestCreate ()
@@ -428,7 +428,7 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
                 |> Firestore.runQuery
-                    (Codec.asDecoder codec)
+                    (Codec.asDecoder extraCodec)
                     (Query.new
                         |> Query.collection "extras"
                         |> Query.where_
@@ -862,6 +862,17 @@ patchedCodec =
         |> Codec.required "name" .name Codec.string
         |> Codec.build
 
+type alias Extra =
+    { type_ : String
+    , value : String
+    }
+
+extraCodec : Codec.Codec Extra
+extraCodec =
+    Codec.document Extra
+        |> Codec.required "type" .type_ Codec.string
+        |> Codec.required "value" .value Codec.string
+        |> Codec.build
 
 
 -- subscriptions
