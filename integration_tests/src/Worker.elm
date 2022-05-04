@@ -691,14 +691,20 @@ update msg model =
                 |> Firestore.begin
                 |> Task.andThen
                     (\transaction ->
+                        let
+                            users =
+                                model
+                                    |> Firestore.root
+                                    |> Firestore.collection "users"
+                        in
                         Firestore.commit
                             (transaction
-                                |> Firestore.updateTx (Firestore.path "users/user0" model)
+                                |> Firestore.updateTx (Firestore.document "user0" users)
                                     (Codec.asEncoder codec { name = "user0updated", age = 0 })
-                                |> Firestore.updateTx (Firestore.path "users/user1" model)
+                                |> Firestore.updateTx (Firestore.document "user1" users)
                                     (Codec.asEncoder codec { name = "user1updated", age = 10 })
-                                |> Firestore.deleteTx (Firestore.path "users/user2" model)
-                                |> Firestore.deleteTx (Firestore.path "users/user3" model)
+                                |> Firestore.deleteTx (Firestore.document "user2" users)
+                                |> Firestore.deleteTx (Firestore.document "user3" users)
                             )
                             model
                     )
@@ -729,9 +735,16 @@ update msg model =
                     )
                 |> Task.andThen
                     (\( transaction, { fields } ) ->
+                        let
+                            path =
+                                model
+                                    |> Firestore.root
+                                    |> Firestore.collection "users"
+                                    |> Firestore.document "user0"
+                        in
                         Firestore.commit
                             (Firestore.updateTx
-                                (Firestore.path "users/user0" model)
+                                path
                                 (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
                                 transaction
                             )
@@ -766,8 +779,15 @@ update msg model =
                         Firestore.commit
                             (List.foldr
                                 (\{ name, fields } ->
+                                    let
+                                        path =
+                                            model
+                                                |> Firestore.root
+                                                |> Firestore.collection "users"
+                                                |> Firestore.document (Firestore.id name)
+                                    in
                                     Firestore.updateTx
-                                        (Firestore.path ("users/" ++ Firestore.id name) model)
+                                        path
                                         (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
                                 )
                                 transaction
@@ -810,8 +830,15 @@ update msg model =
                         Firestore.commit
                             (List.foldr
                                 (\{ document } ->
+                                    let
+                                        path =
+                                            model
+                                                |> Firestore.root
+                                                |> Firestore.collection "users"
+                                                |> Firestore.document (Firestore.id document.name)
+                                    in
                                     Firestore.updateTx
-                                        (Firestore.path ("users/" ++ Firestore.id document.name) model)
+                                        path
                                         (Codec.asEncoder codec
                                             { name = document.fields.name ++ "txUpdated"
                                             , age = document.fields.age

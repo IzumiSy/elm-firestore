@@ -98,6 +98,17 @@ type Path pathType
     = Path (List String) Firestore
 
 
+{-| PathKey is a strigified expression of Path type.
+-}
+type alias PathKey =
+    String
+
+
+pathKey : Path a -> PathKey
+pathKey (Path paths _) =
+    String.join "/" paths
+
+
 type Specified
     = Specified
 
@@ -116,18 +127,6 @@ type alias DocumentType =
     { documentPath : Specified
     , queriablePath : Specified
     }
-
-
-type alias DocumentPath a =
-    { a | documentPath : Specified }
-
-
-type alias CollectionPath a =
-    { a | collectionPath : Specified }
-
-
-type alias QueriablePath a =
-    { a | queriablePath : Specified }
 
 
 {-| A root path
@@ -160,6 +159,24 @@ subCollection value (Path current firestore) =
 
 
 -- CRUDs
+
+
+{-| A path filter for documents
+-}
+type alias DocumentPath a =
+    { a | documentPath : Specified }
+
+
+{-| A path filter for collections
+-}
+type alias CollectionPath a =
+    { a | collectionPath : Specified }
+
+
+{-| A pat filter for queriable documents
+-}
+type alias QueriablePath a =
+    { a | queriablePath : Specified }
 
 
 {-| A record structure for a document fetched from Firestore.
@@ -369,8 +386,13 @@ type TransactionId
 
 {-| Data type for Transaction
 -}
-type Transaction
-    = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
+type
+    Transaction
+    -- Implementation of Transaction type has Dict for updation and Set for deletion.
+    -- Firebase RESTful API requires to send update/delete mutations seperately on commit as commitEncoder shows
+    -- So I feel that it is way easier to have them at once on type definition than putting both into List, Dict,
+    -- or something and then splitting them into to each at runtime...
+    = Transaction TransactionId (Dict.Dict PathKey FSEncode.Encoder) (Set.Set PathKey)
 
 
 {-| Gets a single document in transaction
@@ -399,16 +421,16 @@ runQueryTx =
 
 {-| Adds update into the transaction
 -}
-updateTx : Path -> FSEncode.Encoder -> Transaction -> Transaction
-updateTx (Path name _) encoder (Transaction tId encoders deletes) =
-    Transaction tId (Dict.insert name encoder encoders) deletes
+updateTx : Path (DocumentPath a) -> FSEncode.Encoder -> Transaction -> Transaction
+updateTx path encoder (Transaction tId encoders deletes) =
+    Transaction tId (Dict.insert (pathKey path) encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
 -}
-deleteTx : Path -> Transaction -> Transaction
-deleteTx (Path name _) (Transaction tId encoders deletes) =
-    Transaction tId encoders (Set.insert name deletes)
+deleteTx : Path (DocumentPath a) -> Transaction -> Transaction
+deleteTx path (Transaction tId encoders deletes) =
+    Transaction tId encoders (Set.insert (pathKey path) deletes)
 
 
 {-| Starts a new transaction.
