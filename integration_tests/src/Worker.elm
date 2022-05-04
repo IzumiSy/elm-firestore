@@ -693,12 +693,12 @@ update msg model =
                     (\transaction ->
                         Firestore.commit
                             (transaction
-                                |> Firestore.updateTx "users/user0"
+                                |> Firestore.updateTx (Firestore.path "users/user0" model)
                                     (Codec.asEncoder codec { name = "user0updated", age = 0 })
-                                |> Firestore.updateTx "users/user1"
+                                |> Firestore.updateTx (Firestore.path "users/user1" model)
                                     (Codec.asEncoder codec { name = "user1updated", age = 10 })
-                                |> Firestore.deleteTx "users/user2"
-                                |> Firestore.deleteTx "users/user3"
+                                |> Firestore.deleteTx (Firestore.path "users/user2" model)
+                                |> Firestore.deleteTx (Firestore.path "users/user3" model)
                             )
                             model
                     )
@@ -731,7 +731,7 @@ update msg model =
                     (\( transaction, { fields } ) ->
                         Firestore.commit
                             (Firestore.updateTx
-                                "users/user0"
+                                (Firestore.path "users/user0" model)
                                 (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
                                 transaction
                             )
@@ -767,7 +767,7 @@ update msg model =
                             (List.foldr
                                 (\{ name, fields } ->
                                     Firestore.updateTx
-                                        ("users/" ++ Firestore.id name)
+                                        (Firestore.path ("users/" ++ Firestore.id name) model)
                                         (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
                                 )
                                 transaction
@@ -811,7 +811,7 @@ update msg model =
                             (List.foldr
                                 (\{ document } ->
                                     Firestore.updateTx
-                                        ("users/" ++ Firestore.id document.name)
+                                        (Firestore.path ("users/" ++ Firestore.id document.name) model)
                                         (Codec.asEncoder codec
                                             { name = document.fields.name ++ "txUpdated"
                                             , age = document.fields.age
