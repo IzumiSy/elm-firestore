@@ -390,7 +390,8 @@ type
     Transaction
     -- Implementation of Transaction type has Dict for updation and Set for deletion.
     -- Firebase RESTful API requires to send update/delete mutations seperately on commit as commitEncoder shows
-    -- So I feel that it is way easier to have them at once on type definition than do that on runtime...
+    -- So I feel that it is way easier to have them at once on type definition than putting both into List, Dict,
+    -- or something and then splitting them into to each...
     = Transaction TransactionId (Dict.Dict PathKey FSEncode.Encoder) (Set.Set PathKey)
 
 
