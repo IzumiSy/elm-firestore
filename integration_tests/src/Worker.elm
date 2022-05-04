@@ -631,7 +631,7 @@ update msg model =
                     (\( transaction, { fields } ) ->
                         Firestore.commit
                             (Firestore.updateTx
-                                "users/user0"
+                                (Firestire.path "users/user0" model)
                                 (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
                                 transaction
                             )
