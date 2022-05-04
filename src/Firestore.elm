@@ -342,16 +342,16 @@ runQueryTx =
 
 {-| Adds update into the transaction
 -}
-updateTx : String -> FSEncode.Encoder -> Transaction -> Transaction
-updateTx name encoder (Transaction tId encoders deletes) =
+updateTx : Path -> FSEncode.Encoder -> Transaction -> Transaction
+updateTx (Path name _) encoder (Transaction tId encoders deletes) =
     Transaction tId (Dict.insert name encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
 -}
-deleteTx : String -> Transaction -> Transaction
-deleteTx path_ (Transaction tId encoders deletes) =
-    Transaction tId encoders (Set.insert path_ deletes)
+deleteTx : Path -> Transaction -> Transaction
+deleteTx (Path name _) (Transaction tId encoders deletes) =
+    Transaction tId encoders (Set.insert name deletes)
 
 
 {-| Starts a new transaction.
