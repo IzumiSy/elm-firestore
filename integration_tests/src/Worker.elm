@@ -693,7 +693,9 @@ update msg model =
                     (\transaction ->
                         let
                             users =
-                                Firestore.collection "users" Firestore.root
+                                model
+                                    |> Firestore.root
+                                    |> Firestore.collection "users"
                         in
                         Firestore.commit
                             (transaction
@@ -735,7 +737,8 @@ update msg model =
                     (\( transaction, { fields } ) ->
                         let
                             path =
-                                Firestore.root
+                                model
+                                    |> Firestore.root
                                     |> Firestore.collection "users"
                                     |> Firestore.document "user0"
                         in
@@ -778,7 +781,8 @@ update msg model =
                                 (\{ name, fields } ->
                                     let
                                         path =
-                                            Firestore.root
+                                            model
+                                                |> Firestore.root
                                                 |> Firestore.collection "users"
                                                 |> Firestore.document (Firestore.id name)
                                     in
@@ -828,7 +832,8 @@ update msg model =
                                 (\{ document } ->
                                     let
                                         path =
-                                            Firestore.root
+                                            model
+                                                |> Firestore.root
                                                 |> Firestore.collection "users"
                                                 |> Firestore.document (Firestore.id document.name)
                                     in
