@@ -118,18 +118,6 @@ type alias DocumentType =
     }
 
 
-type alias DocumentPath a =
-    { a | documentPath : Specified }
-
-
-type alias CollectionPath a =
-    { a | collectionPath : Specified }
-
-
-type alias QueriablePath a =
-    { a | queriablePath : Specified }
-
-
 {-| A root path
 -}
 root : Firestore -> Path RootType
@@ -160,6 +148,24 @@ subCollection value (Path current firestore) =
 
 
 -- CRUDs
+
+
+{-| A path filter for documents
+-}
+type alias DocumentPath a =
+    { a | documentPath : Specified }
+
+
+{-| A path filter for collections
+-}
+type alias CollectionPath a =
+    { a | collectionPath : Specified }
+
+
+{-| A pat filter for queriable documents
+-}
+type alias QueriablePath a =
+    { a | queriablePath : Specified }
 
 
 {-| A record structure for a document fetched from Firestore.
