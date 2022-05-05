@@ -107,7 +107,10 @@ validateElement element =
     else if String.contains "/" value then
         Err InvalidCharacterContained
 
-    else if value == "." || value == ".." then
+    else if String.contains ".." value then
+        Err InvalidCharacterContained
+
+    else if String.left 1 value == "." then
         Err InvalidCharacterContained
 
     else
