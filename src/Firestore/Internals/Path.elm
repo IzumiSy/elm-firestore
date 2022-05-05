@@ -37,7 +37,9 @@ type Element
 
 new : Path
 new =
-    Path [] 0
+    -- second argument (SubCollectionDepth) intentionally starts from minus one
+    -- which makes the first call of addCollection as the root collection.
+    Path [] -1
 
 
 addCollection : String -> Path -> Path
@@ -102,6 +104,9 @@ validateElement element =
         Err TooLongBytes
 
     else if String.contains "/" value then
+        Err InvalidCharacterContained
+
+    else if value == "." || value == ".." then
         Err InvalidCharacterContained
 
     else
