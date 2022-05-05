@@ -781,18 +781,31 @@ update msg model =
                                 model
                                     |> Firestore.root
                                     |> Firestore.collection "users"
+
+                            user0r =
+                                users
+                                    |> Firestore.document "user0"
+                                    |> Firestore.build
+
+                            user1r =
+                                users
+                                    |> Firestore.document "user1"
+                                    |> Firestore.build
+
+                            user2r =
+                                users
+                                    |> Firestore.document "user2"
+                                    |> Firestore.build
                         in
-                        Firestore.commit
-                            (transaction
-                                |> Firestore.updateTx (Firestore.document "user0" users)
-                                    (Codec.asEncoder codec { name = "user0updated", age = 0 })
-                                |> Firestore.updateTx (Firestore.document "user1" users)
-                                    (Codec.asEncoder codec { name = "user1updated", age = 10 })
-                                |> Firestore.deleteTx (Firestore.document "user2" users)
-                                |> Firestore.deleteTx (Firestore.document "user3" users)
-                            )
-                            model
+                        ExResult.toTask <|
+                            Result.map3 (\user0 user1 user2 ->
+                                transaction
+                                    |> Firestore.updateTx user0 (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                                    |> Firestore.updateTx user1 (Codec.asEncoder codec { name = "user1updated", age = 10 })
+                                    |> Firestore.deleteTx user2
+                            ) user0r user1r user2r
                     )
+                |> Task.andThen (Firestore.commit model)
                 |> Task.attempt RanTestTransaction
             )
 
@@ -815,25 +828,24 @@ update msg model =
                             |> Firestore.root
                             |> Firestore.collection "users"
                             |> Firestore.document "user0"
-                            |> Firestore.getTx transaction (Codec.asDecoder codec)
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen (Firestore.getTx transaction (Codec.asDecoder codec))
                             |> Task.map (\result -> ( transaction, result ))
                     )
                 |> Task.andThen
                     (\( transaction, { fields } ) ->
-                        let
-                            path =
-                                model
-                                    |> Firestore.root
-                                    |> Firestore.collection "users"
-                                    |> Firestore.document "user0"
-                        in
-                        Firestore.commit
-                            (Firestore.updateTx
-                                path
-                                (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
+                        model
+                            |> Firestore.root
+                            |> Firestore.collection "users"
+                            |> Firestore.document "user0"
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen (\path ->
                                 transaction
+                                    |> Firestore.updateTx path (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
+                                    |> Firestore.commit model
                             )
-                            model
                     )
                 |> Task.attempt RanTestGetTx
             )
@@ -856,29 +868,33 @@ update msg model =
                         model
                             |> Firestore.root
                             |> Firestore.collection "users"
-                            |> Firestore.listTx transaction (Codec.asDecoder codec) ListOptions.default
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen (Firestore.listTx transaction (Codec.asDecoder codec) ListOptions.default)
                             |> Task.map (\{ documents } -> ( transaction, documents ))
                     )
                 |> Task.andThen
                     (\( transaction, documents ) ->
-                        Firestore.commit
-                            (List.foldr
-                                (\{ name, fields } ->
-                                    let
-                                        path =
-                                            model
-                                                |> Firestore.root
-                                                |> Firestore.collection "users"
-                                                |> Firestore.document (Firestore.id name)
-                                    in
-                                    Firestore.updateTx
-                                        path
-                                        (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
-                                )
-                                transaction
-                                documents
+                        documents
+                            |> List.map (\{ name, fields } ->
+                                model
+                                    |> Firestore.root
+                                    |> Firestore.collection "users"
+                                    |> Firestore.document (Firestore.id name)
+                                    |> Firestore.build
+                                    |> (\pathR -> ( pathR, fields ))
                             )
-                            model
+                            |> List.foldr (\( pathR, fields ) transaction_ ->
+                                pathR
+                                    |> Result.map (\path ->
+                                        Firestore.updateTx
+                                            path
+                                            (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
+                                            transaction_
+                                    )
+                                    |> Result.withDefault transaction_
+                            ) transaction
+                            |> Firestore.commit model
                     )
                 |> Task.attempt RanTestListTx
             )
@@ -900,40 +916,46 @@ update msg model =
                     (\transaction ->
                         model
                             |> Firestore.root
-                            |> Firestore.runQueryTx
-                                transaction
-                                (Codec.asDecoder codec)
-                                (Query.new
-                                    |> Query.collection "users"
-                                    |> Query.where_
-                                        (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
-                                )
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen(
+                                Firestore.runQueryTx
+                                    transaction
+                                    (Codec.asDecoder codec)
+                                    (Query.new
+                                        |> Query.collection "users"
+                                        |> Query.where_
+                                            (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
+                                    )
+                            )
                             |> Task.map (\results -> ( transaction, results ))
                     )
                 |> Task.andThen
                     (\( transaction, results ) ->
-                        Firestore.commit
-                            (List.foldr
-                                (\{ document } ->
-                                    let
-                                        path =
-                                            model
-                                                |> Firestore.root
-                                                |> Firestore.collection "users"
-                                                |> Firestore.document (Firestore.id document.name)
-                                    in
-                                    Firestore.updateTx
-                                        path
-                                        (Codec.asEncoder codec
-                                            { name = document.fields.name ++ "txUpdated"
-                                            , age = document.fields.age
-                                            }
-                                        )
-                                )
-                                transaction
-                                results
+                        results
+                            |> List.map (\{ document } ->
+                                model
+                                    |> Firestore.root
+                                    |> Firestore.collection "users"
+                                    |> Firestore.document (Firestore.id document.name)
+                                    |> Firestore.build
+                                    |> (\pathR -> ( pathR, document ))
                             )
-                            model
+                            |> List.foldr (\( pathR, document ) transaction_ ->
+                                pathR
+                                    |> Result.map (\path ->
+                                        Firestore.updateTx
+                                            path
+                                            (Codec.asEncoder codec
+                                                { name = document.fields.name ++ "txUpdated"
+                                                , age = document.fields.age
+                                                }
+                                            )
+                                            transaction_
+                                    )
+                                    |> Result.withDefault transaction_
+                            ) transaction
+                            |> Firestore.commit model
                     )
                 |> Task.attempt RanTestQueryTx
             )
