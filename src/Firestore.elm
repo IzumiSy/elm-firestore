@@ -166,8 +166,15 @@ type PathError
 -}
 build : PathBuilder a -> Result PathError (Path a)
 build (PathBuilder path firestore) =
-    -- TODO: validate PathBuilder here
-    Ok <| Path path firestore
+    path
+        |> InternalPath.validate
+        |> Result.andThen (\validatedPath -> Ok <| Path validatedPath firestore)
+        |> Result.mapError
+            (\e ->
+                case e of
+                    InternalPath.InvalidCharacterContained ->
+                        InvalidPath
+            )
 
 
 

@@ -1,4 +1,13 @@
-module Firestore.Internals.Path exposing (Path, addCollection, addDocument, new, toString)
+module Firestore.Internals.Path exposing
+    ( Error(..)
+    , Path
+    , addCollection
+    , addDocument
+    , errorString
+    , new
+    , toString
+    , validate
+    )
 
 
 type Path
@@ -33,6 +42,45 @@ addCollection e (Path path) =
 addDocument : String -> Path -> Path
 addDocument e (Path path) =
     Path <| path ++ List.singleton (Document e)
+
+
+
+-- validation
+
+
+type Error
+    = InvalidCharacterContained
+
+
+validate : Path -> Result (List Error) Path
+validate (Path elements) =
+    elements
+        |> List.map validateElement
+        |> List.foldl
+            (\next current ->
+                case ( next, current ) of
+                    ( Ok _, Ok _ ) ->
+                        Ok (Path elements)
+
+                    ( Err err, Err errs ) ->
+                        Err [ errs ++ List.singleton err ]
+
+                    ( _, Err _ ) ->
+                        current
+            )
+            (Ok <| Path elements)
+
+
+validateElement : Element -> Result Error Element
+validateElement e =
+    Ok e
+
+
+errorString : Error -> String
+errorString e =
+    case e of
+        InvalidCharacterContained ->
+            "invalid character contained"
 
 
 
