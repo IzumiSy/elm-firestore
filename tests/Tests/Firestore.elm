@@ -6,6 +6,7 @@ import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
+import Firestore.Internals.Path as InternalPath
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Decode as Decode
@@ -154,6 +155,10 @@ suite =
                         [ UrlBuilder.int "pageSize" 10
                         , UrlBuilder.string "orderBy" "name"
                         ]
-                        (Config.Path [ "users", "bookmarks" ])
-                    |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/bookmarks?pageSize=10&orderBy=name&key=test-apiKey"
+                        (InternalPath.new
+                            |> InternalPath.addCollection "users"
+                            |> InternalPath.addDocument "user1"
+                            |> Config.Path
+                        )
+                    |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/user1?pageSize=10&orderBy=name&key=test-apiKey"
         ]
