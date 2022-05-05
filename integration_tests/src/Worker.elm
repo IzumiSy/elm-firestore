@@ -3,6 +3,7 @@ port module Worker exposing (main)
 import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
+import Result.Extra as ExResult
 import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
@@ -100,7 +101,9 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.get (Codec.asDecoder codec)
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (Firestore.get (Codec.asDecoder codec))
                 |> Task.attempt RanTestGet
             )
 
@@ -123,9 +126,13 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.list
-                    (Codec.asDecoder codec)
-                    (ListOptions.pageSize 3 ListOptions.default)
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.list
+                        (Codec.asDecoder codec)
+                        (ListOptions.pageSize 3 ListOptions.default)
+                )
                 |> Task.attempt RanTestListPageSize
             )
 
@@ -148,9 +155,13 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.list
-                    (Codec.asDecoder codec)
-                    (ListOptions.pageSize 2 ListOptions.default)
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.list
+                        (Codec.asDecoder codec)
+                        (ListOptions.pageSize 2 ListOptions.default)
+                )
                 |> Task.map .nextPageToken
                 |> Task.andThen
                     (Maybe.map
@@ -158,13 +169,17 @@ update msg model =
                             model
                                 |> Firestore.root
                                 |> Firestore.collection "users"
-                                |> Firestore.list
-                                    (Codec.asDecoder codec)
-                                    (ListOptions.default
-                                        |> ListOptions.pageToken pageToken
-                                        |> ListOptions.pageSize 2
-                                        |> ListOptions.orderBy (ListOptions.Desc "age")
-                                    )
+                                |> Firestore.build
+                                |> ExResult.toTask
+                                |> Task.andThen (
+                                    Firestore.list
+                                        (Codec.asDecoder codec)
+                                        (ListOptions.default
+                                            |> ListOptions.pageToken pageToken
+                                            |> ListOptions.pageSize 2
+                                            |> ListOptions.orderBy (ListOptions.Desc "age")
+                                        )
+                                )
                         )
                         >> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus -1)
                     )
@@ -192,12 +207,16 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.list
-                    (Codec.asDecoder codec)
-                    (ListOptions.orderBy
-                        (ListOptions.Desc "age")
-                        ListOptions.default
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen(
+                    Firestore.list
+                        (Codec.asDecoder codec)
+                        (ListOptions.orderBy
+                            (ListOptions.Desc "age")
+                            ListOptions.default
+                        )
+                )
                 |> Task.attempt RanTestListDesc
             )
 
@@ -222,12 +241,16 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.list
-                    (Codec.asDecoder codec)
-                    (ListOptions.orderBy
-                        (ListOptions.Asc "age")
-                        ListOptions.default
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.list
+                        (Codec.asDecoder codec)
+                        (ListOptions.orderBy
+                            (ListOptions.Asc "age")
+                            ListOptions.default
+                        )
+                )
                 |> Task.attempt RanTestListAsc
             )
 
@@ -251,13 +274,17 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.where_
-                            (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.where_
+                                (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
+                        )
+                )
                 |> Task.attempt RanTestQueryFieldOp
             )
 
@@ -278,16 +305,20 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.where_
-                            (Query.compositeFilter Query.And
-                                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
-                                [ Query.fieldFilter "age" Query.LessThan (Query.int 30) ]
-                            )
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.where_
+                                (Query.compositeFilter Query.And
+                                    (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                                    [ Query.fieldFilter "age" Query.LessThan (Query.int 30) ]
+                                )
+                        )
+                )
                 |> Task.attempt RanTestQueryCompositeOp
             )
 
@@ -308,13 +339,17 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.where_
-                            (Query.unaryFilter "name" Query.IsNull)
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.where_
+                                (Query.unaryFilter "name" Query.IsNull)
+                        )
+                )
                 |> Task.attempt RanTestQueryUnaryOp
             )
 
@@ -335,14 +370,18 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.orderBy "age" Query.Descending
-                        |> Query.where_
-                            (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.orderBy "age" Query.Descending
+                            |> Query.where_
+                                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
+                        )
+                )
                 |> Task.attempt RanTestQueryOrderBy
             )
 
@@ -365,13 +404,17 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.where_
-                            (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.where_
+                                (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
+                        )
+                )
                 |> Task.attempt RanTestQueryEmpty
             )
 
@@ -392,19 +435,23 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder codec)
-                    (Query.new
-                        |> Query.collection "users"
-                        |> Query.limit 2
-                        |> Query.offset 2
-                        |> Query.orderBy "age" Query.Descending
-                        |> Query.where_
-                            (Query.compositeFilter Query.And
-                                (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
-                                [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
-                            )
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder codec)
+                        (Query.new
+                            |> Query.collection "users"
+                            |> Query.limit 2
+                            |> Query.offset 2
+                            |> Query.orderBy "age" Query.Descending
+                            |> Query.where_
+                                (Query.compositeFilter Query.And
+                                    (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 10))
+                                    [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
+                                )
+                        )
+                )
                 |> Task.attempt RanTestQueryComplex
             )
 
@@ -429,13 +476,17 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.runQuery
-                    (Codec.asDecoder extraCodec)
-                    (Query.new
-                        |> Query.collection "extras"
-                        |> Query.where_
-                            (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder extraCodec)
+                        (Query.new
+                            |> Query.collection "extras"
+                            |> Query.where_
+                                (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
+                        )
+                )
                 |> Task.attempt RanTestQuerySubCollection
             )
 
@@ -456,13 +507,17 @@ update msg model =
             ( model
             , model
                 |> Firestore.root
-                |> Firestore.runQuery
-                    (Codec.asDecoder extraCodec)
-                    (Query.new
-                        |> Query.collectionGroup "extras"
-                        |> Query.where_
-                           (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.runQuery
+                        (Codec.asDecoder extraCodec)
+                        (Query.new
+                            |> Query.collectionGroup "extras"
+                            |> Query.where_
+                               (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
+                        )
+                )
                 |> Task.attempt RanTestQueryCollectionGroup
             )
 
@@ -484,9 +539,13 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.insert
-                    (Codec.asDecoder codec)
-                    (Codec.asEncoder codec { name = "thomas", age = 26 })
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.insert
+                        (Codec.asDecoder codec)
+                        (Codec.asEncoder codec { name = "thomas", age = 26 })
+                )
                 |> Task.map .name
                 |> Task.attempt RanTestInsert
             )
@@ -505,11 +564,15 @@ update msg model =
             , model
                 |> Firestore.root
                 |> Firestore.collection "users"
-                |> Firestore.create
-                    (Codec.asDecoder codec)
-                    { id = "jessy"
-                    , document = Codec.asEncoder codec { name = "jessy", age = 27 }
-                    }
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.create
+                        (Codec.asDecoder codec)
+                        { id = "jessy"
+                        , document = Codec.asEncoder codec { name = "jessy", age = 27 }
+                        }
+                )
                 |> Task.map .name
                 |> Task.attempt RanTestCreate
             )
@@ -529,9 +592,13 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user10"
-                |> Firestore.upsert
-                    (Codec.asDecoder codec)
-                    (Codec.asEncoder codec { name = "jonathan", age = 21 })
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.upsert
+                        (Codec.asDecoder codec)
+                        (Codec.asEncoder codec { name = "jonathan", age = 21 })
+                )
                 |> Task.map .name
                 |> Task.attempt RanTestUpsert
             )
@@ -551,16 +618,22 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.upsert
-                    (Codec.asDecoder codec)
-                    (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.upsert
+                        (Codec.asDecoder codec)
+                        (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                )
                 |> Task.andThen
                     (\_ ->
                         model
                             |> Firestore.root
                             |> Firestore.collection "users"
                             |> Firestore.document "user0"
-                            |> Firestore.get (Codec.asDecoder codec)
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen (Firestore.get (Codec.asDecoder codec))
                     )
                 |> Task.attempt RanTestUpsertExisting
             )
@@ -585,12 +658,16 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.patch
-                    (Codec.asDecoder patchedCodec)
-                    (PatchOptions.empty
-                        |> PatchOptions.addDelete "age"
-                        |> PatchOptions.addUpdate "name" (FSEncode.string "user0patched")
-                    )
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen (
+                    Firestore.patch
+                        (Codec.asDecoder patchedCodec)
+                        (PatchOptions.empty
+                            |> PatchOptions.addDelete "age"
+                            |> PatchOptions.addUpdate "name" (FSEncode.string "user0patched")
+                        )
+                )
                 |> Task.attempt RanTestPatch
             )
 
@@ -614,14 +691,18 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.delete
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen Firestore.delete
                 |> Task.andThen
                     (\_ ->
                         model
                             |> Firestore.root
                             |> Firestore.collection "users"
                             |> Firestore.document "user0"
-                            |> Firestore.get (Codec.asDecoder codec)
+                            |> Firestore.build
+                            |> ExResult.toTask
+                            |> Task.andThen (Firestore.get (Codec.asDecoder codec))
                     )
                 |> Task.attempt RanTestDelete
             )
@@ -650,7 +731,9 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "user0"
-                |> Firestore.deleteExisting
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen Firestore.deleteExisting
                 |> Task.attempt RanTestDeleteExisting
             )
 
@@ -669,7 +752,9 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.collection "users"
                 |> Firestore.document "no_user"
-                |> Firestore.deleteExisting
+                |> Firestore.build
+                |> ExResult.toTask
+                |> Task.andThen Firestore.deleteExisting
                 |> Task.attempt RanTestDeleteExistingFail
             )
 

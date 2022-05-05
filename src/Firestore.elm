@@ -146,12 +146,17 @@ subCollection value (PathBuilder current firestore) =
 
 {-| A validated path type
 
+An instance of this type can be constructed with `build` function.
+CRUDs function can accept this type to run their opration as follows.
+
     firestore
         |> Firestore.root
         |> Firestore.collection "users"
         |> Firestore.document "user0"
         |> Firestore.subCollection "tags"
-        |> Firestore.list tagDecoder ListOptions.default
+        |> Firestore.build
+        |> ExResult.toTask
+        |> Task.andThen (Firestore.list tagDecoder ListOptions.default)
         |> Task.attempt GotUserItemTags
 
 -}
@@ -165,7 +170,7 @@ type PathError
 
 {-| Validates `PathBuilder` and converts it into `Path` if it is valid.
 -}
-build : PathBuilder a -> Result PathError (Path a)
+build : PathBuilder a -> Result Error (Path a)
 build (PathBuilder path firestore) =
     path
         |> InternalPath.validate
@@ -175,7 +180,7 @@ build (PathBuilder path firestore) =
                 err
                     |> NEList.head
                     |> InternalPath.errorString
-                    |> InvalidPath
+                    |> Path_ << InvalidPath
             )
 
 
@@ -514,7 +519,8 @@ This type is available in order to disregard type of errors between protocol rel
 
 -}
 type Error
-    = Http_ Http.Error
+    = Path_ PathError
+    | Http_ Http.Error
     | Response FirestoreError
 
 
