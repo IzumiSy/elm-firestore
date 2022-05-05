@@ -488,13 +488,14 @@ Only `readWrite` transaction is currently supported which requires authorization
 Transaction in Firetore works in a pattern of "unit of work". It requires sets of updates and deletes to be commited.
 
     model.firestore
-        |> Firestore.commit
-            (transaction
-                |> Firestore.updateTx "users/user1" newUser1
-                |> Firestore.updateTx "users/user2" newUser2
-                |> Firestore.deleteTx "users/user3"
-                |> Firestore.deleteTx "users/user4"
+        |> Firestore.begin
+        |> Task.map
+            (\transaction ->
+                transaction
+                    |> Firestore.updateTx user1 newUser1
+                    |> Firestore.deleteTx user2
             )
+        |> Firestore.commit
         |> Task.attempt Commited
 
 -}
