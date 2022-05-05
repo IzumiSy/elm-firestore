@@ -9,6 +9,8 @@ module Firestore.Internals.Path exposing
     , validate
     )
 
+import List.Nonempty as NEList
+
 
 type Path
     = Path (List Element)
@@ -52,7 +54,7 @@ type Error
     = InvalidCharacterContained
 
 
-validate : Path -> Result (List Error) Path
+validate : Path -> Result (NEList.Nonempty Error) Path
 validate (Path elements) =
     elements
         |> List.map validateElement
@@ -60,13 +62,16 @@ validate (Path elements) =
             (\next current ->
                 case ( next, current ) of
                     ( Ok _, Ok _ ) ->
-                        Ok (Path elements)
+                        Ok <| Path elements
+
+                    ( Ok _, Err err ) ->
+                        Err err
+
+                    ( Err err, Ok _ ) ->
+                        Err <| NEList.singleton err
 
                     ( Err err, Err errs ) ->
-                        Err [ errs ++ List.singleton err ]
-
-                    ( _, Err _ ) ->
-                        current
+                        Err <| NEList.cons err errs
             )
             (Ok <| Path elements)
 

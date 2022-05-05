@@ -59,6 +59,7 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import List.Nonempty as NEList
 import Set
 import Task
 import Time
@@ -171,7 +172,7 @@ build (PathBuilder path firestore) =
         |> Result.andThen (\validatedPath -> Ok <| Path validatedPath firestore)
         |> Result.mapError
             (\e ->
-                case e of
+                case NEList.head e of
                     InternalPath.InvalidCharacterContained ->
                         InvalidPath
             )
