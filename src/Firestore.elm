@@ -160,7 +160,7 @@ type Path type_
 
 
 type PathError
-    = InvalidPath
+    = InvalidPath String
 
 
 {-| Validates `PathBuilder` and converts it into `Path` if it is valid.
@@ -171,10 +171,11 @@ build (PathBuilder path firestore) =
         |> InternalPath.validate
         |> Result.andThen (\validatedPath -> Ok <| Path validatedPath firestore)
         |> Result.mapError
-            (\e ->
-                case NEList.head e of
-                    InternalPath.InvalidCharacterContained ->
-                        InvalidPath
+            (\err ->
+                err
+                    |> NEList.head
+                    |> InternalPath.errorString
+                    |> InvalidPath
             )
 
 
