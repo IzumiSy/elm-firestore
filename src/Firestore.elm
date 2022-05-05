@@ -1,11 +1,12 @@
 module Firestore exposing
     ( Firestore
     , init, withConfig
-    , Path, root, collection, subCollection, document
+    , Path, root, collection, subCollection, document, build
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
     , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
+    , PathError(..)
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -20,7 +21,7 @@ module Firestore exposing
 
 # Path
 
-@docs Path, root, collection, subCollection, document
+@docs Path, root, collection, subCollection, document, build
 
 
 # CRUDs
@@ -84,19 +85,14 @@ withConfig config (Firestore _) =
     Firestore config
 
 
-{-| A path type
+{-| A path type which is not validated
 
-    firestore
-        |> Firestore.root
-        |> Firestore.collection "users"
-        |> Firestore.document "user0"
-        |> Firestore.subCollection "tags"
-        |> Firestore.list tagDecoder ListOptions.default
-        |> Task.attempt GotUserItemTags
+This type cannot be used to run with any CRUD operation.
+`build` function is available that validates `PathBuilder` and converts it into `Path` type.
 
 -}
-type Path pathType
-    = Path InternalPath.Path Firestore
+type PathBuilder type_
+    = PathBuilder InternalPath.Path Firestore
 
 
 type Specified
@@ -121,30 +117,57 @@ type alias DocumentType =
 
 {-| A root path
 -}
-root : Firestore -> Path RootType
+root : Firestore -> PathBuilder RootType
 root (Firestore config) =
-    Path InternalPath.new (Firestore config)
+    PathBuilder InternalPath.new (Firestore config)
 
 
 {-| A collection path
 -}
-collection : String -> Path RootType -> Path CollectionType
-collection value (Path current firestore) =
-    Path (InternalPath.addCollection value current) firestore
+collection : String -> PathBuilder RootType -> PathBuilder CollectionType
+collection value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addCollection value current) firestore
 
 
 {-| A document path
 -}
-document : String -> Path CollectionType -> Path DocumentType
-document value (Path current firestore) =
-    Path (InternalPath.addDocument value current) firestore
+document : String -> PathBuilder CollectionType -> PathBuilder DocumentType
+document value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addDocument value current) firestore
 
 
 {-| A sub-collection path
 -}
-subCollection : String -> Path DocumentType -> Path CollectionType
-subCollection value (Path current firestore) =
-    Path (InternalPath.addCollection value current) firestore
+subCollection : String -> PathBuilder DocumentType -> PathBuilder CollectionType
+subCollection value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addCollection value current) firestore
+
+
+{-| A validated path type
+
+    firestore
+        |> Firestore.root
+        |> Firestore.collection "users"
+        |> Firestore.document "user0"
+        |> Firestore.subCollection "tags"
+        |> Firestore.list tagDecoder ListOptions.default
+        |> Task.attempt GotUserItemTags
+
+-}
+type Path type_
+    = Path InternalPath.Path Firestore
+
+
+type PathError
+    = InvalidPath
+
+
+{-| Validates `PathBuilder` and converts it into `Path` if it is valid.
+-}
+build : PathBuilder a -> Result PathError (Path a)
+build (PathBuilder path firestore) =
+    -- TODO: validate PathBuilder here
+    Ok <| Path path firestore
 
 
 
