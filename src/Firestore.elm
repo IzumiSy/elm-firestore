@@ -99,17 +99,6 @@ type Path pathType
     = Path InternalPath.Path Firestore
 
 
-{-| PathKey is a strigified expression of Path type.
--}
-type alias PathKey =
-    String
-
-
-pathKey : Path a -> PathKey
-pathKey (Path path _) =
-    InternalPath.toString path
-
-
 type Specified
     = Specified
 
@@ -393,7 +382,7 @@ type
     -- Firebase RESTful API requires to send update/delete mutations seperately on commit as commitEncoder shows
     -- So I feel that it is way easier to have them at once on type definition than putting both into List, Dict,
     -- or something and then splitting them into to each at runtime...
-    = Transaction TransactionId (Dict.Dict PathKey FSEncode.Encoder) (Set.Set PathKey)
+    = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
 
 
 {-| Gets a single document in transaction
@@ -424,14 +413,14 @@ runQueryTx =
 -}
 updateTx : Path (DocumentPath a) -> FSEncode.Encoder -> Transaction -> Transaction
 updateTx path encoder (Transaction tId encoders deletes) =
-    Transaction tId (Dict.insert (pathKey path) encoder encoders) deletes
+    Transaction tId (Dict.insert (InternalPath.toString path) encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
 -}
 deleteTx : Path (DocumentPath a) -> Transaction -> Transaction
 deleteTx path (Transaction tId encoders deletes) =
-    Transaction tId encoders (Set.insert (pathKey path) deletes)
+    Transaction tId encoders (Set.insert (InternalPath.toString path) deletes)
 
 
 {-| Starts a new transaction.
