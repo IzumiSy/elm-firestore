@@ -180,7 +180,8 @@ build (PathBuilder path firestore) =
                 err
                     |> NEList.head
                     |> InternalPath.errorString
-                    |> Path_ << InvalidPath
+                    |> Path_
+                    << InvalidPath
             )
 
 
@@ -497,8 +498,8 @@ Transaction in Firetore works in a pattern of "unit of work". It requires sets o
         |> Task.attempt Commited
 
 -}
-commit : Firestore -> Transaction ->  Task.Task Error CommitTime
-commit (Firestore config) transaction  =
+commit : Firestore -> Transaction -> Task.Task Error CommitTime
+commit (Firestore config) transaction =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
