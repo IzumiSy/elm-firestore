@@ -412,14 +412,14 @@ runQueryTx =
 {-| Adds update into the transaction
 -}
 updateTx : Path (DocumentPath a) -> FSEncode.Encoder -> Transaction -> Transaction
-updateTx path encoder (Transaction tId encoders deletes) =
+updateTx (Path path _) encoder (Transaction tId encoders deletes) =
     Transaction tId (Dict.insert (InternalPath.toString path) encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
 -}
 deleteTx : Path (DocumentPath a) -> Transaction -> Transaction
-deleteTx path (Transaction tId encoders deletes) =
+deleteTx (Path path _) (Transaction tId encoders deletes) =
     Transaction tId encoders (Set.insert (InternalPath.toString path) deletes)
 
 
