@@ -49,6 +49,7 @@ import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
+import Firestore.Internals.Path as InternalPath
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
@@ -95,7 +96,7 @@ withConfig config (Firestore _) =
 
 -}
 type Path pathType
-    = Path (List String) Firestore
+    = Path InternalPath.Path Firestore
 
 
 {-| PathKey is a strigified expression of Path type.
@@ -105,8 +106,8 @@ type alias PathKey =
 
 
 pathKey : Path a -> PathKey
-pathKey (Path paths _) =
-    String.join "/" paths
+pathKey (Path path _) =
+    InternalPath.toString path
 
 
 type Specified
@@ -133,28 +134,28 @@ type alias DocumentType =
 -}
 root : Firestore -> Path RootType
 root (Firestore config) =
-    Path [] (Firestore config)
+    Path InternalPath.new (Firestore config)
 
 
 {-| A collection path
 -}
 collection : String -> Path RootType -> Path CollectionType
 collection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+    Path (InternalPath.addCollection value current) firestore
 
 
 {-| A document path
 -}
 document : String -> Path CollectionType -> Path DocumentType
 document value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+    Path (InternalPath.addDocument value current) firestore
 
 
 {-| A sub-collection path
 -}
 subCollection : String -> Path DocumentType -> Path CollectionType
 subCollection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+    Path (InternalPath.addCollection value current) firestore
 
 
 
