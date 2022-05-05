@@ -4,6 +4,7 @@ module Firestore.Internals.Path exposing
     , addCollection
     , addDocument
     , errorString
+    , isEmpty
     , new
     , toString
     , validate
@@ -145,3 +146,12 @@ unwrapElement e =
 
         Document value ->
             value
+
+
+
+-- Predicates
+
+
+isEmpty : Path -> Bool
+isEmpty (Path path _) =
+    List.isEmpty path

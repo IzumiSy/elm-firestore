@@ -88,7 +88,11 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
                     [ basePath config ++ ":" ++ op ]
 
                 PathOp value op ->
-                    [ basePath config, InternalPath.toString value ++ ":" ++ op ]
+                    if not <| InternalPath.isEmpty value then
+                        [ basePath config, InternalPath.toString value ++ ":" ++ op ]
+
+                    else
+                        [ basePath config ++ ":" ++ op ]
     in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
