@@ -30,6 +30,7 @@ import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
+import Result.Extra as ExResult
 
 
 -- model
@@ -71,11 +72,13 @@ init =
                 |> Firestore.init
     in
     ( { firestore = firestore, document = Nothing }
-    , firestore 
+    , firestore
         |> Firestore.root
         |> Firestore.collection "users"
         |> Firestore.document "user1"
-        |> Firestore.get decoder
+        |> Firestore.build
+        |> ExResult.toTask
+        |> Task.andThen (Firestore.get decoder)
         |> Task.attempt GotDocument
     )
 
@@ -123,8 +126,13 @@ update msg model =
         SaveDocument doc ->
             ( model
             , model.firestore
-                |> Firestore.path "users/documents"
-                |> Firestore.insert decoder (encoder doc)
+                |> Firestore.root
+                |> Firestore.collection "users"
+                |> Firestore.document "user1"
+                |> Firestore.build
+                |> ExResult.toTask
+                |> ExResult.toTask
+                |> Task.andThen (Firestore.insert decoder (encoder doc))
                 |> Task.attempt GotDocument
             )
 

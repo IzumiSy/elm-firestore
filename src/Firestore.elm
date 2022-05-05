@@ -1,11 +1,12 @@
 module Firestore exposing
     ( Firestore
     , init, withConfig
-    , Path, root, collection, subCollection, document
+    , Path, root, collection, subCollection, document, build
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
     , Error(..), FirestoreError
     , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
+    , PathError(..)
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -20,7 +21,7 @@ module Firestore exposing
 
 # Path
 
-@docs Path, root, collection, subCollection, document
+@docs Path, root, collection, subCollection, document, build
 
 
 # CRUDs
@@ -49,6 +50,7 @@ import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
+import Firestore.Internals.Path as InternalPath
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
@@ -57,6 +59,7 @@ import Iso8601
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Pipeline
 import Json.Encode as Encode
+import List.Nonempty as NEList
 import Set
 import Task
 import Time
@@ -83,30 +86,14 @@ withConfig config (Firestore _) =
     Firestore config
 
 
-{-| A path type
+{-| A path type which is not validated
 
-    firestore
-        |> Firestore.root
-        |> Firestore.collection "users"
-        |> Firestore.document "user0"
-        |> Firestore.subCollection "tags"
-        |> Firestore.list tagDecoder ListOptions.default
-        |> Task.attempt GotUserItemTags
+This type cannot be used to run with any CRUD operation.
+`build` function is available that validates `PathBuilder` and converts it into `Path` type.
 
 -}
-type Path pathType
-    = Path (List String) Firestore
-
-
-{-| PathKey is a strigified expression of Path type.
--}
-type alias PathKey =
-    String
-
-
-pathKey : Path a -> PathKey
-pathKey (Path paths _) =
-    String.join "/" paths
+type PathBuilder type_
+    = PathBuilder InternalPath.Path Firestore
 
 
 type Specified
@@ -131,30 +118,71 @@ type alias DocumentType =
 
 {-| A root path
 -}
-root : Firestore -> Path RootType
+root : Firestore -> PathBuilder RootType
 root (Firestore config) =
-    Path [] (Firestore config)
+    PathBuilder InternalPath.new (Firestore config)
 
 
 {-| A collection path
 -}
-collection : String -> Path RootType -> Path CollectionType
-collection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+collection : String -> PathBuilder RootType -> PathBuilder CollectionType
+collection value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addCollection value current) firestore
 
 
 {-| A document path
 -}
-document : String -> Path CollectionType -> Path DocumentType
-document value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+document : String -> PathBuilder CollectionType -> PathBuilder DocumentType
+document value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addDocument value current) firestore
 
 
 {-| A sub-collection path
 -}
-subCollection : String -> Path DocumentType -> Path CollectionType
-subCollection value (Path current firestore) =
-    Path (current ++ List.singleton value) firestore
+subCollection : String -> PathBuilder DocumentType -> PathBuilder CollectionType
+subCollection value (PathBuilder current firestore) =
+    PathBuilder (InternalPath.addCollection value current) firestore
+
+
+{-| A validated path type
+
+An instance of this type can be constructed with `build` function.
+CRUDs function can accept this type to run their opration as follows.
+
+    firestore
+        |> Firestore.root
+        |> Firestore.collection "users"
+        |> Firestore.document "user0"
+        |> Firestore.subCollection "tags"
+        |> Firestore.build
+        |> ExResult.toTask
+        |> Task.andThen (Firestore.list tagDecoder ListOptions.default)
+        |> Task.attempt GotUserItemTags
+
+-}
+type Path type_
+    = Path InternalPath.Path Firestore
+
+
+type PathError
+    = InvalidPath String
+
+
+{-| Validates `PathBuilder` and converts it into `Path` if it is valid.
+-}
+build : PathBuilder a -> Result Error (Path a)
+build (PathBuilder path firestore) =
+    path
+        |> InternalPath.validate
+        |> Result.andThen (\validatedPath -> Ok <| Path validatedPath firestore)
+        |> Result.mapError
+            (\err ->
+                err
+                    |> NEList.head
+                    |> InternalPath.errorString
+                    |> Path_
+                    << InvalidPath
+            )
 
 
 
@@ -392,7 +420,7 @@ type
     -- Firebase RESTful API requires to send update/delete mutations seperately on commit as commitEncoder shows
     -- So I feel that it is way easier to have them at once on type definition than putting both into List, Dict,
     -- or something and then splitting them into to each at runtime...
-    = Transaction TransactionId (Dict.Dict PathKey FSEncode.Encoder) (Set.Set PathKey)
+    = Transaction TransactionId (Dict.Dict String FSEncode.Encoder) (Set.Set String)
 
 
 {-| Gets a single document in transaction
@@ -422,15 +450,15 @@ runQueryTx =
 {-| Adds update into the transaction
 -}
 updateTx : Path (DocumentPath a) -> FSEncode.Encoder -> Transaction -> Transaction
-updateTx path encoder (Transaction tId encoders deletes) =
-    Transaction tId (Dict.insert (pathKey path) encoder encoders) deletes
+updateTx (Path path _) encoder (Transaction tId encoders deletes) =
+    Transaction tId (Dict.insert (InternalPath.toString path) encoder encoders) deletes
 
 
 {-| Adds deletion into the transaction
 -}
 deleteTx : Path (DocumentPath a) -> Transaction -> Transaction
-deleteTx path (Transaction tId encoders deletes) =
-    Transaction tId encoders (Set.insert (pathKey path) deletes)
+deleteTx (Path path _) (Transaction tId encoders deletes) =
+    Transaction tId encoders (Set.insert (InternalPath.toString path) deletes)
 
 
 {-| Starts a new transaction.
@@ -460,18 +488,19 @@ Only `readWrite` transaction is currently supported which requires authorization
 Transaction in Firetore works in a pattern of "unit of work". It requires sets of updates and deletes to be commited.
 
     model.firestore
-        |> Firestore.commit
-            (transaction
-                |> Firestore.updateTx "users/user1" newUser1
-                |> Firestore.updateTx "users/user2" newUser2
-                |> Firestore.deleteTx "users/user3"
-                |> Firestore.deleteTx "users/user4"
+        |> Firestore.begin
+        |> Task.map
+            (\transaction ->
+                transaction
+                    |> Firestore.updateTx user1 newUser1
+                    |> Firestore.deleteTx user2
             )
+        |> Firestore.commit
         |> Task.attempt Commited
 
 -}
-commit : Transaction -> Firestore -> Task.Task Error CommitTime
-commit transaction (Firestore config) =
+commit : Firestore -> Transaction -> Task.Task Error CommitTime
+commit (Firestore config) transaction =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
@@ -492,7 +521,8 @@ This type is available in order to disregard type of errors between protocol rel
 
 -}
 type Error
-    = Http_ Http.Error
+    = Path_ PathError
+    | Http_ Http.Error
     | Response FirestoreError
 
 

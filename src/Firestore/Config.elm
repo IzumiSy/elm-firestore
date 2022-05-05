@@ -20,6 +20,7 @@ module Firestore.Config exposing
 
 -}
 
+import Firestore.Internals.Path as InternalPath
 import Http
 import Typed exposing (Typed)
 import Url.Builder as UrlBuilder
@@ -68,9 +69,9 @@ new config =
 {-| Endpoint appender
 -}
 type Appender
-    = Path (List String)
+    = Path InternalPath.Path
     | Op String
-    | PathOp (List String) String
+    | PathOp InternalPath.Path String
 
 
 {-| Builds an endpoint string
@@ -80,17 +81,18 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
     let
         path =
             case appender of
-                Path path_ ->
-                    [ basePath config, String.join "/" path_ ]
+                Path value ->
+                    [ basePath config, InternalPath.toString value ]
 
                 Op op ->
                     [ basePath config ++ ":" ++ op ]
 
-                PathOp [] op ->
-                    [ basePath config ++ ":" ++ op ]
+                PathOp value op ->
+                    if not <| InternalPath.isEmpty value then
+                        [ basePath config, InternalPath.toString value ++ ":" ++ op ]
 
-                PathOp path_ op ->
-                    [ basePath config, String.join "/" path_ ++ ":" ++ op ]
+                    else
+                        [ basePath config ++ ":" ++ op ]
     in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)

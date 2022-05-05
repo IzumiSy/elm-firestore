@@ -22,17 +22,26 @@ module Firestore.Codec exposing
     getDocument : Firestore.Firestore -> Cmd Msg
     getDocument firestore =
         firestore
-            |> Firestore.path "users/user0"
-            |> Firestore.get (Codec.asDecoder codec)
+            |> Firestore.root
+            |> Firestore.collection "users"
+            |> Firestore.document "user0"
+            |> Firestore.build
+            |> ExResult.toTask
+            |> Task.andThen (Firestore.get (Codec.asDecoder codec))
             |> Task.attempt GotDocument
 
     insertDocument : Firestore.Firestore -> Cmd Msg
     insertDocument firestore =
         firestore
-            |> Firestore.path "users"
-            |> Firestore.insert
-                (Codec.asDecoder codec)
-                (Codec.asEncoder codec { name = "thomas", age = 26 })
+            |> Firestore.root
+            |> Firestore.collection "users"
+            |> Firestore.build
+            |> ExResult.toTask
+            |> Task.andThen
+                (Firestore.insert
+                    (Codec.asDecoder codec)
+                    (Codec.asEncoder codec { name = "thomas", age = 26 })
+                )
             |> Task.attempt InsertedDocument
 
 

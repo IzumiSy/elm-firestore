@@ -2,7 +2,6 @@ module Tests.Firestore exposing (suite)
 
 import Dict
 import Expect
-import Firestore.Config as Config
 import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
@@ -11,7 +10,6 @@ import Firestore.Types.Reference as Reference
 import Json.Decode as Decode
 import Test
 import Time
-import Url.Builder as UrlBuilder
 
 
 type alias Document =
@@ -144,16 +142,4 @@ suite =
                     |> FSEncode.encode
                     |> Decode.decodeValue (FSDecode.decode documentDecoder)
                     |> Expect.ok
-        , Test.test "endpoint" <|
-            \_ ->
-                { apiKey = "test-apiKey"
-                , project = "test-project"
-                }
-                    |> Config.new
-                    |> Config.endpoint
-                        [ UrlBuilder.int "pageSize" 10
-                        , UrlBuilder.string "orderBy" "name"
-                        ]
-                        (Config.Path [ "users", "bookmarks" ])
-                    |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/bookmarks?pageSize=10&orderBy=name&key=test-apiKey"
         ]
