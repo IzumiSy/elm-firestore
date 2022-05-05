@@ -497,8 +497,8 @@ Transaction in Firetore works in a pattern of "unit of work". It requires sets o
         |> Task.attempt Commited
 
 -}
-commit : Transaction -> Firestore -> Task.Task Error CommitTime
-commit transaction (Firestore config) =
+commit : Firestore -> Transaction ->  Task.Task Error CommitTime
+commit (Firestore config) transaction  =
     Http.task
         { method = "POST"
         , headers = Config.httpHeader config
