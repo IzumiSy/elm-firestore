@@ -16,6 +16,10 @@
     "firebase-tools": "^9.10.0",
     "xhr2": "^0.2.1"
   },
+  "engines": {
+    "node": "^16.15.0",
+    "npm": "^8.5.0"
+  },
   "ava": {
     "files": [
       "integration_tests/runner.js"
