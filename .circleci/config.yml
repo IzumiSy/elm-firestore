@@ -13,7 +13,7 @@ jobs:
           name: Setup OpenJDK
           command: |
             apt update
-            apt install openjdk-8-jre
+            apt install default-jre
 
       - checkout
 
