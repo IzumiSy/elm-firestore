@@ -12,8 +12,8 @@ jobs:
       - run:
           name: Setup OpenJDK
           command: |
-            apt update
-            apt install default-jre
+            apt update -y
+            apt install -y default-jre
 
       - checkout
 
