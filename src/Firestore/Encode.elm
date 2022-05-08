@@ -1,6 +1,6 @@
 module Firestore.Encode exposing
     ( Encoder, encode, Field
-    , document
+    , document, merge
     , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
@@ -11,7 +11,7 @@ module Firestore.Encode exposing
 
 # Constructors
 
-@docs document
+@docs document, merge
 
 
 # Types
@@ -22,6 +22,7 @@ module Firestore.Encode exposing
 
 import Dict
 import Firestore.Internals.Encode as Encode
+import Firestore.Internals.Types as InternalTypes
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Encode as JsonEncode
@@ -34,7 +35,7 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (List ( String, Field a ))
+    = Encoder (List ( String, InternalTypes.ValidatedField ))
 
 
 {-| Generates Json.Encode.Value from Encoder
@@ -42,11 +43,11 @@ type Encoder
 encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
     fields
-        |> List.map (\( key, Field field ) -> ( key, field ))
+        |> List.map (\( key, InternalTypes.ValidatedField field ) -> ( key, field ))
         |> JsonEncode.object
 
 
-{-| An field identifier type for Firestore encoder
+{-| A field identifier type for Firestore encoder
 -}
 type Field a
     = Field JsonEncode.Value
@@ -70,6 +71,17 @@ This function works like `Encode.object` but accepts a list of tuples which has 
 document : List ( String, Field a ) -> Encoder
 document =
     Encoder
+        << List.map (\( key, Field field ) -> ( key, InternalTypes.ValidatedField field ))
+
+
+{-| Merges encoders
+
+This function simply merges two encoders into one. It does not deal with field duplication.
+
+-}
+merge : Encoder -> Encoder -> Encoder
+merge (Encoder a) (Encoder b) =
+    Encoder <| a ++ b
 
 
 
@@ -77,113 +89,69 @@ document =
 
 
 {-| -}
-bool : Bool -> Field BoolType
+bool : Bool -> Field InternalTypes.Bool
 bool =
     Field << Encode.bool
 
 
-type alias BoolType =
-    { listble : Allowed }
-
-
 {-| -}
-bytes : String -> Field BytesType
+bytes : String -> Field InternalTypes.Bytes
 bytes =
     Field << Encode.bytes
 
 
-type alias BytesType =
-    { listable : Allowed }
-
-
 {-| -}
-int : Int -> Field IntType
+int : Int -> Field InternalTypes.Int
 int =
     Field << Encode.int
 
 
-type alias IntType =
-    { listable : Allowed }
-
-
 {-| -}
-string : String -> Field StringType
+string : String -> Field InternalTypes.String
 string =
     Field << Encode.string
 
 
-type alias StringType =
-    { listable : Allowed }
-
-
 {-| -}
-list : (a -> Field (Listable b)) -> List a -> Field ListType
+list : (a -> Field (InternalTypes.Listable b)) -> List a -> Field InternalTypes.List
 list valueEncoder value =
     Field <| Encode.list (unfield << valueEncoder) value
 
 
-type alias ListType =
-    { listable : Denied }
-
-
 {-| -}
-dict : (a -> Field b) -> Dict.Dict String a -> Field DictType
+dict : (a -> Field b) -> Dict.Dict String a -> Field InternalTypes.Dict
 dict valueEncoder value =
     Field <| Encode.dict (unfield << valueEncoder) value
 
 
-type alias DictType =
-    { listable : Allowed }
-
-
 {-| -}
-null : Field NullType
+null : Field InternalTypes.Null
 null =
     Field Encode.null
 
 
-type alias NullType =
-    { listable : Allowed }
-
-
 {-| -}
-maybe : (a -> Field b) -> Maybe a -> Field MaybeType
+maybe : (a -> Field b) -> Maybe a -> Field InternalTypes.Maybe
 maybe valueEncoder =
     Field << Encode.maybe (unfield << valueEncoder)
 
 
-type alias MaybeType =
-    { listable : Allowed }
-
-
 {-| -}
-timestamp : Time.Posix -> Field TimestampType
+timestamp : Time.Posix -> Field InternalTypes.Timestamp
 timestamp =
     Field << Encode.timestamp
 
 
-type alias TimestampType =
-    { listable : Allowed }
-
-
 {-| -}
-geopoint : Geopoint.Geopoint -> Field GeopointType
+geopoint : Geopoint.Geopoint -> Field InternalTypes.Geopoint
 geopoint =
     Field << Encode.geopoint
 
 
-type alias GeopointType =
-    { listable : Allowed }
-
-
 {-| -}
-reference : Reference.Reference -> Field ReferenceType
+reference : Reference.Reference -> Field InternalTypes.Reference
 reference =
     Field << Encode.reference
-
-
-type alias ReferenceType =
-    { listable : Allowed }
 
 
 
@@ -193,19 +161,3 @@ type alias ReferenceType =
 unfield : Field a -> JsonEncode.Value
 unfield (Field value) =
     value
-
-
-
--- Type tags
-
-
-type Allowed
-    = Allowed
-
-
-type Denied
-    = Denied
-
-
-type alias Listable a =
-    { a | listable : Allowed }
