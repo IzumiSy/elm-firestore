@@ -312,14 +312,14 @@ If the fields do not exists, they will be created.
 patch : FSDecode.Decoder a -> PatchOptions.Options -> Path (DocumentPath b) -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
-        ( params, fields ) =
+        ( params, encoder ) =
             PatchOptions.queryParameters options
     in
     Http.task
         { method = "PATCH"
         , headers = Config.httpHeader config
         , url = Config.endpoint params (Config.Path path_) config
-        , body = Http.jsonBody <| documentEncoder <| FSEncode.document fields
+        , body = Http.jsonBody <| documentEncoder encoder
         , timeout = Nothing
         , resolver =
             fieldDecoder
