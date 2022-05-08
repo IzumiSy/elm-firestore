@@ -4,9 +4,8 @@ module Firestore exposing
     , Path, root, collection, subCollection, document, build
     , Document, Documents, Name, id, get, list, create, insert, upsert, patch, delete, deleteExisting
     , Query, runQuery
-    , Error(..), FirestoreError
+    , Error(..), FirestoreError, PathError(..)
     , Transaction, TransactionId, CommitTime, begin, commit, getTx, listTx, runQueryTx, updateTx, deleteTx
-    , PathError(..)
     )
 
 {-| A library to have your app interact with Firestore in Elm
@@ -36,7 +35,7 @@ module Firestore exposing
 
 # Error
 
-@docs Error, FirestoreError
+@docs Error, FirestoreError, PathError
 
 
 # Transaction
@@ -164,6 +163,8 @@ type Path type_
     = Path InternalPath.Path Firestore
 
 
+{-| An error type for invalid path
+-}
 type PathError
     = InvalidPath String
 
