@@ -39,7 +39,7 @@ type Encoder
 
 {-| Generates Json.Encode.Value from Encoder
 -}
-encode : Encoder a -> JsonEncode.Value
+encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
     fields
         |> List.map (\( key, Field field ) -> ( key, field ))
