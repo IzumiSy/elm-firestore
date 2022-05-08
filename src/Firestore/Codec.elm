@@ -113,24 +113,24 @@ decode =
 
 
 {-| -}
-type Document a cons
-    = Document (Decoder cons) (a -> List ( String, Encode.Field a ))
+type Document a b cons
+    = Document (Decoder cons) (a -> List ( String, Encode.Field b ))
 
 
 {-| -}
-document : cons -> Document a cons
+document : cons -> Document a b cons
 document fun =
     Document (Decode.document fun) (always [])
 
 
 {-| -}
-build : Document a a -> Codec a
+build : Document a b a -> Codec a
 build (Document d e) =
     Codec d (e >> Encode.document)
 
 
 {-| -}
-required : String -> (a -> b) -> Field b a -> Document a (b -> cons) -> Document a cons
+required : String -> (a -> b) -> Field b c -> Document a c (b -> cons) -> Document a c cons
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
@@ -138,7 +138,7 @@ required name getter (Field dField eField) (Document d e) =
 
 
 {-| -}
-optional : String -> (a -> b) -> Field b a -> b -> Document a (b -> cons) -> Document a cons
+optional : String -> (a -> b) -> Field b c -> b -> Document a c (b -> cons) -> Document a c cons
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
@@ -225,7 +225,7 @@ reference =
 
 
 {-| -}
-map : (a -> b) -> (b -> a) -> Field a tag -> Field b tag
+map : (a -> b) -> (b -> a) -> Field a c -> Field b c
 map to from (Field d e) =
     Field (d |> Decode.map to)
         (from >> e)
