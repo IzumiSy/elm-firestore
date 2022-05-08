@@ -35,17 +35,14 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (Dict.Dict String ValidatedField)
+    = Encoder (List ( String, JsonEncode.Value ))
 
 
 {-| Generates Json.Encode.Value from Encoder
 -}
 encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
-    fields
-        |> Dict.toList
-        |> List.map (\( key, ValidatedField field_ ) -> ( key, field_ ))
-        |> JsonEncode.object
+    JsonEncode.object fields
 
 
 
@@ -87,8 +84,11 @@ field name field_ (Builder encoders) =
 {-| Generates an encoder from builders
 -}
 build : Builder -> Encoder
-build (Builder value) =
-    Encoder value
+build (Builder fields) =
+    fields
+        |> Dict.toList
+        |> List.map (\( key, ValidatedField field_ ) -> ( key, field_ ))
+        |> Encoder
 
 
 
