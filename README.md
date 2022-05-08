@@ -107,7 +107,7 @@ encoder doc =
         |> FSEncode.field "string" (FSEncode.string doc.string)
         |> FSEncode.field "list" (FSEncode.list FSEncode.string doc.list)
         |> FSEncode.field "map" (FSEncode.dict FSEncode.string doc.map)
-        |> FSEncode.field "boolean" (FSEncode.bool doc.boolean )
+        |> FSEncode.field "boolean" (FSEncode.bool doc.boolean)
         |> FSEncode.build
 
 

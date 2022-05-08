@@ -518,7 +518,7 @@ commit (Firestore config) transaction =
 
 {-| An error type
 
-This type is available in order to disregard type of errors between protocol related errors as Http\_ or backend related errors as Response.
+This type is available in order to disregard type of errors between protocol related errors as `Http_` or backend related errors as Response.
 
 -}
 type Error
