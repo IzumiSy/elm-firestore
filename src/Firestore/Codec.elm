@@ -69,6 +69,7 @@ module Firestore.Codec exposing
 import Dict exposing (Dict)
 import Firestore.Decode as Decode exposing (Decoder)
 import Firestore.Encode as Encode exposing (Encoder)
+import Firestore.Internals.Types as InternalTypes
 import Firestore.Types.Geopoint exposing (Geopoint)
 import Firestore.Types.Reference exposing (Reference)
 import Json.Decode as D
@@ -113,7 +114,7 @@ decode =
 
 {-| -}
 type Document a cons
-    = Document (Decoder cons) (a -> List ( String, Encode.Field ))
+    = Document (Decoder cons) (a -> List ( String, Encode.Field a ))
 
 
 {-| -}
@@ -129,7 +130,7 @@ build (Document d e) =
 
 
 {-| -}
-required : String -> (a -> b) -> Field b -> Document a (b -> cons) -> Document a cons
+required : String -> (a -> b) -> Field b a -> Document a (b -> cons) -> Document a cons
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
@@ -137,7 +138,7 @@ required name getter (Field dField eField) (Document d e) =
 
 
 {-| -}
-optional : String -> (a -> b) -> Field b -> b -> Document a (b -> cons) -> Document a cons
+optional : String -> (a -> b) -> Field b a -> b -> Document a (b -> cons) -> Document a cons
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
@@ -149,72 +150,72 @@ optional name getter (Field dField eField) default (Document d e) =
 
 
 {-| -}
-type Field a
-    = Field (Decode.Field a) (a -> Encode.Field)
+type Field a b
+    = Field (Decode.Field a) (a -> Encode.Field b)
 
 
 {-| -}
-bool : Field Bool
+bool : Field Bool InternalTypes.Bool
 bool =
     Field Decode.bool Encode.bool
 
 
 {-| -}
-bytes : Field String
+bytes : Field String InternalTypes.Bytes
 bytes =
     Field Decode.bytes Encode.bytes
 
 
 {-| -}
-int : Field Int
+int : Field Int InternalTypes.Int
 int =
     Field Decode.int Encode.int
 
 
 {-| -}
-string : Field String
+string : Field String InternalTypes.String
 string =
     Field Decode.string Encode.string
 
 
 {-| -}
-list : Field a -> Field (List a)
+list : Field a (InternalTypes.Listable b) -> Field (List a) InternalTypes.List
 list (Field d e) =
     Field (Decode.list d) (Encode.list e)
 
 
 {-| -}
-dict : Field a -> Field (Dict String a)
+dict : Field a b -> Field (Dict String a) InternalTypes.Dict
 dict (Field d e) =
     Field (Decode.dict d) (Encode.dict e)
 
 
 {-| -}
-null : Field ()
+null : Field () InternalTypes.Null
 null =
     Field Decode.null (always Encode.null)
 
 
 {-| -}
-maybe : Field a -> Field (Maybe a)
+maybe : Field a b -> Field (Maybe a) InternalTypes.Maybe
 maybe (Field d e) =
     Field (Decode.maybe d) (Encode.maybe e)
 
 
 {-| -}
-timestamp : Field Posix
+timestamp : Field Posix InternalTypes.Timestamp
 timestamp =
     Field Decode.timestamp Encode.timestamp
 
 
 {-| -}
-geopoint : Field Geopoint
+geopoint : Field Geopoint InternalTypes.Geopoint
 geopoint =
     Field Decode.geopoint Encode.geopoint
 
 
 {-| -}
-reference : Field Reference
+reference : Field Reference InternalTypes.Reference
 reference =
     Field Decode.reference Encode.reference
 
@@ -224,14 +225,14 @@ reference =
 
 
 {-| -}
-map : (a -> b) -> (b -> a) -> Field a -> Field b
+map : (a -> b) -> (b -> a) -> Field a tag -> Field b tag
 map to from (Field d e) =
     Field (d |> Decode.map to)
         (from >> e)
 
 
 {-| -}
-andThen : (a -> Field b) -> (b -> a) -> Field a -> Field b
+andThen : (a -> Field b d) -> (b -> a) -> Field a c -> Field b c
 andThen to from (Field d e) =
     Field
         (d
@@ -248,14 +249,14 @@ andThen to from (Field d e) =
 
 
 {-| -}
-succeed : a -> Field a
+succeed : a -> Field a InternalTypes.Null
 succeed default =
     Field (Decode.succeed default)
         (always Encode.null)
 
 
 {-| -}
-fail : String -> Field a
+fail : String -> Field a InternalTypes.Null
 fail msg =
     Field (Decode.fail msg)
         (always Encode.null)
