@@ -128,17 +128,18 @@ suite =
                     |> Expect.ok
         , Test.test "encoder" <|
             \_ ->
-                [ ( "timestamp", FSEncode.timestamp <| Time.millisToPosix 100 )
-                , ( "reference", FSEncode.reference <| Reference.new "aaa/bbb" )
-                , ( "geopoint", FSEncode.geopoint <| Geopoint.new { latitude = 10, longitude = 10 } )
-                , ( "list", FSEncode.list FSEncode.string [ "111", "222", "333" ] )
-                , ( "map", FSEncode.dict FSEncode.string (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]) )
-                , ( "boolean", FSEncode.bool True )
-                , ( "string", FSEncode.string "IzumiSy" )
-                , ( "integer", FSEncode.int 99 )
-                , ( "nullable", FSEncode.null )
-                ]
-                    |> FSEncode.document
+                FSEncode.new
+                    |> FSEncode.field "timestamp" (FSEncode.timestamp <| Time.millisToPosix 100)
+                    |> FSEncode.field "reference" (FSEncode.reference <| Reference.new "aaa/bbb")
+                    |> FSEncode.field "geopoint" (FSEncode.geopoint <| Geopoint.new { latitude = 10, longitude = 10 })
+                    |> FSEncode.field "list" (FSEncode.list FSEncode.string [ "111", "222", "333" ])
+                    |> FSEncode.field "list1" (FSEncode.list (FSEncode.list FSEncode.string) [ [ "111" ] ])
+                    |> FSEncode.field "map" (FSEncode.dict FSEncode.string (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]))
+                    |> FSEncode.field "boolean" (FSEncode.bool True)
+                    |> FSEncode.field "string" (FSEncode.string "IzumiSy")
+                    |> FSEncode.field "integer" (FSEncode.int 99)
+                    |> FSEncode.field "nullable" FSEncode.null
+                    |> FSEncode.build
                     |> FSEncode.encode
                     |> Decode.decodeValue (FSDecode.decode documentDecoder)
                     |> Expect.ok

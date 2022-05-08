@@ -69,7 +69,8 @@ module Firestore.Codec exposing
 import Dict exposing (Dict)
 import Firestore.Decode as Decode exposing (Decoder)
 import Firestore.Encode as Encode exposing (Encoder)
-import Firestore.Internals.Types as InternalTypes
+import Firestore.Internals.Encode.Types as EncodeTypes
+import Firestore.Internals.Tags as InternalTags
 import Firestore.Types.Geopoint exposing (Geopoint)
 import Firestore.Types.Reference exposing (Reference)
 import Json.Decode as D
@@ -114,35 +115,35 @@ decode =
 
 {-| -}
 type Document a b cons
-    = Document (Decoder cons) (a -> List ( String, Encode.Field b ))
+    = Document (Decoder cons) (a -> Encode.Builder b)
 
 
 {-| -}
-document : cons -> Document a b cons
+document : cons -> Document a InternalTags.Empty cons
 document fun =
-    Document (Decode.document fun) (always [])
+    Document (Decode.document fun) (always Encode.new)
 
 
 {-| -}
-build : Document a b a -> Codec a
+build : Document a InternalTags.Building a -> Codec a
 build (Document d e) =
-    Codec d (e >> Encode.document)
+    Codec d (\value -> Encode.build (e value))
 
 
 {-| -}
-required : String -> (a -> b) -> Field b c -> Document a c (b -> cons) -> Document a c cons
+required : String -> (a -> b) -> Field b c -> Document a e (b -> cons) -> Document a InternalTags.Building cons
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
-        (\value -> ( name, getter value |> eField ) :: e value)
+        (\value -> Encode.field name (eField <| getter value) (e value))
 
 
 {-| -}
-optional : String -> (a -> b) -> Field b c -> b -> Document a c (b -> cons) -> Document a c cons
+optional : String -> (a -> b) -> Field b c -> b -> Document a e (b -> cons) -> Document a InternalTags.Building cons
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
-        (\value -> ( name, getter value |> eField ) :: e value)
+        (\value -> Encode.field name (eField <| getter value) (e value))
 
 
 
@@ -155,67 +156,67 @@ type Field a b
 
 
 {-| -}
-bool : Field Bool InternalTypes.Bool
+bool : Field Bool EncodeTypes.Bool
 bool =
     Field Decode.bool Encode.bool
 
 
 {-| -}
-bytes : Field String InternalTypes.Bytes
+bytes : Field String EncodeTypes.Bytes
 bytes =
     Field Decode.bytes Encode.bytes
 
 
 {-| -}
-int : Field Int InternalTypes.Int
+int : Field Int EncodeTypes.Int
 int =
     Field Decode.int Encode.int
 
 
 {-| -}
-string : Field String InternalTypes.String
+string : Field String EncodeTypes.String
 string =
     Field Decode.string Encode.string
 
 
 {-| -}
-list : Field a (InternalTypes.Listable b) -> Field (List a) InternalTypes.List
+list : Field a (EncodeTypes.CanBeListElement b) -> Field (List a) EncodeTypes.List
 list (Field d e) =
     Field (Decode.list d) (Encode.list e)
 
 
 {-| -}
-dict : Field a b -> Field (Dict String a) InternalTypes.Dict
+dict : Field a b -> Field (Dict String a) EncodeTypes.Dict
 dict (Field d e) =
     Field (Decode.dict d) (Encode.dict e)
 
 
 {-| -}
-null : Field () InternalTypes.Null
+null : Field () EncodeTypes.Null
 null =
     Field Decode.null (always Encode.null)
 
 
 {-| -}
-maybe : Field a b -> Field (Maybe a) InternalTypes.Maybe
+maybe : Field a b -> Field (Maybe a) EncodeTypes.Maybe
 maybe (Field d e) =
     Field (Decode.maybe d) (Encode.maybe e)
 
 
 {-| -}
-timestamp : Field Posix InternalTypes.Timestamp
+timestamp : Field Posix EncodeTypes.Timestamp
 timestamp =
     Field Decode.timestamp Encode.timestamp
 
 
 {-| -}
-geopoint : Field Geopoint InternalTypes.Geopoint
+geopoint : Field Geopoint EncodeTypes.Geopoint
 geopoint =
     Field Decode.geopoint Encode.geopoint
 
 
 {-| -}
-reference : Field Reference InternalTypes.Reference
+reference : Field Reference EncodeTypes.Reference
 reference =
     Field Decode.reference Encode.reference
 
@@ -249,14 +250,14 @@ andThen to from (Field d e) =
 
 
 {-| -}
-succeed : a -> Field a InternalTypes.Null
+succeed : a -> Field a EncodeTypes.Null
 succeed default =
     Field (Decode.succeed default)
         (always Encode.null)
 
 
 {-| -}
-fail : String -> Field a InternalTypes.Null
+fail : String -> Field a EncodeTypes.Null
 fail msg =
     Field (Decode.fail msg)
         (always Encode.null)
@@ -264,5 +265,5 @@ fail msg =
 
 {-| -}
 construct : Decoder a -> (a -> Encoder) -> Codec a
-construct d e =
-    Codec d e
+construct =
+    Codec

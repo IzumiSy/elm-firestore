@@ -50,6 +50,7 @@ import Firestore.Decode as FSDecode
 import Firestore.Encode as FSEncode
 import Firestore.Internals as Internals
 import Firestore.Internals.Path as InternalPath
+import Firestore.Internals.Types as InternalTypes
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
 import Firestore.Query as Query
@@ -309,7 +310,7 @@ upsert fieldDecoder encoder (Path path_ (Firestore config)) =
 If the fields do not exists, they will be created.
 
 -}
-patch : FSDecode.Decoder a -> PatchOptions.Options -> Path (DocumentPath b) -> Task.Task Error (Document a)
+patch : FSDecode.Decoder a -> PatchOptions.Options InternalTypes.Building -> Path (DocumentPath b) -> Task.Task Error (Document a)
 patch fieldDecoder options (Path path_ (Firestore config)) =
     let
         ( params, encoder ) =

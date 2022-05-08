@@ -1,6 +1,6 @@
 module Firestore.Encode exposing
     ( Encoder, encode
-    , Builder, new, field, Field, build, merge
+    , Builder, new, field, Field, build
     , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
@@ -11,7 +11,7 @@ module Firestore.Encode exposing
 
 # Constructors
 
-@docs Builder, new, field, Field, build, merge
+@docs Builder, new, field, Field, build
 
 
 # Types
@@ -22,7 +22,8 @@ module Firestore.Encode exposing
 
 import Dict
 import Firestore.Internals.Encode as Encode
-import Firestore.Internals.Types as InternalTypes
+import Firestore.Internals.Encode.Types as EncodeTypes
+import Firestore.Internals.Tags as InternalTags
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Encode as JsonEncode
@@ -35,7 +36,7 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (Dict.Dict String InternalTypes.ValidatedField)
+    = Encoder (Dict.Dict String ValidatedField)
 
 
 {-| Generates Json.Encode.Value from Encoder
@@ -44,7 +45,7 @@ encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
     fields
         |> Dict.toList
-        |> List.map (\( key, InternalTypes.ValidatedField field_ ) -> ( key, field_ ))
+        |> List.map (\( key, ValidatedField field_ ) -> ( key, field_ ))
         |> JsonEncode.object
 
 
@@ -53,7 +54,7 @@ encode (Encoder fields) =
 
 
 type Builder a
-    = Builder (Dict.Dict String InternalTypes.ValidatedField)
+    = Builder (Dict.Dict String ValidatedField)
 
 
 {-| A field identifier type for Firestore encoder
@@ -62,44 +63,34 @@ type Field a
     = Field JsonEncode.Value
 
 
+{-| A field identifier witout a type tag
+
+I crafted this for internal implementation for `Encode.Encoder`.
+`Encode.Field` has a type tag for phantom typing so that is not sutiable to be used in a part of
+implementation of `Encode.Encoder` because it requires users to set type variables every time.
+
+-}
+type ValidatedField
+    = ValidatedField JsonEncode.Value
+
+
 {-| Initializes a new builder for encoders
 -}
-new : Builder Empty
+new : Builder InternalTags.Empty
 new =
     Builder Dict.empty
 
 
-field : String -> (a -> Field b) -> a -> Builder c -> Builder Building
-field name encoder value (Builder encoders) =
-    let
-        (Field field_) =
-            encoder value
-    in
-    Builder <| Dict.insert name (InternalTypes.ValidatedField field_) encoders
+field : String -> Field b -> Builder c -> Builder InternalTags.Building
+field name field_ (Builder encoders) =
+    Builder <| Dict.insert name (ValidatedField (unfield field_)) encoders
 
 
 {-| Generates an encoder from builders
 -}
-build : Builder Building -> Encoder
+build : Builder InternalTags.Building -> Encoder
 build (Builder value) =
     Encoder value
-
-
-{-| Merges encoders
-
-This function simply merges two encoders into one. Resolution of duplicated key is unpredictable.
-
--}
-merge : Builder Building -> Builder Building -> Builder Building
-merge (Builder a) (Builder b) =
-    Builder <|
-        Dict.merge
-            (\key value -> Dict.insert key value)
-            (\key _ value -> Dict.insert key value)
-            (\key value -> Dict.insert key value)
-            a
-            b
-            Dict.empty
 
 
 
@@ -107,67 +98,67 @@ merge (Builder a) (Builder b) =
 
 
 {-| -}
-bool : Bool -> Field InternalTypes.Bool
+bool : Bool -> Field EncodeTypes.Bool
 bool =
     Field << Encode.bool
 
 
 {-| -}
-bytes : String -> Field InternalTypes.Bytes
+bytes : String -> Field EncodeTypes.Bytes
 bytes =
     Field << Encode.bytes
 
 
 {-| -}
-int : Int -> Field InternalTypes.Int
+int : Int -> Field EncodeTypes.Int
 int =
     Field << Encode.int
 
 
 {-| -}
-string : String -> Field InternalTypes.String
+string : String -> Field EncodeTypes.String
 string =
     Field << Encode.string
 
 
 {-| -}
-list : (a -> Field (InternalTypes.Listable b)) -> List a -> Field InternalTypes.List
+list : (a -> Field (EncodeTypes.CanBeListElement b)) -> List a -> Field EncodeTypes.List
 list valueEncoder value =
     Field <| Encode.list (unfield << valueEncoder) value
 
 
 {-| -}
-dict : (a -> Field b) -> Dict.Dict String a -> Field InternalTypes.Dict
+dict : (a -> Field b) -> Dict.Dict String a -> Field EncodeTypes.Dict
 dict valueEncoder value =
     Field <| Encode.dict (unfield << valueEncoder) value
 
 
 {-| -}
-null : Field InternalTypes.Null
+null : Field EncodeTypes.Null
 null =
     Field Encode.null
 
 
 {-| -}
-maybe : (a -> Field b) -> Maybe a -> Field InternalTypes.Maybe
+maybe : (a -> Field b) -> Maybe a -> Field EncodeTypes.Maybe
 maybe valueEncoder =
     Field << Encode.maybe (unfield << valueEncoder)
 
 
 {-| -}
-timestamp : Time.Posix -> Field InternalTypes.Timestamp
+timestamp : Time.Posix -> Field EncodeTypes.Timestamp
 timestamp =
     Field << Encode.timestamp
 
 
 {-| -}
-geopoint : Geopoint.Geopoint -> Field InternalTypes.Geopoint
+geopoint : Geopoint.Geopoint -> Field EncodeTypes.Geopoint
 geopoint =
     Field << Encode.geopoint
 
 
 {-| -}
-reference : Reference.Reference -> Field InternalTypes.Reference
+reference : Reference.Reference -> Field EncodeTypes.Reference
 reference =
     Field << Encode.reference
 
@@ -179,11 +170,3 @@ reference =
 unfield : Field a -> JsonEncode.Value
 unfield (Field value) =
     value
-
-
-type Building
-    = Building
-
-
-type Empty
-    = Empty

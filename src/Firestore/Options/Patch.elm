@@ -15,59 +15,57 @@ module Firestore.Options.Patch exposing
 -}
 
 import Firestore.Encode as FSEncode
+import Firestore.Internals.Types as InternalTypes
 import Set
 import Url.Builder as UrlBuilder
 
 
 {-| An option type for Patch operation
 -}
-type Options
+type Options a
     = Options
         { updates : Set.Set String
-        , updatesEncoder : FSEncode.Encoder
+        , updatesBuilder : FSEncode.Builder a
         , deletes : Set.Set String
         }
 
 
 {-| Constructs options for patch operation
 -}
-empty : Options
+empty : Options InternalTypes.Empty
 empty =
     Options
         { updates = Set.empty
-        , updatesEncoder = FSEncode.document []
+        , updatesBuilder = FSEncode.new
         , deletes = Set.empty
         }
 
 
 {-| Adds a field to update
 -}
-addUpdate : String -> FSEncode.Field a -> Options -> Options
+addUpdate : String -> FSEncode.Field a -> Options InternalTypes.Building -> Options InternalTypes.Building
 addUpdate path field (Options options) =
     Options
         { options
             | updates = Set.insert path options.updates
-            , updatesEncoder =
-                FSEncode.merge
-                    (FSEncode.document [ ( path, field ) ])
-                    options.updatesEncoder
+            , updatesBuilder = FSEncode.field path field options.updatesBuilder
         }
 
 
 {-| Adds a field to delete
 -}
-addDelete : String -> Options -> Options
+addDelete : String -> Options a -> Options a
 addDelete path (Options options) =
     Options { options | deletes = Set.insert path options.deletes }
 
 
 {-| Converts options into query parameters
 -}
-queryParameters : Options -> ( List UrlBuilder.QueryParameter, FSEncode.Encoder )
+queryParameters : Options InternalTypes.Building -> ( List UrlBuilder.QueryParameter, FSEncode.Encoder )
 queryParameters (Options options) =
     ( List.concat
         [ Set.toList options.updates |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         , Set.toList options.deletes |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         ]
-    , options.updatesEncoder
+    , FSEncode.build options.updatesBuilder
     )
