@@ -1,17 +1,17 @@
 module Firestore.Encode exposing
-    ( Encoder, encode, Field
-    , document
+    ( Encoder, encode
+    , Builder, new, field, Field, build
     , bool, bytes, int, string, list, dict, null, maybe, timestamp, geopoint, reference
     )
 
 {-| Encoders for Firestore
 
-@docs Encoder, encode, Field
+@docs Encoder, encode
 
 
 # Constructors
 
-@docs document
+@docs Builder, new, field, Field, build
 
 
 # Types
@@ -22,6 +22,7 @@ module Firestore.Encode exposing
 
 import Dict
 import Firestore.Internals.Encode as Encode
+import Firestore.Internals.Encode.Types as EncodeTypes
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Encode as JsonEncode
@@ -34,42 +35,60 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (List ( String, Field ))
+    = Encoder (List ( String, JsonEncode.Value ))
 
 
 {-| Generates Json.Encode.Value from Encoder
 -}
 encode : Encoder -> JsonEncode.Value
 encode (Encoder fields) =
-    fields
-        |> List.map (\( key, Field field ) -> ( key, field ))
-        |> JsonEncode.object
-
-
-{-| An field identifier type for Firestore encoder
--}
-type Field
-    = Field JsonEncode.Value
+    JsonEncode.object fields
 
 
 
 -- Constructors
 
 
-{-| Creates a new encoder
+type Builder
+    = Builder (Dict.Dict String ValidatedField)
 
-This function works like `Encode.object` but accepts a list of tuples which has only encoders provided from `Firestore.Encode` module
 
-    Firestore.Encode.document
-        [ ( "name", Firestore.Encode.string "IzumiSy" )
-        , ( "age", Firestore.Encode.int 26 )
-        , ( "canCode", Firestore.Encode.bool True )
-        ]
+{-| A field identifier type for Firestore encoder
+-}
+type Field a
+    = Field JsonEncode.Value
+
+
+{-| A field identifier witout a type tag
+
+`Encode.Field` has a type tag for phantom typing so that is not sutiable to be used
+in a part of any public types because it require users to set type variables every time in definition.
 
 -}
-document : List ( String, Field ) -> Encoder
-document =
-    Encoder
+type ValidatedField
+    = ValidatedField JsonEncode.Value
+
+
+{-| Initializes a new builder for encoders
+-}
+new : Builder
+new =
+    Builder Dict.empty
+
+
+field : String -> Field b -> Builder -> Builder
+field name field_ (Builder encoders) =
+    Builder <| Dict.insert name (ValidatedField (unfield field_)) encoders
+
+
+{-| Generates an encoder from builders
+-}
+build : Builder -> Encoder
+build (Builder fields) =
+    fields
+        |> Dict.toList
+        |> List.map (\( key, ValidatedField field_ ) -> ( key, field_ ))
+        |> Encoder
 
 
 
@@ -77,67 +96,67 @@ document =
 
 
 {-| -}
-bool : Bool -> Field
+bool : Bool -> Field EncodeTypes.Bool
 bool =
     Field << Encode.bool
 
 
 {-| -}
-bytes : String -> Field
+bytes : String -> Field EncodeTypes.Bytes
 bytes =
     Field << Encode.bytes
 
 
 {-| -}
-int : Int -> Field
+int : Int -> Field EncodeTypes.Int
 int =
     Field << Encode.int
 
 
 {-| -}
-string : String -> Field
+string : String -> Field EncodeTypes.String
 string =
     Field << Encode.string
 
 
 {-| -}
-list : (a -> Field) -> List a -> Field
+list : (a -> Field (EncodeTypes.CanBeListElement b)) -> List a -> Field EncodeTypes.List
 list valueEncoder value =
     Field <| Encode.list (unfield << valueEncoder) value
 
 
 {-| -}
-dict : (a -> Field) -> Dict.Dict String a -> Field
+dict : (a -> Field b) -> Dict.Dict String a -> Field EncodeTypes.Dict
 dict valueEncoder value =
     Field <| Encode.dict (unfield << valueEncoder) value
 
 
 {-| -}
-null : Field
+null : Field EncodeTypes.Null
 null =
     Field Encode.null
 
 
 {-| -}
-maybe : (a -> Field) -> Maybe a -> Field
+maybe : (a -> Field b) -> Maybe a -> Field EncodeTypes.Maybe
 maybe valueEncoder =
     Field << Encode.maybe (unfield << valueEncoder)
 
 
 {-| -}
-timestamp : Time.Posix -> Field
+timestamp : Time.Posix -> Field EncodeTypes.Timestamp
 timestamp =
     Field << Encode.timestamp
 
 
 {-| -}
-geopoint : Geopoint.Geopoint -> Field
+geopoint : Geopoint.Geopoint -> Field EncodeTypes.Geopoint
 geopoint =
     Field << Encode.geopoint
 
 
 {-| -}
-reference : Reference.Reference -> Field
+reference : Reference.Reference -> Field EncodeTypes.Reference
 reference =
     Field << Encode.reference
 
@@ -146,6 +165,6 @@ reference =
 -- Internals
 
 
-unfield : Field -> JsonEncode.Value
+unfield : Field a -> JsonEncode.Value
 unfield (Field value) =
     value

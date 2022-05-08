@@ -14,7 +14,6 @@ module Firestore.Options.Patch exposing
 
 -}
 
-import Dict
 import Firestore.Encode as FSEncode
 import Set
 import Url.Builder as UrlBuilder
@@ -25,7 +24,7 @@ import Url.Builder as UrlBuilder
 type Options
     = Options
         { updates : Set.Set String
-        , updateFields : Dict.Dict String FSEncode.Field
+        , updatesBuilder : FSEncode.Builder
         , deletes : Set.Set String
         }
 
@@ -36,19 +35,19 @@ empty : Options
 empty =
     Options
         { updates = Set.empty
-        , updateFields = Dict.empty
+        , updatesBuilder = FSEncode.new
         , deletes = Set.empty
         }
 
 
 {-| Adds a field to update
 -}
-addUpdate : String -> FSEncode.Field -> Options -> Options
+addUpdate : String -> FSEncode.Field a -> Options -> Options
 addUpdate path field (Options options) =
     Options
         { options
             | updates = Set.insert path options.updates
-            , updateFields = Dict.insert path field options.updateFields
+            , updatesBuilder = FSEncode.field path field options.updatesBuilder
         }
 
 
@@ -61,11 +60,11 @@ addDelete path (Options options) =
 
 {-| Converts options into query parameters
 -}
-queryParameters : Options -> ( List UrlBuilder.QueryParameter, List ( String, FSEncode.Field ) )
+queryParameters : Options -> ( List UrlBuilder.QueryParameter, FSEncode.Encoder )
 queryParameters (Options options) =
     ( List.concat
         [ Set.toList options.updates |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         , Set.toList options.deletes |> List.map (UrlBuilder.string "updateMask.fieldPaths")
         ]
-    , Dict.toList options.updateFields
+    , FSEncode.build options.updatesBuilder
     )
