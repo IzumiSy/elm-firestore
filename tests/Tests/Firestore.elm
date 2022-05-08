@@ -133,7 +133,6 @@ suite =
                     |> FSEncode.field "reference" (FSEncode.reference <| Reference.new "aaa/bbb")
                     |> FSEncode.field "geopoint" (FSEncode.geopoint <| Geopoint.new { latitude = 10, longitude = 10 })
                     |> FSEncode.field "list" (FSEncode.list FSEncode.string [ "111", "222", "333" ])
-                    |> FSEncode.field "list1" (FSEncode.list (FSEncode.list FSEncode.string) [ [ "111" ] ])
                     |> FSEncode.field "map" (FSEncode.dict FSEncode.string (Dict.fromList [ ( "key1", "aaa" ), ( "key2", "bbb" ), ( "key3", "ccc" ) ]))
                     |> FSEncode.field "boolean" (FSEncode.bool True)
                     |> FSEncode.field "string" (FSEncode.string "IzumiSy")

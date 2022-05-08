@@ -15,7 +15,7 @@ module Firestore.Options.Patch exposing
 -}
 
 import Firestore.Encode as FSEncode
-import Firestore.Internals.Types as InternalTypes
+import Firestore.Internals.Tags as InternalTags
 import Set
 import Url.Builder as UrlBuilder
 
@@ -32,7 +32,7 @@ type Options a
 
 {-| Constructs options for patch operation
 -}
-empty : Options InternalTypes.Empty
+empty : Options InternalTags.Empty
 empty =
     Options
         { updates = Set.empty
@@ -43,7 +43,7 @@ empty =
 
 {-| Adds a field to update
 -}
-addUpdate : String -> FSEncode.Field a -> Options InternalTypes.Building -> Options InternalTypes.Building
+addUpdate : String -> FSEncode.Field a -> Options InternalTags.Building -> Options InternalTags.Building
 addUpdate path field (Options options) =
     Options
         { options
@@ -61,7 +61,7 @@ addDelete path (Options options) =
 
 {-| Converts options into query parameters
 -}
-queryParameters : Options InternalTypes.Building -> ( List UrlBuilder.QueryParameter, FSEncode.Encoder )
+queryParameters : Options InternalTags.Building -> ( List UrlBuilder.QueryParameter, FSEncode.Encoder )
 queryParameters (Options options) =
     ( List.concat
         [ Set.toList options.updates |> List.map (UrlBuilder.string "updateMask.fieldPaths")
