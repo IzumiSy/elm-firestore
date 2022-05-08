@@ -64,9 +64,8 @@ type Field a
 
 {-| A field identifier witout a type tag
 
-I crafted this for internal implementation for `Encode.Encoder`.
-`Encode.Field` has a type tag for phantom typing so that is not sutiable to be used in a part of
-implementation of `Encode.Encoder` because it requires users to set type variables every time.
+`Encode.Field` has a type tag for phantom typing so that is not sutiable to be used
+in a part of any public types because it require users to set type variables every time in definition.
 
 -}
 type ValidatedField

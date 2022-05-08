@@ -13,9 +13,25 @@ module Firestore.Internals.Encode.Types exposing
     , Timestamp
     )
 
+-- Type tags
 
+
+type Allowed
+    = Allowed
+
+
+type NotAllowed
+    = NotAllowed
+
+
+{-| A type predicate to disregard whether the type can be an element of list type in Firestore.
+-}
 type alias CanBeListElement a =
     { a | canBeListElement : Allowed }
+
+
+
+-- Primitives
 
 
 type alias Bool =
@@ -60,15 +76,3 @@ type alias Geopoint =
 
 type alias Reference =
     { canBeListElement : Allowed }
-
-
-
--- Type tag
-
-
-type Allowed
-    = Allowed
-
-
-type NotAllowed
-    = NotAllowed
