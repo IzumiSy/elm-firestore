@@ -70,7 +70,6 @@ import Dict exposing (Dict)
 import Firestore.Decode as Decode exposing (Decoder)
 import Firestore.Encode as Encode exposing (Encoder)
 import Firestore.Internals.Encode.Types as EncodeTypes
-import Firestore.Internals.Tags as InternalTags
 import Firestore.Types.Geopoint exposing (Geopoint)
 import Firestore.Types.Reference exposing (Reference)
 import Json.Decode as D
@@ -98,15 +97,13 @@ asDecoder (Codec out _) =
 {-| -}
 encode : Codec a -> a -> E.Value
 encode codec =
-    asEncoder codec
-        >> Encode.encode
+    asEncoder codec >> Encode.encode
 
 
 {-| -}
 decode : Codec a -> D.Decoder a
 decode =
-    asDecoder
-        >> Decode.decode
+    asDecoder >> Decode.decode
 
 
 
@@ -114,24 +111,24 @@ decode =
 
 
 {-| -}
-type Document a b cons
-    = Document (Decoder cons) (a -> Encode.Builder b)
+type Document a cons
+    = Document (Decoder cons) (a -> Encode.Builder)
 
 
 {-| -}
-document : cons -> Document a InternalTags.Empty cons
+document : cons -> Document a cons
 document fun =
     Document (Decode.document fun) (always Encode.new)
 
 
 {-| -}
-build : Document a InternalTags.Building a -> Codec a
+build : Document a a -> Codec a
 build (Document d e) =
-    Codec d (\value -> Encode.build (e value))
+    Codec d (Encode.build << e)
 
 
 {-| -}
-required : String -> (a -> b) -> Field b c -> Document a e (b -> cons) -> Document a InternalTags.Building cons
+required : String -> (a -> b) -> Field b c -> Document a (b -> cons) -> Document a cons
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
@@ -139,7 +136,7 @@ required name getter (Field dField eField) (Document d e) =
 
 
 {-| -}
-optional : String -> (a -> b) -> Field b c -> b -> Document a e (b -> cons) -> Document a InternalTags.Building cons
+optional : String -> (a -> b) -> Field b c -> b -> Document a (b -> cons) -> Document a cons
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
@@ -228,8 +225,7 @@ reference =
 {-| -}
 map : (a -> b) -> (b -> a) -> Field a c -> Field b c
 map to from (Field d e) =
-    Field (d |> Decode.map to)
-        (from >> e)
+    Field (d |> Decode.map to) (from >> e)
 
 
 {-| -}
@@ -252,15 +248,13 @@ andThen to from (Field d e) =
 {-| -}
 succeed : a -> Field a EncodeTypes.Null
 succeed default =
-    Field (Decode.succeed default)
-        (always Encode.null)
+    Field (Decode.succeed default) (always Encode.null)
 
 
 {-| -}
 fail : String -> Field a EncodeTypes.Null
 fail msg =
-    Field (Decode.fail msg)
-        (always Encode.null)
+    Field (Decode.fail msg) (always Encode.null)
 
 
 {-| -}

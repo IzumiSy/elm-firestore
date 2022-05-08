@@ -23,7 +23,6 @@ module Firestore.Encode exposing
 import Dict
 import Firestore.Internals.Encode as Encode
 import Firestore.Internals.Encode.Types as EncodeTypes
-import Firestore.Internals.Tags as InternalTags
 import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Json.Encode as JsonEncode
@@ -53,7 +52,7 @@ encode (Encoder fields) =
 -- Constructors
 
 
-type Builder a
+type Builder
     = Builder (Dict.Dict String ValidatedField)
 
 
@@ -76,19 +75,19 @@ type ValidatedField
 
 {-| Initializes a new builder for encoders
 -}
-new : Builder InternalTags.Empty
+new : Builder
 new =
     Builder Dict.empty
 
 
-field : String -> Field b -> Builder c -> Builder InternalTags.Building
+field : String -> Field b -> Builder -> Builder
 field name field_ (Builder encoders) =
     Builder <| Dict.insert name (ValidatedField (unfield field_)) encoders
 
 
 {-| Generates an encoder from builders
 -}
-build : Builder InternalTags.Building -> Encoder
+build : Builder -> Encoder
 build (Builder value) =
     Encoder value
 
