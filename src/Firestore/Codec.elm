@@ -135,7 +135,7 @@ required : String -> (a -> b) -> Field b c -> Document a e (b -> cons) -> Docume
 required name getter (Field dField eField) (Document d e) =
     Document
         (Decode.required name dField d)
-        (\value -> Encode.field name (eField <| getter value) (e value))
+        (\value -> Encode.field name (getter value |> eField) (e value))
 
 
 {-| -}
@@ -143,7 +143,7 @@ optional : String -> (a -> b) -> Field b c -> b -> Document a e (b -> cons) -> D
 optional name getter (Field dField eField) default (Document d e) =
     Document
         (Decode.optional name dField default d)
-        (\value -> Encode.field name (eField <| getter value) (e value))
+        (\value -> Encode.field name (getter value |> eField) (e value))
 
 
 
