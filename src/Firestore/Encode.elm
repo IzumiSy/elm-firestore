@@ -34,12 +34,12 @@ This can be encoded into `Json.Value` through `encode` function.
 
 -}
 type Encoder
-    = Encoder (List ( String, Field ))
+    = Encoder (List ( String, Field a ))
 
 
 {-| Generates Json.Encode.Value from Encoder
 -}
-encode : Encoder -> JsonEncode.Value
+encode : Encoder a -> JsonEncode.Value
 encode (Encoder fields) =
     fields
         |> List.map (\( key, Field field ) -> ( key, field ))
@@ -48,7 +48,7 @@ encode (Encoder fields) =
 
 {-| An field identifier type for Firestore encoder
 -}
-type Field
+type Field a
     = Field JsonEncode.Value
 
 
@@ -67,7 +67,7 @@ This function works like `Encode.object` but accepts a list of tuples which has 
         ]
 
 -}
-document : List ( String, Field ) -> Encoder
+document : List ( String, Field a ) -> Encoder
 document =
     Encoder
 
@@ -77,75 +77,135 @@ document =
 
 
 {-| -}
-bool : Bool -> Field
+bool : Bool -> Field BoolType
 bool =
     Field << Encode.bool
 
 
+type alias BoolType =
+    { listble : Allowed }
+
+
 {-| -}
-bytes : String -> Field
+bytes : String -> Field BytesType
 bytes =
     Field << Encode.bytes
 
 
+type alias BytesType =
+    { listable : Allowed }
+
+
 {-| -}
-int : Int -> Field
+int : Int -> Field IntType
 int =
     Field << Encode.int
 
 
+type alias IntType =
+    { listable : Allowed }
+
+
 {-| -}
-string : String -> Field
+string : String -> Field StringType
 string =
     Field << Encode.string
 
 
+type alias StringType =
+    { listable : Allowed }
+
+
 {-| -}
-list : (a -> Field) -> List a -> Field
+list : (a -> Field (Listable b)) -> List a -> Field ListType
 list valueEncoder value =
     Field <| Encode.list (unfield << valueEncoder) value
 
 
+type alias ListType =
+    { listable : Denied }
+
+
 {-| -}
-dict : (a -> Field) -> Dict.Dict String a -> Field
+dict : (a -> Field b) -> Dict.Dict String a -> Field DictType
 dict valueEncoder value =
     Field <| Encode.dict (unfield << valueEncoder) value
 
 
+type alias DictType =
+    { listable : Allowed }
+
+
 {-| -}
-null : Field
+null : Field NullType
 null =
     Field Encode.null
 
 
+type alias NullType =
+    { listable : Allowed }
+
+
 {-| -}
-maybe : (a -> Field) -> Maybe a -> Field
+maybe : (a -> Field b) -> Maybe a -> Field MaybeType
 maybe valueEncoder =
     Field << Encode.maybe (unfield << valueEncoder)
 
 
+type alias MaybeType =
+    { listable : Allowed }
+
+
 {-| -}
-timestamp : Time.Posix -> Field
+timestamp : Time.Posix -> Field TimestampType
 timestamp =
     Field << Encode.timestamp
 
 
+type alias TimestampType =
+    { listable : Allowed }
+
+
 {-| -}
-geopoint : Geopoint.Geopoint -> Field
+geopoint : Geopoint.Geopoint -> Field GeopointType
 geopoint =
     Field << Encode.geopoint
 
 
+type alias GeopointType =
+    { listable : Allowed }
+
+
 {-| -}
-reference : Reference.Reference -> Field
+reference : Reference.Reference -> Field ReferenceType
 reference =
     Field << Encode.reference
+
+
+type alias ReferenceType =
+    { listable : Allowed }
 
 
 
 -- Internals
 
 
-unfield : Field -> JsonEncode.Value
+unfield : Field a -> JsonEncode.Value
 unfield (Field value) =
     value
+
+
+
+-- Type tags
+
+
+type Allowed
+    = Allowed
+
+
+type Denied
+    = Denied
+
+
+type alias Listable a =
+    { a | listable : Allowed }
