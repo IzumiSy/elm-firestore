@@ -99,16 +99,16 @@ decoder =
 
 encoder : Document -> FSEncode.Encoder
 encoder doc =
-    FSEncode.document
-        [ ( "timestamp", FSEncode.timestamp doc.timestamp )
-        , ( "geopoint", FSEncode.geopoint doc.geopoint )
-        , ( "reference", FSEncode.reference doc.reference )
-        , ( "integer", FSEncode.int doc.integer )
-        , ( "string", FSEncode.string doc.string )
-        , ( "list", FSEncode.list FSEncode.string doc.list)
-        , ( "map", FSEncode.dict FSEncode.string doc.map)
-        , ( "boolean", FSEncode.bool doc.boolean )
-        ]
+    FSEncode.new
+        |> FSEncode.field "timestamp" (FSEncode.timestamp doc.timestamp)
+        |> FSEncode.field "geopoint" (FSEncode.geopoint doc.geopoint)
+        |> FSEncode.field "reference" (FSEncode.reference doc.reference)
+        |> FSEncode.field "integer" (FSEncode.int doc.integer)
+        |> FSEncode.field "string" (FSEncode.string doc.string)
+        |> FSEncode.field "list" (FSEncode.list FSEncode.string doc.list)
+        |> FSEncode.field "map" (FSEncode.dict FSEncode.string doc.map)
+        |> FSEncode.field "boolean" (FSEncode.bool doc.boolean )
+        |> FSEncode.build
 
 
 
