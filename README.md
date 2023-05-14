@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/IzumiSy/elm-firestore.svg?style=svg)](https://circleci.com/gh/IzumiSy/elm-firestore)
 
-> A type-safe Firestore integration for Elm.
+A type-safe Firestore integration module for Elm. No JavaScript/TypeScript needed for ports.
 
 The features elm-firestore library supports are as follows:
 
