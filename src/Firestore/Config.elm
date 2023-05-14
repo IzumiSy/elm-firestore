@@ -152,7 +152,8 @@ httpHeader : Config -> List Http.Header
 httpHeader (Config { authorization }) =
     authorization
         |> Maybe.map Typed.value
-        |> Maybe.map (Http.header "Bearer")
+        |> Maybe.map (\s -> "Bearer " ++ s)
+        |> Maybe.map (Http.header "Authorization")
         |> Maybe.map List.singleton
         |> Maybe.withDefault []
 
