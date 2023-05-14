@@ -1,34 +1,60 @@
-const firebase = require("firebase")
-const seeds = require("./seeds.json")
-require("firebase/firestore")
+const seeds = require("./seeds.json");
+const { initializeApp } = require("firebase/app");
+const {
+  getDocs,
+  collection,
+  doc,
+  getDoc,
+  getFirestore,
+  connectFirestoreEmulator,
+  setDoc,
+  addDoc,
+  writeBatch,
+  deleteDoc,
+} = require("firebase/firestore");
 
 class Seed {
   constructor({ apiKey, projectId, host, port }) {
-    firebase.initializeApp({ apiKey, projectId })
-    firebase.firestore().useEmulator(host, port)
-    this.db = firebase.firestore()
+    initializeApp({ apiKey, projectId });
+    this.db = getFirestore();
+    connectFirestoreEmulator(this.db, host, port);
   }
 
   populate() {
-    return Promise.all(seeds.users.map(async (value, index) => {
-      await this.db.collection("users").doc(`user${index}`).set(value)
-      return Promise.all(seeds.extras[`user${index}`].map(value => {
-        return this.db.collection("users").doc(`user${index}`).collection("extras").add(value)
-      }))
-    }))
+    return Promise.all(
+      seeds.users.map(async (value, index) => {
+        await setDoc(doc(this.db, "users", `user${index}`), value);
+        return Promise.all(
+          seeds.extras[`user${index}`].map((value) =>
+            addDoc(
+              collection(this.db, "users", `user${index}`, "extras"),
+              value
+            )
+          )
+        );
+      })
+    );
   }
 
   async clear() {
-    const batch = this.db.batch()
-    const users = await this.db.collection("users").get()
-    const extrasByUser = await Promise.all(users.docs.map(async doc =>
-      this.db.collection("users").doc(doc.id).collection("extras").get()
-    ))
-    extrasByUser.forEach(extras => {
-      extras.docs.forEach(doc => batch.delete(doc.ref))
-    })
-    await batch.commit()
-    return Promise.all(users.docs.map(async doc => doc.ref.delete()))
+    const batch = writeBatch(this.db);
+    const users = await getDocs(collection(this.db, "users"));
+    const extrasByUser = await Promise.all(
+      users.docs.map(async (userDoc) =>
+        getDocs(
+          collection(doc(collection(this.db, "users"), userDoc.id), "extras")
+        )
+      )
+    );
+    extrasByUser.forEach((extras) => {
+      extras.docs.forEach((extraDoc) => batch.delete(extraDoc.ref));
+    });
+    await batch.commit();
+    return Promise.all(
+      users.docs.map(async (userDoc) =>
+        deleteDoc(doc(this.db, "users", userDoc.id))
+      )
+    );
   }
 }
 

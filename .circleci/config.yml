@@ -6,7 +6,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: node:16.15.0
+      - image: node:18.16.0-slim
     working_directory: ~/repo
     steps:
       - run:
