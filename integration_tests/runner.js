@@ -127,8 +127,7 @@ test.serial("TestDeleteExistingFail", async (t) => {
   return reset();
 });
 
-// Skips this test due to issue firebase-tools#3293
-test.skip("TestTransaction", async (t) => {
+test("TestTransaction", async (t) => {
   await runner("runTestTransaction", "testTransactionResult").then((result) => {
     t.true(result.success);
   });
@@ -165,7 +164,7 @@ test("TestGet", (t) => {
   });
 });
 
-// Due to a possible bug in Firestore Emulator this case is skipped for now.
+// Skip: ListDocuments with a pageToken and an orderBy clause is not supported
 test.skip("TestListPageToken", (t) => {
   return runner("runTestListPageToken", "testListPageTokenResult").then(
     (result) => {

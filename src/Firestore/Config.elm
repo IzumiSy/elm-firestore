@@ -96,7 +96,7 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
     in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
-        ("v1beta1" :: path)
+        ("v1" :: path)
         (List.append params [ UrlBuilder.string "key" (Typed.value apiKey) ])
 
 

@@ -25,5 +25,5 @@ suite =
                             |> InternalPath.addDocument "user1"
                             |> Config.Path
                         )
-                    |> Expect.equal "https://firestore.googleapis.com/v1beta1/projects/test-project/databases/(default)/documents/users/user1?pageSize=10&orderBy=name&key=test-apiKey"
+                    |> Expect.equal "https://firestore.googleapis.com/v1/projects/test-project/databases/(default)/documents/users/user1?pageSize=10&orderBy=name&key=test-apiKey"
         ]
