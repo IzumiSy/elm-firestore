@@ -164,7 +164,7 @@ test("TestGet", (t) => {
   });
 });
 
-// Due to a possible bug in Firestore Emulator this case is skipped for now.
+// Skip: ListDocuments with a pageToken and an orderBy clause is not supported
 test.skip("TestListPageToken", (t) => {
   return runner("runTestListPageToken", "testListPageTokenResult").then(
     (result) => {
