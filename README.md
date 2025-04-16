@@ -152,28 +152,30 @@ update msg model =
 
 ### Setup
 
+Install pnpm to setup elm-firestore development
+
 ```shell
-$ npm install
+$ pnpm install
 ```
 
 ### Build
 
 ```shell
-$ npm run build
+$ pnpm build
 ```
 
 ### Unit testing
 
 ```shell
-$ npm test
+$ pnpm test
 ```
 
 ### Integration testing
 This requires you to install Open JDK to run Firestore Emulator.
 
 ```shell
-$ npm run test:integration:setup
-$ npm run test:integration
+$ pnpm test:integration:setup
+$ pnpm test:integration
 ```
 
 ## License
