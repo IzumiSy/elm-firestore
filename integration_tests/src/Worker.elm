@@ -28,10 +28,10 @@ type alias Model =
 
 init : Flag -> ( Model, Cmd Msg )
 init { apiKey, project, host, port_ } =
-    ( { apiKey = apiKey
-      , project = project
+    ( { project = project
       }
         |> Config.new
+        |> Config.withAPIKey apiKey
         |> Config.withHost host port_
         |> Firestore.init
     , Cmd.none
