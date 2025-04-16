@@ -1,6 +1,7 @@
 # elm-firestore
 
-[![CircleCI](https://circleci.com/gh/IzumiSy/elm-firestore.svg?style=svg)](https://circleci.com/gh/IzumiSy/elm-firestore)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/IzumiSy/elm-firestore/test.yaml?branch=master)](https://github.com/IzumiSy/elm-firestore)
+[![Elm package](https://img.shields.io/elm-package/v/IzumiSy/elm-firestore)](https://package.elm-lang.org/packages/IzumiSy/elm-firestore/)
 
 A type-safe Firestore integration module for Elm. No JavaScript/TypeScript needed for ports.
 
