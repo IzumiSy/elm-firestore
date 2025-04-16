@@ -1,5 +1,5 @@
 import Seed from "./seed.js";
-import test from "ava";
+import test, { registerCompletionHandler } from "ava";
 import xhr2 from "xhr2";
 import { loadElmWorker } from "./loader.js";
 
@@ -55,6 +55,10 @@ test.before("Seeds Firestore", () => {
 
 test.after("Cleanup Firestore", () => {
   return seed.clear();
+});
+
+registerCompletionHandler(() => {
+  process.exit();
 });
 
 //
