@@ -3,7 +3,7 @@ name: Test
 on: push
 
 jobs:
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +17,23 @@ jobs:
           node-version-file: './package.json'
       - run: pnpm install
       - run: pnpm test
-      # - run: pnpm test:integration:setup
-      # - run: pnpm test:integration
+  
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: ./pnpm-lock.yaml
+          node-version-file: './package.json'
+      - run: pnpm install
+      - run: |
+          apt update -y
+          apt install -y default-jre
+      - run: pnpm test:integration:setup
+      - run: pnpm test:integration
