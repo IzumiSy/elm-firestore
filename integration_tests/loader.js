@@ -10,7 +10,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * So this uses `vm` module to run the JS file in a sandbox to export it as a module.
  */
 export const loadElmWorker = () => {
-  const sandbox = { console };
+  // Using `globalThis` is not good practice, but this is a workaround to run worker code
+  const sandbox = globalThis;
 
   vm.createContext(sandbox);
   vm.runInContext(

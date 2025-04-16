@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { initializeApp } from "firebase-admin/app";
+import { initializeApp } from "firebase/app";
 import {
   getDocs,
   collection,
