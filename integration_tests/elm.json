@@ -15,6 +15,7 @@
       "elm/url": "1.0.0",
       "elm-community/list-extra": "8.3.0",
       "elm-community/result-extra": "2.4.0",
+      "elm-community/json-extra": "4.3.0",
       "mgold/elm-nonempty-list": "4.2.0",
       "rtfeldman/elm-iso8601-date-strings": "1.1.3"
     },
