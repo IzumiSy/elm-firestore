@@ -31,8 +31,9 @@ jobs:
           cache-dependency-path: ./pnpm-lock.yaml
           node-version-file: './package.json'
       - run: pnpm install
-      - run: |
-          apt update -y
-          apt install -y default-jre
+      - uses: actions/setup-java@v4
+        with:
+          distribution: adopt
+          java-version: 21
       - run: pnpm test:integration:setup
       - run: pnpm test:integration
