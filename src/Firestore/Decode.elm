@@ -31,6 +31,7 @@ import Firestore.Types.Geopoint as Geopoint
 import Firestore.Types.Reference as Reference
 import Iso8601
 import Json.Decode as Decode
+import Json.Decode.Extra as ExDecode
 import Json.Decode.Pipeline as Pipeline
 import Time
 
@@ -146,7 +147,8 @@ string =
 list : Field a -> Field (List a)
 list (Field elementDecoder) =
     Decode.list elementDecoder
-        |> Decode.field "values"
+        |> ExDecode.optionalField "values"
+        |> Decode.map (Maybe.withDefault [])
         |> Decode.field "arrayValue"
         |> Field
 
