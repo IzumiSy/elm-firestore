@@ -15,7 +15,7 @@
     "elm-test": "^0.19.1-revision15",
     "firebase": "^11.6.0",
     "firebase-tools": "^14.1.0",
-    "prettier": "^2.8.8",
+    "prettier": "^3.5.3",
     "xhr2": "^0.2.1"
   },
   "packageManager": "pnpm@10.8.1",
