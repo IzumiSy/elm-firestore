@@ -15,6 +15,7 @@ suite =
                 {  project = "test-project"
                 }
                     |> Config.new
+                    |> Config.withAPIKey "test-apiKey"
                     |> Config.endpoint
                         [ UrlBuilder.int "pageSize" 10
                         , UrlBuilder.string "orderBy" "name"
