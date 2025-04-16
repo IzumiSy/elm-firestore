@@ -1,7 +1,7 @@
-import worker from "./worker.js";
 import Seed from "./seed.js";
-import * as test from "ava";
+import test from "ava";
 import xhr2 from "xhr2";
+import { loadElmWorker } from "./loader.js";
 
 //
 // The reason why integration uses AVA as a runner is that it supports concurrent testing.
@@ -27,9 +27,9 @@ const seed = new Seed({
   port: config.port,
 });
 
-const w = worker.Elm.Worker;
+const worker = loadElmWorker();
 const runner = (triggerName, resultName) => {
-  const app = w.init({
+  const app = worker.init({
     flags: {
       apiKey: config.apiKey,
       project: config.projectId,
