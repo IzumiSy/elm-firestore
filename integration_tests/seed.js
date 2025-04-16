@@ -1,4 +1,4 @@
-import seeds from "./seeds.json";
+import { createRequire } from "node:module";
 import { initializeApp } from "firebase-admin/app";
 import {
   getDocs,
@@ -12,7 +12,10 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
-class Seed {
+const require = createRequire(import.meta.url);
+const seeds = require("./seeds.json");
+
+export default class Seed {
   constructor({ apiKey, projectId, host, port }) {
     initializeApp({ apiKey, projectId });
     this.db = getFirestore();
@@ -56,5 +59,3 @@ class Seed {
     );
   }
 }
-
-module.exports = Seed;

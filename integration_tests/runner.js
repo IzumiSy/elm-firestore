@@ -1,16 +1,17 @@
 import worker from "./worker.js";
 import Seed from "./seed.js";
 import * as test from "ava";
-
-// Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
-// Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
-global.XMLHttpRequest = require("xhr2");
+import xhr2 from "xhr2";
 
 //
 // The reason why integration uses AVA as a runner is that it supports concurrent testing.
 // Firestore integration heaviliy depends on IO performance of Firestore which is really slow.
 // So cuncurrency is a key to reduce time to run integration tests.
 //
+
+// Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
+// Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
+global.XMLHttpRequest = xhr2;
 
 const config = {
   apiKey: "test-api-key",
