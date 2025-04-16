@@ -1,19 +1,21 @@
-const seeds = require("./seeds.json");
-const { initializeApp } = require("firebase/app");
-const {
+import { createRequire } from "node:module";
+import { initializeApp } from "firebase/app";
+import {
   getDocs,
   collection,
   doc,
-  getDoc,
   getFirestore,
   connectFirestoreEmulator,
   setDoc,
   addDoc,
   writeBatch,
   deleteDoc,
-} = require("firebase/firestore");
+} from "firebase/firestore";
 
-class Seed {
+const require = createRequire(import.meta.url);
+const seeds = require("./seeds.json");
+
+export default class Seed {
   constructor({ apiKey, projectId, host, port }) {
     initializeApp({ apiKey, projectId });
     this.db = getFirestore();
@@ -57,5 +59,3 @@ class Seed {
     );
   }
 }
-
-module.exports = Seed;

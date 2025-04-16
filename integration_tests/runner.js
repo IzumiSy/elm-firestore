@@ -1,16 +1,17 @@
-const worker = require("./worker");
-const test = require("ava");
-const Seed = require("./seed");
-
-// Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
-// Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
-global.XMLHttpRequest = require("xhr2");
+import Seed from "./seed.js";
+import test, { registerCompletionHandler } from "ava";
+import xhr2 from "xhr2";
+import { loadElmWorker } from "./loader.js";
 
 //
 // The reason why integration uses AVA as a runner is that it supports concurrent testing.
 // Firestore integration heaviliy depends on IO performance of Firestore which is really slow.
 // So cuncurrency is a key to reduce time to run integration tests.
 //
+
+// Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
+// Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.
+global.XMLHttpRequest = xhr2;
 
 const config = {
   apiKey: "test-api-key",
@@ -26,9 +27,9 @@ const seed = new Seed({
   port: config.port,
 });
 
-const w = worker.Elm.Worker;
+const worker = loadElmWorker();
 const runner = (triggerName, resultName) => {
-  const app = w.init({
+  const app = worker.init({
     flags: {
       apiKey: config.apiKey,
       project: config.projectId,
@@ -54,6 +55,10 @@ test.before("Seeds Firestore", () => {
 
 test.after("Cleanup Firestore", () => {
   return seed.clear();
+});
+
+registerCompletionHandler(() => {
+  process.exit();
 });
 
 //
