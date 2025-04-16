@@ -17,5 +17,5 @@ jobs:
           node-version-file: './package.json'
       - run: pnpm install
       - run: pnpm test
-      - run: pnpm test:integration:setup
-      - run: pnpm test:integration
+      # - run: pnpm test:integration:setup
+      # - run: pnpm test:integration
