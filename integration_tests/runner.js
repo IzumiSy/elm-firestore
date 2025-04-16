@@ -1,6 +1,6 @@
-const worker = require("./worker");
-const test = require("ava");
-const Seed = require("./seed");
+import worker from "./worker.js";
+import Seed from "./seed.js";
+import * as test from "ava";
 
 // Http module in Platform.worker in Elm internally calls XMLHttpRequest in requesting remote data.
 // Node.js itself basically does not provide XMLHttpRequest, so here injects "xhr2" instead.

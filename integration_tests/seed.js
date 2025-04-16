@@ -1,17 +1,16 @@
-const seeds = require("./seeds.json");
-const { initializeApp } = require("firebase/app");
-const {
+import seeds from "./seeds.json";
+import { initializeApp } from "firebase-admin/app";
+import {
   getDocs,
   collection,
   doc,
-  getDoc,
   getFirestore,
   connectFirestoreEmulator,
   setDoc,
   addDoc,
   writeBatch,
   deleteDoc,
-} = require("firebase/firestore");
+} from "firebase/firestore";
 
 class Seed {
   constructor({ apiKey, projectId, host, port }) {
