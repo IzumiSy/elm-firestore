@@ -172,6 +172,7 @@ $ pnpm test
 ```
 
 ### Integration testing
+
 This requires you to install Open JDK to run Firestore Emulator.
 
 ```shell

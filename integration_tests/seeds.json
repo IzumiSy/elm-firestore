@@ -18,14 +18,8 @@
       { "type": "tel", "value": "202-555-0132" },
       { "type": "tel", "value": "202-555-0123" }
     ],
-    "user2": [
-      { "type": "tel", "value": "202-555-0152" }
-    ],
-    "user3": [
-      { "type": "occupation", "value": "doctor" }
-    ],
-    "user4": [
-      { "type": "occupation", "value": "painter" }
-    ]
+    "user2": [{ "type": "tel", "value": "202-555-0152" }],
+    "user3": [{ "type": "occupation", "value": "doctor" }],
+    "user4": [{ "type": "occupation", "value": "painter" }]
   }
 }
