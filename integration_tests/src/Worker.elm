@@ -3,7 +3,6 @@ port module Worker exposing (main)
 import Firestore
 import Firestore.Codec as Codec
 import Firestore.Config as Config
-import Result.Extra as ExResult
 import Firestore.Encode as FSEncode
 import Firestore.Options.List as ListOptions
 import Firestore.Options.Patch as PatchOptions
@@ -12,6 +11,7 @@ import Http
 import Json.Encode as Encode
 import List
 import Maybe
+import Result.Extra as ExResult
 import Task
 
 
@@ -21,6 +21,7 @@ type alias Flag =
     , host : String
     , port_ : Int
     }
+
 
 type alias Model =
     Firestore.Firestore
@@ -128,11 +129,11 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.list
+                |> Task.andThen
+                    (Firestore.list
                         (Codec.asDecoder codec)
                         (ListOptions.pageSize 3 ListOptions.default)
-                )
+                    )
                 |> Task.attempt RanTestListPageSize
             )
 
@@ -157,11 +158,11 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.list
+                |> Task.andThen
+                    (Firestore.list
                         (Codec.asDecoder codec)
                         (ListOptions.pageSize 2 ListOptions.default)
-                )
+                    )
                 |> Task.map .nextPageToken
                 |> Task.andThen
                     (Maybe.map
@@ -171,15 +172,15 @@ update msg model =
                                 |> Firestore.collection "users"
                                 |> Firestore.build
                                 |> ExResult.toTask
-                                |> Task.andThen (
-                                    Firestore.list
+                                |> Task.andThen
+                                    (Firestore.list
                                         (Codec.asDecoder codec)
                                         (ListOptions.default
                                             |> ListOptions.pageToken pageToken
                                             |> ListOptions.pageSize 2
                                             |> ListOptions.orderBy (ListOptions.Desc "age")
                                         )
-                                )
+                                    )
                         )
                         >> Maybe.withDefault (Task.fail <| Firestore.Http_ <| Http.BadStatus -1)
                     )
@@ -209,14 +210,14 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen(
-                    Firestore.list
+                |> Task.andThen
+                    (Firestore.list
                         (Codec.asDecoder codec)
                         (ListOptions.orderBy
                             (ListOptions.Desc "age")
                             ListOptions.default
                         )
-                )
+                    )
                 |> Task.attempt RanTestListDesc
             )
 
@@ -243,14 +244,14 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.list
+                |> Task.andThen
+                    (Firestore.list
                         (Codec.asDecoder codec)
                         (ListOptions.orderBy
                             (ListOptions.Asc "age")
                             ListOptions.default
                         )
-                )
+                    )
                 |> Task.attempt RanTestListAsc
             )
 
@@ -276,15 +277,15 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
                             |> Query.where_
                                 (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryFieldOp
             )
 
@@ -307,8 +308,8 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
@@ -318,7 +319,7 @@ update msg model =
                                     [ Query.fieldFilter "age" Query.LessThan (Query.int 30) ]
                                 )
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryCompositeOp
             )
 
@@ -341,15 +342,15 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
                             |> Query.where_
                                 (Query.unaryFilter "name" Query.IsNull)
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryUnaryOp
             )
 
@@ -372,8 +373,8 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
@@ -381,7 +382,7 @@ update msg model =
                             |> Query.where_
                                 (Query.fieldFilter "age" Query.GreaterThanOrEqual (Query.int 20))
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryOrderBy
             )
 
@@ -406,15 +407,15 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
                             |> Query.where_
                                 (Query.fieldFilter "name" Query.Equal (Query.string "name_not_found_on_seed"))
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryEmpty
             )
 
@@ -437,8 +438,8 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder codec)
                         (Query.new
                             |> Query.collection "users"
@@ -451,7 +452,7 @@ update msg model =
                                     [ Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 40) ]
                                 )
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryComplex
             )
 
@@ -478,15 +479,15 @@ update msg model =
                 |> Firestore.document "user0"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder extraCodec)
                         (Query.new
                             |> Query.collection "extras"
                             |> Query.where_
                                 (Query.fieldFilter "type" Query.Equal (Query.string "tel"))
                         )
-                )
+                    )
                 |> Task.attempt RanTestQuerySubCollection
             )
 
@@ -509,15 +510,15 @@ update msg model =
                 |> Firestore.root
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.runQuery
+                |> Task.andThen
+                    (Firestore.runQuery
                         (Codec.asDecoder extraCodec)
                         (Query.new
                             |> Query.collectionGroup "extras"
                             |> Query.where_
-                               (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
+                                (Query.fieldFilter "type" Query.Equal (Query.string "occupation"))
                         )
-                )
+                    )
                 |> Task.attempt RanTestQueryCollectionGroup
             )
 
@@ -541,11 +542,11 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.insert
+                |> Task.andThen
+                    (Firestore.insert
                         (Codec.asDecoder codec)
                         (Codec.asEncoder codec { name = "thomas", age = 26 })
-                )
+                    )
                 |> Task.map .name
                 |> Task.attempt RanTestInsert
             )
@@ -566,13 +567,13 @@ update msg model =
                 |> Firestore.collection "users"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.create
+                |> Task.andThen
+                    (Firestore.create
                         (Codec.asDecoder codec)
                         { id = "jessy"
                         , document = Codec.asEncoder codec { name = "jessy", age = 27 }
                         }
-                )
+                    )
                 |> Task.map .name
                 |> Task.attempt RanTestCreate
             )
@@ -594,11 +595,11 @@ update msg model =
                 |> Firestore.document "user10"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.upsert
+                |> Task.andThen
+                    (Firestore.upsert
                         (Codec.asDecoder codec)
                         (Codec.asEncoder codec { name = "jonathan", age = 21 })
-                )
+                    )
                 |> Task.map .name
                 |> Task.attempt RanTestUpsert
             )
@@ -620,11 +621,11 @@ update msg model =
                 |> Firestore.document "user0"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.upsert
+                |> Task.andThen
+                    (Firestore.upsert
                         (Codec.asDecoder codec)
                         (Codec.asEncoder codec { name = "user0updated", age = 0 })
-                )
+                    )
                 |> Task.andThen
                     (\_ ->
                         model
@@ -660,14 +661,14 @@ update msg model =
                 |> Firestore.document "user0"
                 |> Firestore.build
                 |> ExResult.toTask
-                |> Task.andThen (
-                    Firestore.patch
+                |> Task.andThen
+                    (Firestore.patch
                         (Codec.asDecoder patchedCodec)
                         (PatchOptions.empty
                             |> PatchOptions.addDelete "age"
                             |> PatchOptions.addUpdate "name" (FSEncode.string "user0patched")
                         )
-                )
+                    )
                 |> Task.attempt RanTestPatch
             )
 
@@ -798,12 +799,16 @@ update msg model =
                                     |> Firestore.build
                         in
                         ExResult.toTask <|
-                            Result.map3 (\user0 user1 user2 ->
-                                transaction
-                                    |> Firestore.updateTx user0 (Codec.asEncoder codec { name = "user0updated", age = 0 })
-                                    |> Firestore.updateTx user1 (Codec.asEncoder codec { name = "user1updated", age = 10 })
-                                    |> Firestore.deleteTx user2
-                            ) user0r user1r user2r
+                            Result.map3
+                                (\user0 user1 user2 ->
+                                    transaction
+                                        |> Firestore.updateTx user0 (Codec.asEncoder codec { name = "user0updated", age = 0 })
+                                        |> Firestore.updateTx user1 (Codec.asEncoder codec { name = "user1updated", age = 10 })
+                                        |> Firestore.deleteTx user2
+                                )
+                                user0r
+                                user1r
+                                user2r
                     )
                 |> Task.andThen (Firestore.commit model)
                 |> Task.attempt RanTestTransaction
@@ -841,11 +846,12 @@ update msg model =
                             |> Firestore.document "user0"
                             |> Firestore.build
                             |> ExResult.toTask
-                            |> Task.andThen (\path ->
-                                transaction
-                                    |> Firestore.updateTx path (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
-                                    |> Firestore.commit model
-                            )
+                            |> Task.andThen
+                                (\path ->
+                                    transaction
+                                        |> Firestore.updateTx path (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = 0 })
+                                        |> Firestore.commit model
+                                )
                     )
                 |> Task.attempt RanTestGetTx
             )
@@ -876,24 +882,28 @@ update msg model =
                 |> Task.andThen
                     (\( transaction, documents ) ->
                         documents
-                            |> List.map (\{ name, fields } ->
-                                model
-                                    |> Firestore.root
-                                    |> Firestore.collection "users"
-                                    |> Firestore.document (Firestore.id name)
-                                    |> Firestore.build
-                                    |> (\pathR -> ( pathR, fields ))
-                            )
-                            |> List.foldr (\( pathR, fields ) transaction_ ->
-                                pathR
-                                    |> Result.map (\path ->
-                                        Firestore.updateTx
-                                            path
-                                            (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
-                                            transaction_
-                                    )
-                                    |> Result.withDefault transaction_
-                            ) transaction
+                            |> List.map
+                                (\{ name, fields } ->
+                                    model
+                                        |> Firestore.root
+                                        |> Firestore.collection "users"
+                                        |> Firestore.document (Firestore.id name)
+                                        |> Firestore.build
+                                        |> (\pathR -> ( pathR, fields ))
+                                )
+                            |> List.foldr
+                                (\( pathR, fields ) transaction_ ->
+                                    pathR
+                                        |> Result.map
+                                            (\path ->
+                                                Firestore.updateTx
+                                                    path
+                                                    (Codec.asEncoder codec { name = fields.name ++ "txUpdated", age = fields.age })
+                                                    transaction_
+                                            )
+                                        |> Result.withDefault transaction_
+                                )
+                                transaction
                             |> Firestore.commit model
                     )
                 |> Task.attempt RanTestListTx
@@ -918,8 +928,8 @@ update msg model =
                             |> Firestore.root
                             |> Firestore.build
                             |> ExResult.toTask
-                            |> Task.andThen(
-                                Firestore.runQueryTx
+                            |> Task.andThen
+                                (Firestore.runQueryTx
                                     transaction
                                     (Codec.asDecoder codec)
                                     (Query.new
@@ -927,34 +937,38 @@ update msg model =
                                         |> Query.where_
                                             (Query.fieldFilter "age" Query.LessThanOrEqual (Query.int 20))
                                     )
-                            )
+                                )
                             |> Task.map (\results -> ( transaction, results ))
                     )
                 |> Task.andThen
                     (\( transaction, results ) ->
                         results
-                            |> List.map (\{ document } ->
-                                model
-                                    |> Firestore.root
-                                    |> Firestore.collection "users"
-                                    |> Firestore.document (Firestore.id document.name)
-                                    |> Firestore.build
-                                    |> (\pathR -> ( pathR, document ))
-                            )
-                            |> List.foldr (\( pathR, document ) transaction_ ->
-                                pathR
-                                    |> Result.map (\path ->
-                                        Firestore.updateTx
-                                            path
-                                            (Codec.asEncoder codec
-                                                { name = document.fields.name ++ "txUpdated"
-                                                , age = document.fields.age
-                                                }
+                            |> List.map
+                                (\{ document } ->
+                                    model
+                                        |> Firestore.root
+                                        |> Firestore.collection "users"
+                                        |> Firestore.document (Firestore.id document.name)
+                                        |> Firestore.build
+                                        |> (\pathR -> ( pathR, document ))
+                                )
+                            |> List.foldr
+                                (\( pathR, document ) transaction_ ->
+                                    pathR
+                                        |> Result.map
+                                            (\path ->
+                                                Firestore.updateTx
+                                                    path
+                                                    (Codec.asEncoder codec
+                                                        { name = document.fields.name ++ "txUpdated"
+                                                        , age = document.fields.age
+                                                        }
+                                                    )
+                                                    transaction_
                                             )
-                                            transaction_
-                                    )
-                                    |> Result.withDefault transaction_
-                            ) transaction
+                                        |> Result.withDefault transaction_
+                                )
+                                transaction
                             |> Firestore.commit model
                     )
                 |> Task.attempt RanTestQueryTx
@@ -1025,10 +1039,12 @@ patchedCodec =
         |> Codec.required "name" .name Codec.string
         |> Codec.build
 
+
 type alias Extra =
     { type_ : String
     , value : String
     }
+
 
 extraCodec : Codec.Codec Extra
 extraCodec =
@@ -1036,6 +1052,7 @@ extraCodec =
         |> Codec.required "type" .type_ Codec.string
         |> Codec.required "value" .value Codec.string
         |> Codec.build
+
 
 
 -- subscriptions
