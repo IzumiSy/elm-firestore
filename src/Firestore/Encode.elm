@@ -49,6 +49,9 @@ encode (Encoder fields) =
 -- Constructors
 
 {-| A builder for Firestore encoders}
+
+`Json.Encode.Value` can be generated from this through `build` function.
+
 -}
 type Builder
     = Builder (Dict.Dict String ValidatedField)
@@ -71,18 +74,25 @@ type ValidatedField
 
 
 {-| Initializes a new builder for encoders
+
+    Firestore.Encode.new
+        |> Firestore.Encode.field "name" (Firestore.Encode.string "stringValue")
+        |> Firestore.Encode.field "age" (Firestore.Encode.int 10)
+        |> Firestore.Encode.build
+
 -}
 new : Builder
 new =
     Builder Dict.empty
 
-
+{-| A function to define document fields in a builder
+-}
 field : String -> Field b -> Builder -> Builder
 field name field_ (Builder encoders) =
     Builder <| Dict.insert name (ValidatedField (unfield field_)) encoders
 
 
-{-| Generates an encoder from builders
+{-| Generates an encoder from an instance of `Builder`
 -}
 build : Builder -> Encoder
 build (Builder fields) =
