@@ -48,7 +48,7 @@ encode (Encoder fields) =
 
 -- Constructors
 
-{-| A builder for Firestore encoders}
+{-| A builder for Firestore encoders
 
 `Json.Encode.Value` can be generated from this through `build` function.
 
