@@ -1,6 +1,6 @@
 module Firestore.Config exposing
     ( Config
-    , new, withAuthorization, withDatabase, withHost
+    , new, withAuthorization, withAPIKey, withDatabase, withHost
     , endpoint, Appender(..), httpHeader, basePath
     )
 
@@ -11,7 +11,7 @@ module Firestore.Config exposing
 
 # Constructors
 
-@docs new, withAuthorization, withDatabase, withHost
+@docs new, withAuthorization, withAPIKey, withDatabase, withHost
 
 
 # Extractors
@@ -45,9 +45,9 @@ This type internally has all information which is required to send requests to F
 -}
 type Config
     = Config
-        { apiKey : APIKey
-        , project : ProjectId
+        { project : ProjectId
         , database : DatabaseId
+        , apiKey : Maybe APIKey
         , authorization : Maybe Authorization
         , baseUrl : BaseUrl
         }
@@ -55,12 +55,12 @@ type Config
 
 {-| Creates a new Config
 -}
-new : { apiKey : String, project : String } -> Config
+new : { project : String } -> Config
 new config =
     Config
-        { apiKey = Typed.new config.apiKey
-        , project = Typed.new config.project
+        { project = Typed.new config.project
         , database = defaultDatabase
+        , apiKey = Nothing
         , authorization = Nothing
         , baseUrl = Typed.new "https://firestore.googleapis.com"
         }
@@ -93,11 +93,19 @@ endpoint params appender ((Config { apiKey, baseUrl }) as config) =
 
                     else
                         [ basePath config ++ ":" ++ op ]
+
+        qs =
+            case apiKey of
+                Just apiKey_ ->
+                    List.append params [ UrlBuilder.string "key" (Typed.value apiKey_) ]
+
+                Nothing ->
+                    params
     in
     UrlBuilder.crossOrigin
         (Typed.value baseUrl)
         ("v1" :: path)
-        (List.append params [ UrlBuilder.string "key" (Typed.value apiKey) ])
+        qs
 
 
 {-| Builds a path that can be used in a document name
@@ -144,6 +152,16 @@ type alias Authorization =
 withAuthorization : String -> Config -> Config
 withAuthorization value (Config config) =
     Config { config | authorization = Just <| Typed.new value }
+
+
+{-| Specifies Firebase API key.
+
+[api-keys]: https://firebase.google.com/docs/projects/api-keys
+
+-}
+withAPIKey : String -> Config -> Config
+withAPIKey value (Config config) =
+    Config { config | apiKey = Just <| Typed.new value }
 
 
 {-| Extracts authorization with bearer prefix as `Http.Header`.

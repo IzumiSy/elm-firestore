@@ -12,10 +12,10 @@ suite =
     Test.describe "config"
         [ Test.test "endpoint" <|
             \_ ->
-                { apiKey = "test-apiKey"
-                , project = "test-project"
+                { project = "test-project"
                 }
                     |> Config.new
+                    |> Config.withAPIKey "test-apiKey"
                     |> Config.endpoint
                         [ UrlBuilder.int "pageSize" 10
                         , UrlBuilder.string "orderBy" "name"
