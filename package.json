@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "build": "elm make",
-    "publish": "elm publish",
+    "elm:publish": "elm publish",
     "test": "elm-test",
     "test:integration:setup": "firebase setup:emulators:firestore",
     "test:integration": "./integration_tests/test.sh"
