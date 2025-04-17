@@ -12,7 +12,7 @@ suite =
     Test.describe "config"
         [ Test.test "endpoint" <|
             \_ ->
-                {  project = "test-project"
+                { project = "test-project"
                 }
                     |> Config.new
                     |> Config.withAPIKey "test-apiKey"
