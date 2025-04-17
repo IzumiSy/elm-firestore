@@ -48,7 +48,8 @@ encode (Encoder fields) =
 
 -- Constructors
 
-
+{-| A builder for Firestore encoders}
+-}
 type Builder
     = Builder (Dict.Dict String ValidatedField)
 
